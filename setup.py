@@ -58,7 +58,7 @@ class CheckUpToDate(Command):
 
 
 setup(
-    name="linstor",
+    name="python-linstor",
     version='0.2.0',
     description="Linstor python api",
     long_description="Python linstor api interface",
