@@ -26,7 +26,7 @@ from setuptools.command import build_py
 
 
 def get_version():
-    from linstor_client.consts import VERSION
+    from linstor import VERSION
     return VERSION
 
 

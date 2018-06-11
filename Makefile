@@ -45,12 +45,12 @@ gensrc:
 	make -C linstor-common python
 
 # no gensrc here, that is in debian/rules
-deb: up2date
+deb: gensrc up2date
 	[ -d ./debian ] || (echo "Your checkout/tarball does not contain a debian directory" && false)
 	debuild -i -us -uc -b
 
 # it is up to you (or the buildenv) to provide a distri specific setup.cfg
-rpm: up2date gensrc
+rpm: gensrc up2date
 	$(PYTHON) setup.py bdist_rpm
 
 .PHONY: linstor/consts_githash.py
