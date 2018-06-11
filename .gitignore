@@ -6,10 +6,8 @@
 *.pyc
 
 # make generated files
-man-pages/
 dist/
-linstor_client.egg-info/
-build
+build/
 MANIFEST
 
 # ignore generated protobuf messages and shared consts
@@ -23,6 +21,5 @@ linstor/consts_githash.py
 linstor/drbdsetup_options.py
 
 # unittests ignores
-build/
 test-reports/
 .cache/
