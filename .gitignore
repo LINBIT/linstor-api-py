@@ -4,7 +4,7 @@
 
 # ignore "compiled" python
 *.pyc
-linstor.egg-info/
+python_linstor.egg-info/
 
 # make generated files
 dist/
