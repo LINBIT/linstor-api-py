@@ -72,7 +72,10 @@ md5sums:
 clean:
 	$(PYTHON) setup.py clean
 
-distclean: clean
+clean-protobuf:
+	find ./linstor/proto/ ! -name '__init__.py' -type f -exec rm -f {} +
+
+distclean: clean clean-protobuf
 	git clean -d -f || true
 
 check:
