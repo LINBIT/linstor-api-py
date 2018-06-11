@@ -79,6 +79,7 @@ from linstor.proto.MsgReqErrorReport_pb2 import MsgReqErrorReport
 from linstor.proto.MsgErrorReport_pb2 import MsgErrorReport
 from linstor.proto.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
 from linstor.proto.MsgDelSnapshot_pb2 import MsgDelSnapshot
+from linstor.proto.MsgRestoreSnapshotRsc_pb2 import MsgRestoreSnapshotRsc
 from linstor.proto.Filter_pb2 import Filter
 from linstor.proto.eventdata.EventVlmDiskState_pb2 import EventVlmDiskState
 from linstor.proto.eventdata.EventRscState_pb2 import EventRscState
@@ -1631,6 +1632,28 @@ class Linstor(object):
             apiconsts.EVENT_SNAPSHOT_DEPLOYMENT,
             ObjectIdentifier(resource_name=rsc_name, snapshot_name=snapshot_name)
         )
+
+    def snapshot_resource_restore(self, node_names, from_resource, from_snapshot, to_resource):
+        """
+        Restore from a snapshot.
+
+        :param list[str] node_names: Names of the nodes.
+        :param str from_resource: Name of the snapshot resource.
+        :param str from_snapshot: Name of the snapshot.
+        :param str to_resource: Name of the new resource.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgRestoreSnapshotRsc()
+
+        for node_name in node_names:
+            node = msg.nodes.add()
+            node.name = node_name
+
+        msg.from_resource_name = from_resource
+        msg.from_snapshot_name = from_snapshot
+        msg.to_resource_name = to_resource
+        return self._send_and_wait(apiconsts.API_RESTORE_SNAPSHOT, msg)
 
     def snapshot_delete(self, rsc_name, snapshot_name):
         """
