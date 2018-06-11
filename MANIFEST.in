@@ -1,0 +1,10 @@
+include linstor-common/linstor/proto/*.proto
+include linstor-common/linstor/proto/eventdata/*.proto
+include linstor-common/*.json
+include linstor-common/*.py
+include linstor-common/*.xml
+include linstor-common/Makefile
+include MANIFEST.in
+include COPYING
+include README.md
+include Makefile

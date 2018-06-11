@@ -28,7 +28,7 @@ endif
 linstor/drbdsetup_options.py:
 	linstor-common/gendrbdoptions.py python $@
 
-release: up2date clean
+release: gensrc up2date clean
 	$(PYTHON) setup.py sdist
 	@echo && echo "Did you run distclean?"
 	@echo && echo "Did you generate and commit the latest drbdsetup options?"

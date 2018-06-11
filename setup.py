@@ -20,14 +20,18 @@
 
 import os
 import sys
-import subprocess
 from setuptools import setup, Command
-from setuptools.command import build_py
 
 
 def get_version():
     from linstor import VERSION
     return VERSION
+
+
+# used to overwrite version tag by internal build tools
+# keep it, even if you don't understand it.
+def get_setup_version():
+    return get_version()
 
 
 class CheckUpToDate(Command):
@@ -53,14 +57,6 @@ class CheckUpToDate(Command):
             return True
 
 
-class GenerateProtoSourcesCommand(build_py.build_py):
-    """Generates python protobuf messages"""
-
-    def run(self):
-        subprocess.check_call(["make", "gensrc"])
-        build_py.build_py.run(self)
-
-
 setup(
     name="linstor",
     version='0.2.0',
@@ -77,7 +73,6 @@ setup(
     packages=['linstor', 'linstor/proto', 'linstor/proto/eventdata', 'linstor/protobuf_to_dict'],
     # package_data={},
     cmdclass={
-        "build_py": GenerateProtoSourcesCommand,
         "versionup2date": CheckUpToDate
     },
     test_suite="tests"
