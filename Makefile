@@ -71,7 +71,6 @@ md5sums:
 
 clean:
 	$(PYTHON) setup.py clean
-	rm -f man-pages/*.gz
 
 distclean: clean
 	git clean -d -f || true
