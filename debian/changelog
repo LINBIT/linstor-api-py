@@ -1,8 +1,8 @@
-python-linstor (0.2.0-1ubuntu1) experimental; urgency=medium
+python-linstor (0.2.0-1) experimental; urgency=medium
 
   [ Hayley Swimelar ]
   * subparsify resource commands
-  * add volume and additonal resource subcommands
+  * add volume and additional resource subcommands
   * add in node command subparsers
   * add in resource definition subparsers
   * add in volume definition subparsers
@@ -13,7 +13,7 @@ python-linstor (0.2.0-1ubuntu1) experimental; urgency=medium
   * clean up subcommands on top level parser
   * add in controller subparser
   * make describe node fit new api
-  * add helper function to create descriptons for subparsers
+  * add helper function to create descriptions for subparsers
   * add description for node subcommands
   * add help output for resource subcommands
   * add help output for resource dfn subcommands
