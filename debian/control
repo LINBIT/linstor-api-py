@@ -24,6 +24,7 @@ Depends: ${misc:Depends},
          python-protobuf,
          ${python:Depends}
 Description: Linstor python api library
- This library provides functions to access the Linstor controller to add nodes and resources
+ This library provides functions to access the Linstor controller
+ to add nodes and resources
  .
  TODO: provide more information.
