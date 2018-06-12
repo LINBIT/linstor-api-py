@@ -79,6 +79,7 @@ from linstor.proto.MsgReqErrorReport_pb2 import MsgReqErrorReport
 from linstor.proto.MsgErrorReport_pb2 import MsgErrorReport
 from linstor.proto.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
 from linstor.proto.MsgDelSnapshot_pb2 import MsgDelSnapshot
+from linstor.proto.MsgRestoreSnapshotVlmDfn_pb2 import MsgRestoreSnapshotVlmDfn
 from linstor.proto.MsgRestoreSnapshotRsc_pb2 import MsgRestoreSnapshotRsc
 from linstor.proto.Filter_pb2 import Filter
 from linstor.proto.eventdata.EventVlmDiskState_pb2 import EventVlmDiskState
@@ -1632,6 +1633,22 @@ class Linstor(object):
             apiconsts.EVENT_SNAPSHOT_DEPLOYMENT,
             ObjectIdentifier(resource_name=rsc_name, snapshot_name=snapshot_name)
         )
+
+    def snapshot_volume_definition_restore(self, from_resource, from_snapshot, to_resource):
+        """
+        Create volume definitions from a snapshot.
+
+        :param str from_resource: Name of the snapshot resource.
+        :param str from_snapshot: Name of the snapshot.
+        :param str to_resource: Name of the new resource.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgRestoreSnapshotVlmDfn()
+        msg.from_resource_name = from_resource
+        msg.from_snapshot_name = from_snapshot
+        msg.to_resource_name = to_resource
+        return self._send_and_wait(apiconsts.API_RESTORE_VLM_DFN, msg)
 
     def snapshot_resource_restore(self, node_names, from_resource, from_snapshot, to_resource):
         """
