@@ -20,12 +20,20 @@
 
 import os
 import sys
+import re
 from setuptools import setup, Command
 
 
 def get_version():
-    from linstor import VERSION
-    return VERSION
+    with open('linstor/__init__.py') as linstor_init:
+        for line in linstor_init:
+            if line.startswith('VERSION'):
+                m = re.search(r'"(.*)"', line)
+                if m:
+                    return m.group(1)
+                else:
+                    raise RuntimeError("Unable to parse version: " + line)
+    raise RuntimeError("Unable to find version string.")
 
 
 # used to overwrite version tag by internal build tools
