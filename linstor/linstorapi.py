@@ -1612,10 +1612,11 @@ class Linstor(object):
         msg = self._modify_props(msg, property_dict, delete_props)
         return self._send_and_wait(apiconsts.API_MOD_RSC_CONN, msg)
 
-    def snapshot_create(self, rsc_name, snapshot_name, async):
+    def snapshot_create(self, node_names, rsc_name, snapshot_name, async):
         """
         Create a snapshot.
 
+        :param list[str] node_names: Names of the nodes.
         :param str rsc_name: Name of the resource.
         :param str snapshot_name: Name of the new snapshot.
         :param bool async: True to return without waiting for the action to complete on the satellites.
@@ -1623,6 +1624,10 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
         msg = MsgCrtSnapshot()
+
+        for node_name in node_names:
+            snapshot = msg.snapshot_dfn.snapshots.add()
+            snapshot.node_name = node_name
 
         msg.snapshot_dfn.rsc_name = rsc_name
         msg.snapshot_dfn.snapshot_name = snapshot_name
