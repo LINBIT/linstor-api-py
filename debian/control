@@ -8,6 +8,7 @@ Priority: optional
 # Build-Depends: python-all (>= 2.6.6-3), debhelper (>= 9), dh-python, ...
 Build-Depends: bash-completion,
                debhelper (>= 9),
+               dh-python,
                docbook-xsl,
                help2man,
                protobuf-compiler,
