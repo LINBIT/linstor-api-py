@@ -1509,7 +1509,10 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
         msg = MsgDelCtrlCfgProp()
-        msg.key, msg.namespace = self._split_prop_key(key)
+        split_key, ns = self._split_prop_key(key)
+        msg.key = split_key
+        if ns:
+            msg.namespace = ns
 
         return self._send_and_wait(apiconsts.API_DEL_CFG_VAL, msg)
 
