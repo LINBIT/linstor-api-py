@@ -2,6 +2,7 @@ from .linstorapi import LinstorError, LinstorNetworkError
 from .linstorapi import ObjectIdentifier
 from .linstorapi import ApiCallResponse, ErrorReport
 from .linstorapi import Linstor
+import sharedconsts as consts
 
 VERSION = "0.2.0"
 
