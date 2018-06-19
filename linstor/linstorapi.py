@@ -71,6 +71,7 @@ from linstor.proto.MsgLstCtrlCfgProps_pb2 import MsgLstCtrlCfgProps
 from linstor.proto.MsgDelCtrlCfgProp_pb2 import MsgDelCtrlCfgProp
 from linstor.proto.MsgControlCtrl_pb2 import MsgControlCtrl
 from linstor.proto.MsgCrtWatch_pb2 import MsgCrtWatch
+from linstor.proto.MsgDelWatch_pb2 import MsgDelWatch
 from linstor.proto.MsgEnterCryptPassphrase_pb2 import MsgEnterCryptPassphrase
 from linstor.proto.MsgCrtCryptPassphrase_pb2 import MsgCrtCryptPassphrase
 from linstor.proto.MsgModCryptPassphrase_pb2 import MsgModCryptPassphrase
@@ -817,31 +818,40 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
 
-        if not async:
-            watch_responses = self.create_watch(object_identifier)
+        if async:
+            watch_id = None
+        else:
+            watch_id = self._linstor_client.next_watch_id()
 
-            if not self.all_api_responses_success(watch_responses):
-                return watch_responses
+        try:
+            if not async:
+                watch_responses = self.create_watch(watch_id, object_identifier)
 
-        api_call_responses = self._send_and_wait(api_call, msg)
-        if async or not self.all_api_responses_success(api_call_responses):
-            return api_call_responses
+                if not self.all_api_responses_success(watch_responses):
+                    return watch_responses
 
-        def event_handler(event_header, event_data):
-            if event_header.event_name == event_name and event_data and event_data.responses:
-                responses = [ApiCallResponse(response) for response in event_data.responses]
-                if event_header.event_action in [
-                    apiconsts.EVENT_STREAM_CLOSE_REMOVED,
-                    apiconsts.EVENT_STREAM_CLOSE_NO_CONNECTION
-                ]:
-                    return api_call_responses + responses
-                else:
-                    failure_responses = self.return_if_failure(responses)
-                    if failure_responses is not None:
+            api_call_responses = self._send_and_wait(api_call, msg)
+            if async or not self.all_api_responses_success(api_call_responses):
+                return api_call_responses
+
+            def event_handler(event_header, event_data):
+                if event_header.event_name == event_name and event_data and event_data.responses:
+                    responses = [ApiCallResponse(response) for response in event_data.responses]
+                    if event_header.event_action in [
+                        apiconsts.EVENT_STREAM_CLOSE_REMOVED,
+                        apiconsts.EVENT_STREAM_CLOSE_NO_CONNECTION
+                    ]:
                         return api_call_responses + responses
-            return None
+                    else:
+                        failure_responses = self.return_if_failure(responses)
+                        if failure_responses is not None:
+                            return api_call_responses + responses
+                return None
 
-        return self._linstor_client.wait_for_events(event_handler)
+            return self._linstor_client.wait_for_events(event_handler)
+        finally:
+            if watch_id is not None:
+                self._delete_watch(watch_id)
 
     def connect(self):
         """
@@ -1527,18 +1537,31 @@ class Linstor(object):
         msg.command = apiconsts.API_CMD_SHUTDOWN
         return self._send_and_wait(apiconsts.API_CONTROL_CTRL, msg)
 
-    def create_watch(self, object_identifier):
+    def create_watch(self, watch_id, object_identifier):
         """
         Create watch for events from the controller.
 
+        :param int watch_id: ID for watch
         :param ObjectIdentifier object_identifier: Object to subscribe for events
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         msg = MsgCrtWatch()
-        msg.watch_id = self._linstor_client.next_watch_id()
+        msg.watch_id = watch_id
         object_identifier.write_to_create_watch_msg(msg)
         return self._send_and_wait(apiconsts.API_CRT_WATCH, msg)
+
+    def _delete_watch(self, watch_id):
+        """
+        Delete watch for events from the controller.
+
+        :param int watch_id: ID for watch
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgDelWatch()
+        msg.watch_id = watch_id
+        return self._send_and_wait(apiconsts.API_DEL_WATCH, msg)
 
     def watch_events(self, reply_handler, event_handler, object_identifier):
         """
@@ -1549,12 +1572,16 @@ class Linstor(object):
         :param ObjectIdentifier object_identifier: Object to subscribe for events
         :return: Return value of reply_handler or event_handler, when not None
         """
-        replies = self.create_watch(object_identifier)
-        reply_handler_result = reply_handler(replies)
-        if reply_handler_result is not None:
-            return reply_handler_result
+        watch_id = self._linstor_client.next_watch_id()
+        try:
+            replies = self.create_watch(watch_id, object_identifier)
+            reply_handler_result = reply_handler(replies)
+            if reply_handler_result is not None:
+                return reply_handler_result
 
-        return self._linstor_client.wait_for_events(event_handler)
+            return self._linstor_client.wait_for_events(event_handler)
+        finally:
+            self._delete_watch(watch_id)
 
     def crypt_create_passphrase(self, passphrase):
         """
