@@ -1284,7 +1284,7 @@ class Linstor(object):
         """
         return self._send_and_wait(apiconsts.API_LST_RSC_DFN)
 
-    def volume_dfn_create(self, rsc_name, size, volume_nr=None, minor_nr=None, encrypt=False):
+    def volume_dfn_create(self, rsc_name, size, volume_nr=None, minor_nr=None, encrypt=False, storage_pool=None):
         """
         Create a new volume definition on the controller.
 
@@ -1293,6 +1293,7 @@ class Linstor(object):
         :param int volume_nr: Volume number to use.
         :param int minor_nr: Minor number to use.
         :param bool encrypt: Encrypt created volumes from this volume definition.
+        :param storage_pool: Storage pool this volume definition will use.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1309,6 +1310,11 @@ class Linstor(object):
 
         if encrypt:
             vlmdf.vlm_flags.extend([apiconsts.FLAG_ENCRYPTED])
+
+        if storage_pool:
+            prop = vlmdf.vlm_props.add()
+            prop.key = apiconsts.KEY_STOR_POOL_NAME
+            prop.value = storage_pool
 
         return self._send_and_wait(apiconsts.API_CRT_VLM_DFN, msg)
 
