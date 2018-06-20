@@ -1382,7 +1382,9 @@ class Linstor(object):
             place_count,
             storage_pool=None,
             do_not_place_with=None,
-            do_not_place_with_regex=None
+            do_not_place_with_regex=None,
+            replicas_on_same=None,
+            replicas_on_different=None
     ):
         """
         Auto places(deploys) a resource to the amount of place_count.
@@ -1392,6 +1394,8 @@ class Linstor(object):
         :param str storage_pool: Storage pool to use
         :param list[str] do_not_place_with: Do not place with resource names in this list
         :param str do_not_place_with_regex: A regex string that rules out resources
+        :param list[str] replicas_on_same: A list of node property names, their values should match
+        :param list[str] replicas_on_different: A list of node property names, their values should not match
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1405,6 +1409,10 @@ class Linstor(object):
             msg.not_place_with_rsc.extend(do_not_place_with)
         if do_not_place_with_regex:
             msg.not_place_with_rsc_regex = do_not_place_with_regex
+        if replicas_on_same:
+            msg.replicas_on_same.extend(replicas_on_same)
+        if replicas_on_different:
+            msg.replicas_on_different.extend(replicas_on_different)
 
         return self._send_and_wait(apiconsts.API_AUTO_PLACE_RSC, msg)
 
