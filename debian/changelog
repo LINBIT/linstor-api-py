@@ -1,3 +1,51 @@
+python-linstor (0.2.1-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * allow reuse of the Linstor object (disconnect/connect)
+  * linstorapi: add type hint for _LinstorNetClient
+  * move client files into the linstor_client module package
+  * cleanup imports of linstor api modules
+  * update linstor-common to see renamed backing_disk field
+  * update gitignore for linstor api module
+  * add setup.py, makefile and debian package files
+  * linstor doesn't have man pages to clean
+  * setup.py: call make gensrc and include protobuf packages
+  * gitignore: add linstor.egg-info/
+  * add rpm setup.cfg
+  * setup.py: fix version info
+  * packaging: don't generate sources in 'build' step and add README
+  * setup.py: make package name the same for all packages
+  * Makefile: add clean-protobuf command and add to distclean
+  * add api unittests moved from linstor_client
+  * gitignore: update egg-info to new project name
+  * tests: rename to linstor_tests to fix possible name clash
+  * deb: description line too long and gensrc called twice
+  * linstor-common: use vlm.device_path field
+  * setup.py: make version check not depend on working python code
+  * add sharedconsts as consts to linstor module
+  * correctly import sharedconsts in python3
+  * don't create duplicate resource property entries
+  * volumedfn: allow to set a storage pool
+  * add replicas-on-* resource auto-place arguments
+  * create-resource: always send the specified storage pool
+  * debian/clean: fix egg-info path
+
+  [ Joel Colledge ]
+  * Add snapshot delete command
+  * Add snapshot restore API
+  * Add snapshot volume definition restore
+  * Allow nodes to be selected when creating a snapshot
+  * Show nodes and volumes in snapshot list
+  * Fix deletion of controller properties
+  * Add peer slots property
+  * Delete watches when they are no longer needed
+
+  [ Roland Kammerer ]
+  * changelog: fix spelling and release
+  * debian: add dh-python
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 21 Jun 2018 15:25:32 +0200
+
 python-linstor (0.2.0-1) experimental; urgency=medium
 
   [ Hayley Swimelar ]

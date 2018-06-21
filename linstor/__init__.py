@@ -4,7 +4,7 @@ from .linstorapi import ApiCallResponse, ErrorReport
 from .linstorapi import Linstor
 from . import sharedconsts as consts
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 try:
     from linstor.consts_githash import GITHASH
