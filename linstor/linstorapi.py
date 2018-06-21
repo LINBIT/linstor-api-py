@@ -1366,7 +1366,7 @@ class Linstor(object):
         msg.rsc.name = rsc_name
         msg.rsc.node_name = node_name
 
-        if not diskless and storage_pool:
+        if storage_pool:
             prop = msg.rsc.props.add()
             prop.key = apiconsts.KEY_STOR_POOL_NAME
             prop.value = storage_pool
