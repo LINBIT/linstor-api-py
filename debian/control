@@ -3,16 +3,13 @@ Maintainer: LINBIT HA Solutions GmbH <drbd-user@lists.linbit.com>
 Uploaders: Roland Kammerer <roland.kammerer@linbit.com>
 Section: python
 Priority: optional
-# Currently, we do not include dh-python (as suggested by jessie),
-# because it is not available on unbuntu 12.04
-# Build-Depends: python-all (>= 2.6.6-3), debhelper (>= 9), dh-python, ...
 Build-Depends: bash-completion,
                debhelper (>= 9),
                dh-python,
                docbook-xsl,
                help2man,
                protobuf-compiler,
-               python-all (>= 2.6.6-3),
+               python-all (>= 2.7),
                python-protobuf,
                python-setuptools,
                xsltproc
@@ -26,6 +23,5 @@ Depends: ${misc:Depends},
          ${python:Depends}
 Description: Linstor python api library
  This library provides functions to access the Linstor controller
- to add nodes and resources
+ e.g.: add nodes, resources and query object status
  .
- TODO: provide more information.
