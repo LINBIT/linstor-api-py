@@ -776,10 +776,11 @@ class Linstor(object):
 
     @classmethod
     def _modify_props(cls, msg, property_dict, delete_props=None):
-        for key, val in property_dict.items():
-            lin_kv = msg.override_props.add()
-            lin_kv.key = key
-            lin_kv.value = val
+        if property_dict:
+            for key, val in property_dict.items():
+                lin_kv = msg.override_props.add()
+                lin_kv.key = key
+                lin_kv.value = val
 
         if delete_props:
             msg.delete_prop_keys.extend(delete_props)
@@ -1289,7 +1290,7 @@ class Linstor(object):
         Create a new volume definition on the controller.
 
         :param str rsc_name: Name of the resource definition it is linked to.
-        :param int size: Size of the volume definition in kilo bytes.
+        :param int size: Size of the volume definition in kibibytes.
         :param int volume_nr: Volume number to use.
         :param int minor_nr: Minor number to use.
         :param bool encrypt: Encrypt created volumes from this volume definition.
@@ -1318,14 +1319,15 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_CRT_VLM_DFN, msg)
 
-    def volume_dfn_modify(self, rsc_name, volume_nr, property_dict, delete_props=None):
+    def volume_dfn_modify(self, rsc_name, volume_nr, set_properties=None, delete_properties=None, size=None):
         """
         Modify properties of the given volume definition.
 
         :param str rsc_name: Name of the resource definition.
         :param int volume_nr: Volume number of the volume definition.
-        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
-        :param list[str] delete_props: List of properties to delete
+        :param dict[str, str] set_properties: Dict containing key, value pairs for new values.
+        :param list[str] delete_properties: List of properties to delete
+        :param int size: New size of the volume definition in kibibytes.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1333,7 +1335,10 @@ class Linstor(object):
         msg.rsc_name = rsc_name
         msg.vlm_nr = volume_nr
 
-        msg = self._modify_props(msg, property_dict, delete_props)
+        if size:
+            msg.vlm_size = size
+
+        msg = self._modify_props(msg, set_properties, delete_properties)
 
         return self._send_and_wait(apiconsts.API_MOD_VLM_DFN, msg)
 
