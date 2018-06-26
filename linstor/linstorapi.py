@@ -78,6 +78,7 @@ from linstor.proto.MsgModCryptPassphrase_pb2 import MsgModCryptPassphrase
 from linstor.proto.MsgModRscConn_pb2 import MsgModRscConn
 from linstor.proto.MsgReqErrorReport_pb2 import MsgReqErrorReport
 from linstor.proto.MsgErrorReport_pb2 import MsgErrorReport
+from linstor.proto.MsgHostname_pb2 import MsgHostname
 from linstor.proto.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
 from linstor.proto.MsgDelSnapshot_pb2 import MsgDelSnapshot
 from linstor.proto.MsgRestoreSnapshotVlmDfn_pb2 import MsgRestoreSnapshotVlmDfn
@@ -254,6 +255,7 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.API_LST_VLM: (MsgLstRsc, ProtoMessageResponse),
         apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, ProtoMessageResponse),
         apiconsts.API_LST_CFG_VAL: (MsgLstCtrlCfgProps, ProtoMessageResponse),
+        apiconsts.API_HOSTNAME: (MsgHostname, ProtoMessageResponse),
         apiconsts.API_LST_ERROR_REPORTS: (MsgErrorReport, ErrorReport)
     }
 
@@ -1780,6 +1782,13 @@ class Linstor(object):
         if ids:
             msg.ids.extend(ids)
         return self._send_and_wait(apiconsts.API_REQ_ERROR_REPORTS, msg)
+
+    def hostname(self):
+        """
+        Sends an hostname request and should return the `uname -n` output.
+        :return:
+        """
+        return self._send_and_wait(apiconsts.API_HOSTNAME)
 
     def ping(self):
         """
