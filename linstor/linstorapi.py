@@ -265,6 +265,13 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.EVENT_SNAPSHOT_DEPLOYMENT: EventSnapshotDeployment
     }
 
+    URL_SCHEMA_MAP = {
+        'linstor': apiconsts.DFLT_CTRL_PORT_PLAIN,
+        'linstor+ssl': apiconsts.DFLT_CTRL_PORT_SSL,
+        'linstorstlt': apiconsts.DFLT_STLT_PORT_PLAIN,
+        'linstorstlt+ssl': apiconsts.DFLT_STLT_PORT_SSL
+    }
+
     def __init__(self, timeout=20):
         super(_LinstorNetClient, self).__init__()
         self._socket = None  # type: socket.socket
@@ -462,21 +469,22 @@ class _LinstorNetClient(threading.Thread):
         try:
             url = urlparse(server)
 
-            if not url.scheme.startswith('linstor'):
+            if url.scheme not in _LinstorNetClient.URL_SCHEMA_MAP:
                 raise LinstorError("Unknown uri scheme '{sc}' in '{uri}'.".format(sc=url.scheme, uri=server))
 
             host, port = self.parse_host(url.netloc)
             if not port:
-                port = apiconsts.DFLT_CTRL_PORT_SSL if url.scheme == 'linstor+ssl' else apiconsts.DFLT_CTRL_PORT_PLAIN
+                port = _LinstorNetClient.URL_SCHEMA_MAP[url.scheme]
             self._socket = socket.create_connection((host, port), timeout=self._timeout)
 
             # check if ssl
-            if url.scheme == 'linstor+ssl':
+            if url.scheme.endswith('+ssl'):
                 self._socket = ssl.wrap_socket(self._socket)
             self._socket.settimeout(self._timeout)
 
             # read api version
-            self._read_api_version_blocking()
+            if not url.scheme.startswith('linstorstlt'):
+                self._read_api_version_blocking()
 
             self._socket.setblocking(0)
             self._logger.debug("connected to " + server)
