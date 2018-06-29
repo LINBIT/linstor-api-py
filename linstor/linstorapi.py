@@ -89,6 +89,8 @@ from linstor.proto.eventdata.EventRscState_pb2 import EventRscState
 from linstor.proto.eventdata.EventRscDeploymentState_pb2 import EventRscDeploymentState
 from linstor.proto.eventdata.EventRscDfnReady_pb2 import EventRscDfnReady
 from linstor.proto.eventdata.EventSnapshotDeployment_pb2 import EventSnapshotDeployment
+from linstor.proto.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
+from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 1
@@ -256,7 +258,8 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, ProtoMessageResponse),
         apiconsts.API_LST_CFG_VAL: (MsgLstCtrlCfgProps, ProtoMessageResponse),
         apiconsts.API_HOSTNAME: (MsgHostname, ProtoMessageResponse),
-        apiconsts.API_LST_ERROR_REPORTS: (MsgErrorReport, ErrorReport)
+        apiconsts.API_LST_ERROR_REPORTS: (MsgErrorReport, ErrorReport),
+        apiconsts.API_RSP_MAX_VLM_SIZE: (MsgRspMaxVlmSizes, ProtoMessageResponse)
     }
 
     EVENT_READER_TABLE = {
@@ -1105,6 +1108,43 @@ class Linstor(object):
         :rtype: list[ProtoMessageResponse]
         """
         return self._send_and_wait(apiconsts.API_LST_STOR_POOL_DFN)
+
+    def storage_pool_dfn_max_vlm_sizes(
+            self,
+            place_count,
+            storage_pool_name=None,
+            do_not_place_with=None,
+            do_not_place_with_regex=None,
+            replicas_on_same=None,
+            replicas_on_different=None
+    ):
+        """
+        Auto places(deploys) a resource to the amount of place_count.
+
+        :param int place_count: Number of placements, on how many different nodes
+        :param str storage_pool_name: Only check for the given storage pool name
+        :param list[str] do_not_place_with: Do not place with resource names in this list
+        :param str do_not_place_with_regex: A regex string that rules out resources
+        :param list[str] replicas_on_same: A list of node property names, their values should match
+        :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :return: A list containing ApiCallResponses or ProtoMessageResponse (with MsgRspMaxVlmSizes)
+        :rtype: Union[list[ApiCallResponse], list[ProtoMessageResponse]]
+        """
+        msg = MsgQryMaxVlmSizes()
+        msg.place_count = place_count
+
+        if storage_pool_name:
+            msg.storage_pool = storage_pool_name
+        if do_not_place_with:
+            msg.not_place_with_rsc.extend(do_not_place_with)
+        if do_not_place_with_regex:
+            msg.not_place_with_rsc_regex = do_not_place_with_regex
+        if replicas_on_same:
+            msg.replicas_on_same.extend(replicas_on_same)
+        if replicas_on_different:
+            msg.replicas_on_different.extend(replicas_on_different)
+
+        return self._send_and_wait(apiconsts.API_QRY_MAX_VLM_SIZE, msg)
 
     @staticmethod
     def _storage_driver_pool_to_props(storage_driver, driver_pool_name):
