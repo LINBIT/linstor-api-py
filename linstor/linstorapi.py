@@ -836,7 +836,7 @@ class Linstor(object):
 
         try:
             if not async:
-                watch_responses = self.create_watch(watch_id, object_identifier)
+                watch_responses = self.watch_create(watch_id, object_identifier)
 
                 if not self.all_api_responses_success(watch_responses):
                     return watch_responses
@@ -862,7 +862,7 @@ class Linstor(object):
             return self._linstor_client.wait_for_events(event_handler)
         finally:
             if watch_id is not None:
-                self._delete_watch(watch_id)
+                self._watch_delete(watch_id)
 
     def connect(self):
         """
@@ -1554,7 +1554,7 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_DEL_CFG_VAL, msg)
 
-    def shutdown_controller(self):
+    def controller_shutdown(self):
         """
         Sends a shutdown command to the controller.
 
@@ -1565,7 +1565,7 @@ class Linstor(object):
         msg.command = apiconsts.API_CMD_SHUTDOWN
         return self._send_and_wait(apiconsts.API_CONTROL_CTRL, msg)
 
-    def create_watch(self, watch_id, object_identifier):
+    def watch_create(self, watch_id, object_identifier):
         """
         Create watch for events from the controller.
 
@@ -1579,7 +1579,7 @@ class Linstor(object):
         object_identifier.write_to_create_watch_msg(msg)
         return self._send_and_wait(apiconsts.API_CRT_WATCH, msg)
 
-    def _delete_watch(self, watch_id):
+    def _watch_delete(self, watch_id):
         """
         Delete watch for events from the controller.
 
@@ -1602,14 +1602,14 @@ class Linstor(object):
         """
         watch_id = self._linstor_client.next_watch_id()
         try:
-            replies = self.create_watch(watch_id, object_identifier)
+            replies = self.watch_create(watch_id, object_identifier)
             reply_handler_result = reply_handler(replies)
             if reply_handler_result is not None:
                 return reply_handler_result
 
             return self._linstor_client.wait_for_events(event_handler)
         finally:
-            self._delete_watch(watch_id)
+            self._watch_delete(watch_id)
 
     def crypt_create_passphrase(self, passphrase):
         """
