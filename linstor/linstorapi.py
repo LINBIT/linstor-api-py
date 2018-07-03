@@ -782,6 +782,17 @@ class Linstor(object):
         return all([not r.is_error() for r in replies])
 
     @classmethod
+    def filter_api_call_response(cls, replies):
+        """
+        Filters api call responses from Controller replies.
+
+        :param list[ProtoMessageResponse] replies: controller reply list
+        :return: Returns all only ApiCallResponses from replies or empty list.
+        :rtype: [ApiCallResponse]
+        """
+        return [reply for reply in replies if isinstance(reply, ApiCallResponse)]
+
+    @classmethod
     def return_if_failure(cls, replies_):
         if not cls.all_api_responses_success(replies_):
             return replies_
