@@ -169,10 +169,10 @@ class ApiCallResponse(ProtoMessageResponse):
     def from_json(cls, json_data):
         apiresp = MsgApiCallResponse()
         apiresp.ret_code = json_data["ret_code"]
-        if "message_format" in json_data:
-            apiresp.message_format = json_data["message_format"]
-        if "details_format" in json_data:
-            apiresp.details_format = json_data["details_format"]
+        if "message" in json_data:
+            apiresp.message = json_data["message"]
+        if "details" in json_data:
+            apiresp.details = json_data["details"]
 
         return ApiCallResponse(apiresp)
 
@@ -193,7 +193,7 @@ class ApiCallResponse(ProtoMessageResponse):
         return self._proto_msg.ret_code
 
     def __repr__(self):
-        return "ApiCallResponse({retcode}, {msg})".format(retcode=self.ret_code, msg=self.proto_msg.message_format)
+        return "ApiCallResponse({retcode}, {msg})".format(retcode=self.ret_code, msg=self.proto_msg.message)
 
 
 class ErrorReport(ProtoMessageResponse):
