@@ -945,7 +945,10 @@ class Linstor(object):
                 port = apiconsts.DFLT_CTRL_PORT_PLAIN \
                     if msg.node.type == apiconsts.VAL_NODE_TYPE_CTRL else apiconsts.DFLT_STLT_PORT_PLAIN
             elif com_type == apiconsts.VAL_NETCOM_TYPE_SSL:
-                port = apiconsts.DFLT_CTRL_PORT_SSL
+                if msg.node.type == apiconsts.VAL_NODE_TYPE_STLT:
+                    port = apiconsts.DFLT_STLT_PORT_SSL
+                else:
+                    port = apiconsts.DFLT_CTRL_PORT_SSL
             else:
                 raise LinstorError("Communication type %s has no default port" % com_type)
 
