@@ -10,6 +10,7 @@ python_linstor.egg-info/
 dist/
 build/
 MANIFEST
+doc/_build/
 
 # ignore generated protobuf messages and shared consts
 # these can be generated in the linstor-common with:

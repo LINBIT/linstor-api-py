@@ -1,20 +1,5 @@
 """
-    LINSTOR - management of distributed storage/DRBD9 resources
-    Copyright (C) 2013 - 2018 LINBIT HA-Solutions GmbH
-    Author: Rene Peinthor
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+Linstorapi module
 """
 
 import struct
@@ -149,12 +134,26 @@ class LinstorNetworkError(LinstorError):
 
 
 class ProtoMessageResponse(object):
+    """
+    A base protobuf wrapper class, all api response use.
+    """
     def __init__(self, proto_response):
         self._proto_msg = proto_response
 
     @property
     def proto_msg(self):
+        """
+        Returns the stored protobuf message object.
+
+        :return: A protobuf message object.
+        """
         return self._proto_msg
+
+    def __str__(self):
+        return str(self._proto_msg)
+
+    def __repr__(self):
+        return repr(self._proto_msg)
 
 
 class ApiCallResponse(ProtoMessageResponse):
@@ -167,6 +166,12 @@ class ApiCallResponse(ProtoMessageResponse):
 
     @classmethod
     def from_json(cls, json_data):
+        """
+        Creates a ApiCallResponse from a data block.
+
+        :param json_data: Parsed json data with "ret_code", "message" and "details" fields.
+        :return: a new ApiCallResponse()
+        """
         apiresp = MsgApiCallResponse()
         apiresp.ret_code = json_data["ret_code"]
         if "message" in json_data:
@@ -177,20 +182,48 @@ class ApiCallResponse(ProtoMessageResponse):
         return ApiCallResponse(apiresp)
 
     def is_error(self):
+        """
+        Returns True if the ApiCallResponse is an error.
+
+        :return: True if it is an error.
+        """
         return True if self.ret_code & apiconsts.MASK_ERROR == apiconsts.MASK_ERROR else False
 
     def is_warning(self):
+        """
+        Returns True if the ApiCallResponse is a warning.
+
+        :return: True if it is a warning.
+        """
         return True if self.ret_code & apiconsts.MASK_WARN == apiconsts.MASK_WARN else False
 
     def is_info(self):
+        """
+        Returns True if the ApiCallResponse is an info.
+
+        :return: True if it is an info.
+        """
         return True if self.ret_code & apiconsts.MASK_INFO == apiconsts.MASK_INFO else False
 
     def is_success(self):
+        """
+        Returns True if the ApiCallResponse is a success message.
+
+        :return: True if it is a success message.
+        """
         return not self.is_error() and not self.is_warning() and not self.is_info()
 
     @property
     def ret_code(self):
+        """
+        Returns the numeric return code mask.
+
+        :return: Return code mask value
+        """
         return self._proto_msg.ret_code
+
+    def __str__(self):
+        return self._proto_msg.message
 
     def __repr__(self):
         return "ApiCallResponse({retcode}, {msg})".format(retcode=self.ret_code, msg=self.proto_msg.message)
@@ -741,6 +774,15 @@ class _LinstorNetClient(threading.Thread):
 
 
 class Linstor(object):
+    """
+    Linstor class represents a client connection to the Linstor controller.
+    It has all methods to manipulate all kind of objects on the controller.
+
+    The controller host address has to be specified as linstor url.
+    e.g: ``linstor://localhost``, ``linstor+ssl://localhost``
+
+    :param str ctrl_host: Linstor uri to the controller e.g. ``linstor://192.168.0.1``
+    """
     _node_types = [
         apiconsts.VAL_NODE_TYPE_CTRL,
         apiconsts.VAL_NODE_TYPE_AUX,
@@ -749,13 +791,6 @@ class Linstor(object):
     ]
 
     def __init__(self, ctrl_host):
-        """
-        Constructs a Linstor api object.
-        The controller host address has to be specified as linstor url.
-        e.g: linstor://localhost linstor+ssl://localhost
-
-        :param str ctrl_host: Linstor uri to the controller e.g. linstor://192.168.0.1
-        """
         self._ctrl_host = ctrl_host
         self._linstor_client = None  # type: _LinstorNetClient
         self._logger = logging.getLogger('Linstor')
@@ -794,6 +829,12 @@ class Linstor(object):
 
     @classmethod
     def return_if_failure(cls, replies_):
+        """
+        Returns None if any of the replies is no success.
+
+        :param list[ApiCallResponse] replies_: list of api call responses
+        :return: None if any is not success, else all given replies
+        """
         if not cls.all_api_responses_success(replies_):
             return replies_
         return None
@@ -920,7 +961,7 @@ class Linstor(object):
         Creates a node on the controller.
 
         :param str node_name: Name of the node.
-        :param str node_type: Node type of the new node
+        :param str node_type: Node type of the new node, one of linstor.consts.VAL_NODE_TYPE*
         :param str ip: IP address to use for the nodes default netinterface.
         :param str com_type: Communication type of the node.
         :param int port: Port number of the node.
@@ -1066,6 +1107,7 @@ class Linstor(object):
     def node_list(self):
         """
         Request a list of all nodes known to the controller.
+
         :return: A MsgLstNode proto message containing all information.
         :rtype: list[ProtoMessageResponse]
         """
@@ -1198,6 +1240,14 @@ class Linstor(object):
 
     @staticmethod
     def storage_props_to_driver_pool(storage_driver, props):
+        """
+        Find the storage pool value for the given storage_driver in the given props.
+
+        :param str storage_driver: String specifying a storage driver [``Lvm``, ``LvmThin``, ``Zfs``]
+        :param props: Properties to search the storage pool value.
+        :return: If found the storage pool value, else ''
+        :rtype: str
+        """
         if storage_driver == 'Lvm':
             return Linstor._find_prop(
                 props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, ''
@@ -1845,7 +1895,10 @@ class Linstor(object):
     def hostname(self):
         """
         Sends an hostname request and should return the `uname -n` output.
-        :return:
+        This is a call that is actually used if connected to a satellite.
+
+        :return: List containing 1 MsgHostname proto
+        :rtype: list[ProtoMsgResponse]
         """
         return self._send_and_wait(apiconsts.API_HOSTNAME)
 
