@@ -133,6 +133,14 @@ class LinstorNetworkError(LinstorError):
         super(LinstorNetworkError, self).__init__(msg, more_errors)
 
 
+class LinstorTimeoutError(LinstorError):
+    """
+    Linstor network timeout error
+    """
+    def __init__(self, msg, more_errors=None):
+        super(LinstorTimeoutError, self).__init__(msg, more_errors)
+
+
 class ProtoMessageResponse(object):
     """
     A base protobuf wrapper class, all api response use.
@@ -310,7 +318,7 @@ class _LinstorNetClient(threading.Thread):
         'linstorstlt+ssl': apiconsts.DFLT_STLT_PORT_SSL
     }
 
-    def __init__(self, timeout=20):
+    def __init__(self, timeout):
         super(_LinstorNetClient, self).__init__()
         self._socket = None  # type: socket.socket
         self._host = None  # type: str
@@ -325,6 +333,7 @@ class _LinstorNetClient(threading.Thread):
         self._cur_msg_id = AtomicInt(1)
         self._cur_watch_id = AtomicInt(1)
         self._stats_received = 0
+        self._last_read_time = 0
 
     def __del__(self):
         self.disconnect()
@@ -546,6 +555,10 @@ class _LinstorNetClient(threading.Thread):
                 return True
         return False
 
+    @classmethod
+    def _current_milli_time(cls):
+        return int(round(time.time() * 1000))
+
     def run(self):
         """
         Runs the main select loop that handles incoming messages, parses them and
@@ -559,6 +572,7 @@ class _LinstorNetClient(threading.Thread):
         package = bytes()  # current package data
         exp_pkg_len = 0  # expected package length
 
+        self._last_read_time = self._current_milli_time()
         while self._socket:
             rds = []
             wds = []
@@ -575,6 +589,15 @@ class _LinstorNetClient(threading.Thread):
                 self._errors.append(LinstorNetworkError(
                     "Socket exception on {hp}".format(hp=self._adrtuple2str(self._socket.getpeername()))))
 
+            if self._last_read_time + (self._timeout * 1000) < self._current_milli_time():
+                self._socket.close()
+                self._socket = None
+                self._errors.append(LinstorTimeoutError(
+                    "Socket timeout, no data received since {t}ms.".format(
+                        t=(self._current_milli_time()-self._last_read_time)
+                    )
+                ))
+
             for sock in rds:
                 with self._slock:
                     if self._socket is None:  # socket was closed
@@ -590,6 +613,8 @@ class _LinstorNetClient(threading.Thread):
                         self._socket = None
                         self._errors.append(
                             LinstorNetworkError("Remote '{hp}' closed connection dropped.".format(hp=self._host)))
+
+                    self._last_read_time = self._current_milli_time()
 
                     package += read
                     pkg_len = len(package)
@@ -790,10 +815,11 @@ class Linstor(object):
         apiconsts.VAL_NODE_TYPE_STLT
     ]
 
-    def __init__(self, ctrl_host):
+    def __init__(self, ctrl_host, timeout=300):
         self._ctrl_host = ctrl_host
         self._linstor_client = None  # type: _LinstorNetClient
         self._logger = logging.getLogger('Linstor')
+        self._timeout = timeout
 
     def __del__(self):
         self.disconnect()
@@ -862,6 +888,11 @@ class Linstor(object):
         """
         msg_id = self._linstor_client.send_msg(api_call, msg)
         replies = self._linstor_client.wait_for_result(msg_id)
+        if replies is None:
+            errors = self._linstor_client.fetch_errors()
+            if errors:
+                raise errors[0]  # for now only send the first error
+            raise LinstorNetworkError("Unknown network error.")
         return replies
 
     def _watch_send_and_wait(
@@ -925,7 +956,7 @@ class Linstor(object):
 
         :return: True
         """
-        self._linstor_client = _LinstorNetClient()
+        self._linstor_client = _LinstorNetClient(timeout=self._timeout)
         self._linstor_client.connect(self._ctrl_host)
         self._linstor_client.daemon = True
         self._linstor_client.start()
