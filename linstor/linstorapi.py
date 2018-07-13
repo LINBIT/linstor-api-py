@@ -334,6 +334,7 @@ class _LinstorNetClient(threading.Thread):
         self._cur_watch_id = AtomicInt(1)
         self._stats_received = 0
         self._last_read_time = 0
+        self._controller_info = None  # type: str
 
     def __del__(self):
         self.disconnect()
@@ -444,6 +445,7 @@ class _LinstorNetClient(threading.Thread):
         """
         msg = self._parse_proto_msg(MsgApiVersion, data)
         if self._api_version is None:
+            self._controller_info = msg.controller_info
             self._api_version = msg.version
             if API_VERSION_MIN > msg.version or msg.version > API_VERSION:
                 raise LinstorError("Client API version '{v}' is incompatible with controller version '{r}'.\n".format(
@@ -554,6 +556,15 @@ class _LinstorNetClient(threading.Thread):
                 self._socket = None
                 return True
         return False
+
+    def controller_info(self):
+        """
+        Returns the controller info string parsed from the MsgApiVersion after connecting
+
+        :return: String the controller sent as info
+        :rtype: str
+        """
+        return self._controller_info
 
     @classmethod
     def _current_milli_time(cls):
@@ -1704,6 +1715,15 @@ class Linstor(object):
         msg = MsgControlCtrl()
         msg.command = apiconsts.API_CMD_SHUTDOWN
         return self._send_and_wait(apiconsts.API_CONTROL_CTRL, msg)
+
+    def controller_info(self):
+        """
+        If connected this method returns the controller info string.
+
+        :return: Controller info string or None if not connected.
+        :rtype: str
+        """
+        return self._linstor_client.controller_info()
 
     def watch_create(self, watch_id, object_identifier):
         """
