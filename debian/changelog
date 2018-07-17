@@ -1,3 +1,25 @@
+python-linstor (0.2.2-1) experimental; urgency=medium
+
+  [ Joel Colledge ]
+  * Add volume resize support
+  * Add constant for resize flag
+  * Add thin pool information to API
+  * Remove variables from API call response since the original format stri [...]
+
+  [ Rene Peinthor ]
+  * allow LinstorNetClient to connect to satellites
+  * add hostname method to query satellite hostnames
+  * fix some inconsistencies in api method naming
+  * add api to query the max vlm size from controller
+  * add filter_api_call_response method
+  * auto-place: add shared filter proto and add diskless_on_remaining
+  * node-create: use correct satellite ssl port
+  * docs: Fix/add docstrings in linstorapi and add sphinx docs config
+  * readd a a connection timeout with a default value of 5min
+  * expose the controller info string from handshake to the api
+
+ -- Joel Colledge <joel.colledge@linbit.com>  Tue, 17 Jul 2018 10:58:48 +0200
+
 python-linstor (0.2.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
