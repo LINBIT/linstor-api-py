@@ -333,7 +333,6 @@ class _LinstorNetClient(threading.Thread):
         self._cur_msg_id = AtomicInt(1)
         self._cur_watch_id = AtomicInt(1)
         self._stats_received = 0
-        self._last_read_time = 0
         self._controller_info = None  # type: str
 
     def __del__(self):
@@ -583,7 +582,7 @@ class _LinstorNetClient(threading.Thread):
         package = bytes()  # current package data
         exp_pkg_len = 0  # expected package length
 
-        self._last_read_time = self._current_milli_time()
+        last_read_time = self._current_milli_time()
         while self._socket:
             rds = []
             wds = []
@@ -600,12 +599,12 @@ class _LinstorNetClient(threading.Thread):
                 self._errors.append(LinstorNetworkError(
                     "Socket exception on {hp}".format(hp=self._adrtuple2str(self._socket.getpeername()))))
 
-            if self._last_read_time + (self._timeout * 1000) < self._current_milli_time():
+            if last_read_time + (self._timeout * 1000) < self._current_milli_time():
                 self._socket.close()
                 self._socket = None
                 self._errors.append(LinstorTimeoutError(
                     "Socket timeout, no data received since {t}ms.".format(
-                        t=(self._current_milli_time()-self._last_read_time)
+                        t=(self._current_milli_time()-last_read_time)
                     )
                 ))
 
@@ -625,7 +624,7 @@ class _LinstorNetClient(threading.Thread):
                         self._errors.append(
                             LinstorNetworkError("Remote '{hp}' closed connection dropped.".format(hp=self._host)))
 
-                    self._last_read_time = self._current_milli_time()
+                    last_read_time = self._current_milli_time()
 
                     package += read
                     pkg_len = len(package)
