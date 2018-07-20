@@ -318,7 +318,7 @@ class _LinstorNetClient(threading.Thread):
         'linstorstlt+ssl': apiconsts.DFLT_STLT_PORT_SSL
     }
 
-    def __init__(self, timeout):
+    def __init__(self, timeout, keep_alive):
         super(_LinstorNetClient, self).__init__()
         self._socket = None  # type: socket.socket
         self._host = None  # type: str
@@ -334,6 +334,7 @@ class _LinstorNetClient(threading.Thread):
         self._cur_watch_id = AtomicInt(1)
         self._stats_received = 0
         self._controller_info = None  # type: str
+        self._keep_alive = keep_alive  # type: bool
 
     def __del__(self):
         self.disconnect()
@@ -583,6 +584,7 @@ class _LinstorNetClient(threading.Thread):
         exp_pkg_len = 0  # expected package length
 
         last_read_time = self._current_milli_time()
+        last_ping_time = self._current_milli_time()
         while self._socket:
             rds = []
             wds = []
@@ -607,6 +609,10 @@ class _LinstorNetClient(threading.Thread):
                         t=(self._current_milli_time()-last_read_time)
                     )
                 ))
+
+            if self._keep_alive and last_ping_time + 5000 < self._current_milli_time():
+                self.send_msg(apiconsts.API_PING)
+                last_ping_time = self._current_milli_time()
 
             for sock in rds:
                 with self._slock:
@@ -817,6 +823,7 @@ class Linstor(object):
     e.g: ``linstor://localhost``, ``linstor+ssl://localhost``
 
     :param str ctrl_host: Linstor uri to the controller e.g. ``linstor://192.168.0.1``
+    :param bool keep_alive: Sends PING messages to the controller
     """
     _node_types = [
         apiconsts.VAL_NODE_TYPE_CTRL,
@@ -825,11 +832,12 @@ class Linstor(object):
         apiconsts.VAL_NODE_TYPE_STLT
     ]
 
-    def __init__(self, ctrl_host, timeout=300):
+    def __init__(self, ctrl_host, timeout=300, keep_alive=False):
         self._ctrl_host = ctrl_host
         self._linstor_client = None  # type: _LinstorNetClient
         self._logger = logging.getLogger('Linstor')
         self._timeout = timeout
+        self._keep_alive = keep_alive
 
     def __del__(self):
         self.disconnect()
@@ -966,7 +974,7 @@ class Linstor(object):
 
         :return: True
         """
-        self._linstor_client = _LinstorNetClient(timeout=self._timeout)
+        self._linstor_client = _LinstorNetClient(timeout=self._timeout, keep_alive=self._keep_alive)
         self._linstor_client.connect(self._ctrl_host)
         self._linstor_client.daemon = True
         self._linstor_client.start()
