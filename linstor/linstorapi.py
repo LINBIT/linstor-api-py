@@ -157,11 +157,17 @@ class ProtoMessageResponse(object):
         """
         return self._proto_msg
 
+    def __nonzero__(self):
+        return self.__bool__()
+
+    def __bool__(self):
+        return self._proto_msg.ByteSize() > 0
+
     def __str__(self):
         return str(self._proto_msg)
 
     def __repr__(self):
-        return repr(self._proto_msg)
+        return "ProtoMessageResponse(" + repr(self._proto_msg) + ")"
 
 
 class ApiCallResponse(ProtoMessageResponse):
