@@ -465,7 +465,7 @@ class _LinstorNetClient(threading.Thread):
         :return: Length of the payload
         """
         struct_format = "!xxxxIxxxxxxxx"
-        assert(struct.calcsize(struct_format) == len(header))
+        assert struct.calcsize(struct_format) == len(header), "Header has unexpected size"
         exp_pkg_len, = struct.unpack(struct_format, header)
         return exp_pkg_len
 
@@ -485,10 +485,10 @@ class _LinstorNetClient(threading.Thread):
             api_msg_data += self._socket.recv(self.IO_SIZE)
 
         msgs = self._split_proto_msgs(api_msg_data[16:])
-        assert (len(msgs) > 0)
+        assert len(msgs) > 0, "Api version header message missing"
         hdr = self._parse_proto_msg(MsgHeader, msgs[0])
 
-        assert(hdr.api_call == apiconsts.API_VERSION)
+        assert hdr.api_call == apiconsts.API_VERSION, "Unexpected message for API_VERSION"
         self._parse_api_version(msgs[1])
         return True
 
@@ -653,7 +653,7 @@ class _LinstorNetClient(threading.Thread):
                             # cut out the parsing package
                             parse_buf = package[_LinstorNetClient.HDR_LEN:exp_pkg_len + _LinstorNetClient.HDR_LEN]
                             msgs = self._split_proto_msgs(parse_buf)
-                            assert (len(msgs) > 0)  # we should have at least a header message
+                            assert len(msgs) > 0, "we should have at least a header message"
 
                             # update buffer and length variables
                             package = package[exp_pkg_len + _LinstorNetClient.HDR_LEN:]  # put data into next parse run
@@ -666,7 +666,7 @@ class _LinstorNetClient(threading.Thread):
 
                             if hdr.api_call == apiconsts.API_VERSION:  # this shouldn't happen
                                 self._parse_api_version(msgs[1])
-                                assert False  # this should not be sent a second time
+                                assert False, "API_VERSION should not be sent a second time"
                             elif hdr.api_call == apiconsts.API_PING:
                                 self.send_msg(apiconsts.API_PONG)
 
