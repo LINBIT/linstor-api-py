@@ -293,6 +293,8 @@ class _LinstorNetClient(threading.Thread):
     IO_SIZE = 4096
     HDR_LEN = 16
 
+    COMPLETE_ANSWERS = object()
+
     REPLY_MAP = {
         apiconsts.API_PONG: (None, None),
         apiconsts.API_REPLY: (MsgApiCallResponse, ApiCallResponse),
@@ -336,7 +338,7 @@ class _LinstorNetClient(threading.Thread):
         self._events = {}
         self._errors = []  # list of errors that happened in the select thread
         self._api_version = None
-        self._cur_msg_id = AtomicInt(1)
+        self._cur_api_call_id = AtomicInt(1)
         self._cur_watch_id = AtomicInt(1)
         self._stats_received = 0
         self._controller_info = None  # type: str
@@ -494,7 +496,7 @@ class _LinstorNetClient(threading.Thread):
         assert len(msgs) > 0, "Api version header message missing"
         hdr = self._parse_proto_msg(MsgHeader, msgs[0])
 
-        assert hdr.api_call == apiconsts.API_VERSION, "Unexpected message for API_VERSION"
+        assert hdr.msg_content == apiconsts.API_VERSION, "Unexpected message for API_VERSION"
         self._parse_api_version(msgs[1])
         return True
 
@@ -667,43 +669,70 @@ class _LinstorNetClient(threading.Thread):
                             self._logger.debug("pkg_len upd: " + str(len(package)))
                             exp_pkg_len = 0
 
-                            hdr = self._parse_proto_msg(MsgHeader, msgs[0])  # parse header
-                            self._logger.debug(str(hdr))
+                            self._process_msgs(msgs)
 
-                            if hdr.api_call == apiconsts.API_VERSION:  # this shouldn't happen
-                                self._parse_api_version(msgs[1])
-                                assert False, "API_VERSION should not be sent a second time"
-                            elif hdr.api_call == apiconsts.API_PING:
-                                self.send_msg(apiconsts.API_PONG)
+    def _process_msgs(self, msgs):
+        hdr = self._parse_proto_msg(MsgHeader, msgs[0])  # parse header
+        self._logger.debug(str(hdr))
 
-                            elif hdr.api_call == apiconsts.API_EVENT:
-                                event_header = MsgEvent()
-                                event_header.ParseFromString(msgs[1])
-                                if event_header.event_action in [
-                                    apiconsts.EVENT_STREAM_OPEN,
-                                    apiconsts.EVENT_STREAM_VALUE,
-                                    apiconsts.EVENT_STREAM_CLOSE_REMOVED
-                                ]:
-                                    event_data = self._parse_event(event_header.event_name, msgs[2]) \
-                                        if len(msgs) > 2 else None
-                                else:
-                                    event_data = None
-                                with self._cv_sock:
-                                    if event_header.watch_id in self._events:
-                                        self._events[event_header.watch_id].append((event_header, event_data))
-                                        self._cv_sock.notifyAll()
+        if hdr.msg_type == MsgHeader.MsgType.Value('API_CALL'):
+            self._header_parsing_error(hdr)
 
-                            elif hdr.api_call in self.REPLY_MAP.keys():
-                                # parse other message according to the reply_map and add them to the self._replies
-                                replies = self._parse_proto_msgs(self.REPLY_MAP[hdr.api_call], msgs[1:])
-                                with self._cv_sock:
-                                    self._replies[hdr.msg_id] = replies
-                                    self._cv_sock.notifyAll()
-                            else:
-                                self._logger.error("Unknown linstor api message reply: " + hdr.api_call)
-                                self.disconnect()
-                                with self._cv_sock:
-                                    self._cv_sock.notifyAll()
+        elif hdr.msg_type == MsgHeader.MsgType.Value('ONEWAY'):
+            if hdr.msg_content == apiconsts.API_EVENT:
+                event_header = MsgEvent()
+                event_header.ParseFromString(msgs[1])
+                if event_header.event_action in [
+                    apiconsts.EVENT_STREAM_OPEN,
+                    apiconsts.EVENT_STREAM_VALUE,
+                    apiconsts.EVENT_STREAM_CLOSE_REMOVED
+                ]:
+                    event_data = self._parse_event(event_header.event_name, msgs[2]) \
+                        if len(msgs) > 2 else None
+                else:
+                    event_data = None
+                with self._cv_sock:
+                    if event_header.watch_id in self._events:
+                        self._events[event_header.watch_id].append((event_header, event_data))
+                        self._cv_sock.notifyAll()
+            else:
+                self._header_parsing_error(hdr)
+
+        elif hdr.msg_type == MsgHeader.MsgType.Value('ANSWER'):
+            if hdr.msg_content in self.REPLY_MAP:
+                # parse other message according to the reply_map and add them to the self._replies
+                replies = self._parse_proto_msgs(self.REPLY_MAP[hdr.msg_content], msgs[1:])
+                with self._cv_sock:
+                    reply_deque = self._replies.get(hdr.api_call_id)
+                    if reply_deque is None:
+                        self._logger.warning(
+                            "Unexpected answer received for API call ID " + hdr.api_call_id)
+                    else:
+                        reply_deque.extend(replies)
+                        self._cv_sock.notifyAll()
+            else:
+                self._header_parsing_error(hdr)
+
+        elif hdr.msg_type == MsgHeader.MsgType.Value('COMPLETE'):
+            with self._cv_sock:
+                reply_deque = self._replies.get(hdr.api_call_id)
+                if reply_deque is None:
+                    self._logger.warning(
+                        "Unexpected completion received for API call ID " + hdr.api_call_id)
+                else:
+                    reply_deque.append(self.COMPLETE_ANSWERS)
+                    self._cv_sock.notifyAll()
+
+        else:
+            self._header_parsing_error(hdr)
+
+    def _header_parsing_error(self, hdr):
+        self._logger.error(
+            "Unknown message of type " + MsgHeader.MsgType.Name(hdr.msg_type) +
+            ("" if hdr.msg_content == "" else " and content " + hdr.msg_content) + " received ")
+        self.disconnect()
+        with self._cv_sock:
+            self._cv_sock.notifyAll()
 
     @property
     def connected(self):
@@ -731,8 +760,13 @@ class _LinstorNetClient(threading.Thread):
         :rtype: int
         """
         hdr_msg = MsgHeader()
-        hdr_msg.api_call = api_call_type
-        hdr_msg.msg_id = self._cur_msg_id.get_and_inc()
+        hdr_msg.msg_content = api_call_type
+
+        api_call_id = self._cur_api_call_id.get_and_inc()
+        self._replies[api_call_id] = deque()
+
+        hdr_msg.msg_type = MsgHeader.MsgType.Value('API_CALL')
+        hdr_msg.api_call_id = api_call_id
 
         h_type = struct.pack("!I", 0)  # currently always 0, 32 bit
         h_reserved = struct.pack("!Q", 0)  # reserved, 64 bit
@@ -764,21 +798,33 @@ class _LinstorNetClient(threading.Thread):
             while sent < msg_len:
                 sent += self._socket.send(full_msg)
             self._logger.debug("sent " + str(sent))
-        return hdr_msg.msg_id
+        return hdr_msg.api_call_id
 
-    def wait_for_result(self, msg_id):
+    def wait_for_result(self, api_call_id, answer_handler):
         """
-        This method blocks and waits for an answer to the given msg_id.
+        This method blocks and waits for all answers to the given api_call_id.
 
-        :param int msg_id:
-        :return: A list with the replies.
+        :param int api_call_id: identifies the answers to wait for
+        :param Callable answer_handler: function that is called for each answer that is received
         """
         with self._cv_sock:
-            while msg_id not in self._replies:
-                if not self.connected:
-                    return None
-                self._cv_sock.wait(1)
-            return self._replies.pop(msg_id)
+            try:
+                while api_call_id in self._replies and len(self._replies[api_call_id]) == 0:
+                    if not self.connected:
+                        return
+
+                    self._cv_sock.wait(1)
+
+                    if api_call_id in self._replies:
+                        reply_deque = self._replies[api_call_id]
+                        while len(reply_deque) > 0:
+                            reply = reply_deque.popleft()
+                            if reply == self.COMPLETE_ANSWERS:
+                                return
+                            else:
+                                answer_handler(reply)
+            finally:
+                self._replies.pop(api_call_id)
 
     def wait_for_events(self, watch_id, event_handler):
         """
@@ -960,13 +1006,21 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg_id = self._linstor_client.send_msg(api_call, msg)
-        replies = self._linstor_client.wait_for_result(msg_id)
-        if replies is None:
-            errors = self._linstor_client.fetch_errors()
-            if errors:
-                raise errors[0]  # for now only send the first error
-            raise LinstorNetworkError("Unknown network error.")
+        api_call_id = self._linstor_client.send_msg(api_call, msg)
+        replies = []
+
+        def answer_handler(answer):
+            replies.append(answer)
+
+        self._linstor_client.wait_for_result(api_call_id, answer_handler)
+
+        errors = self._linstor_client.fetch_errors()
+        if errors:
+            raise errors[0]  # for now only send the first error
+
+        if len(replies) == 0:
+            raise LinstorNetworkError("No answer received")
+
         return replies
 
     def _watch_send_and_wait(
@@ -2029,17 +2083,17 @@ class Linstor(object):
         :return: Message id used for this message
         :rtype: int
         """
-        return self._linstor_client.send_msg(apiconsts.API_PING)
+        return self._linstor_client.send_msg(apiconsts.API_PING, oneway=True)
 
-    def wait_for_message(self, msg_id):
+    def wait_for_message(self, api_call_id):
         """
         Wait for a message from the controller.
 
-        :param int msg_id: Message id to wait for.
+        :param int api_call_id: Message id to wait for.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        return self._linstor_client.wait_for_result(msg_id)
+        return self._linstor_client.wait_for_result(api_call_id)
 
     def stats(self):
         """
