@@ -917,6 +917,29 @@ class Linstor(object):
         return None
 
     @classmethod
+    def exit_on_error_event_handler(cls, event_header, event_data):
+        """
+        Extracts non success ApiCallResponses from event_data.
+
+        :param MsgEvent event_header: protobuf event message
+        :param MsgEventRscDeploymentState event_data: to check for non success replies.
+        :return: None if there are only success replies, else list of error ApiCallResponses
+        :rtype: [AbiCallResponse]
+        """
+        if event_header.event_name == apiconsts.EVENT_RESOURCE_DEPLOYMENT_STATE and event_data is not None:
+            api_call_responses = [
+                ApiCallResponse(response)
+                for response in event_data.responses
+            ]
+            failure_responses = [
+                api_call_response for api_call_response in api_call_responses
+                if not api_call_response.is_success()
+            ]
+
+            return failure_responses if failure_responses else None
+        return None
+
+    @classmethod
     def _modify_props(cls, msg, property_dict, delete_props=None):
         if property_dict:
             for key, val in property_dict.items():
