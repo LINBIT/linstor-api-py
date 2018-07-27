@@ -333,7 +333,7 @@ class _LinstorNetClient(threading.Thread):
         self._cv_sock = threading.Condition(self._slock)
         self._logger = logging.getLogger('LinstorNetClient')
         self._replies = {}
-        self._events = deque()
+        self._events = {}
         self._errors = []  # list of errors that happened in the select thread
         self._api_version = None
         self._cur_msg_id = AtomicInt(1)
@@ -677,19 +677,21 @@ class _LinstorNetClient(threading.Thread):
                                 self.send_msg(apiconsts.API_PONG)
 
                             elif hdr.api_call == apiconsts.API_EVENT:
-                                resp = MsgEvent()
-                                resp.ParseFromString(msgs[1])
-                                if resp.event_action in [
+                                event_header = MsgEvent()
+                                event_header.ParseFromString(msgs[1])
+                                if event_header.event_action in [
                                     apiconsts.EVENT_STREAM_OPEN,
                                     apiconsts.EVENT_STREAM_VALUE,
                                     apiconsts.EVENT_STREAM_CLOSE_REMOVED
                                 ]:
-                                    event_data = self._parse_event(resp.event_name, msgs[2]) if len(msgs) > 2 else None
+                                    event_data = self._parse_event(event_header.event_name, msgs[2]) \
+                                        if len(msgs) > 2 else None
                                 else:
                                     event_data = None
                                 with self._cv_sock:
-                                    self._events.append((resp, event_data))
-                                    self._cv_sock.notifyAll()
+                                    if event_header.watch_id in self._events:
+                                        self._events[event_header.watch_id].append((event_header, event_data))
+                                        self._cv_sock.notifyAll()
 
                             elif hdr.api_call in self.REPLY_MAP.keys():
                                 # parse other message according to the reply_map and add them to the self._replies
@@ -778,26 +780,51 @@ class _LinstorNetClient(threading.Thread):
                 self._cv_sock.wait(1)
             return self._replies.pop(msg_id)
 
-    def wait_for_events(self, event_handler):
+    def wait_for_events(self, watch_id, event_handler):
         """
         This method blocks and waits for any events.
         The handler function is called for each event.
         When the value returned by the handler is not None, this method returns that value.
 
+        :param int watch_id: watch id to watch for
         :param Callable event_handler: function that is called if an event was received.
         :return: The result of the handler function if it returns not None
         """
-        with self._cv_sock:
-            while True:
-                while not self._events:
-                    if not self.connected:
-                        return None
-                    self._cv_sock.wait(1)
+        local_queue = deque()
+        while True:
+            with self._cv_sock:
+                if not self.connected:
+                    return None
 
-                while self._events:
-                    event_handler_result = event_handler(*self._events.popleft())
-                    if event_handler_result is not None:
-                        return event_handler_result
+                self._cv_sock.wait(0.2)
+
+                while watch_id in self._events and self._events[watch_id]:
+                    # copy events to local queue to allow to run event_handler without lock
+                    local_queue.append(self._events[watch_id].popleft())
+
+            while local_queue:
+                event_handler_result = event_handler(*local_queue.popleft())
+                if event_handler_result is not None:
+                    return event_handler_result
+
+    def register_watch(self, watch_id):
+        """
+        Add a queue entry into the events map.
+
+        :param watch_id: watch id to add
+        :return: None
+        """
+        with self._slock:
+            self._events[watch_id] = deque()
+
+    def deregister_watch(self, watch_id):
+        """
+        Remove a queue entry from the events map.
+        :param watch_id: watch id to remove
+        :return: None
+        """
+        with self._slock:
+            del self._events[watch_id]
 
     def next_watch_id(self):
         return self._cur_watch_id.get_and_inc()
@@ -1750,6 +1777,7 @@ class Linstor(object):
         msg = MsgCrtWatch()
         msg.watch_id = watch_id
         object_identifier.write_to_create_watch_msg(msg)
+        self._linstor_client.register_watch(watch_id)
         return self._send_and_wait(apiconsts.API_CRT_WATCH, msg)
 
     def _watch_delete(self, watch_id):
@@ -1762,6 +1790,7 @@ class Linstor(object):
         """
         msg = MsgDelWatch()
         msg.watch_id = watch_id
+        self._linstor_client.deregister_watch(watch_id)
         return self._send_and_wait(apiconsts.API_DEL_WATCH, msg)
 
     def watch_events(self, reply_handler, event_handler, object_identifier):
@@ -1780,7 +1809,7 @@ class Linstor(object):
             if reply_handler_result is not None:
                 return reply_handler_result
 
-            return self._linstor_client.wait_for_events(event_handler)
+            return self._linstor_client.wait_for_events(watch_id, event_handler)
         finally:
             self._watch_delete(watch_id)
 
