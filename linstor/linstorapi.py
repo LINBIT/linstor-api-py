@@ -1103,11 +1103,12 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_CRT_NODE, msg)
 
-    def node_modify(self, node_name, property_dict, delete_props=None):
+    def node_modify(self, node_name, node_type=None, property_dict=None, delete_props=None):
         """
         Modify the properties of a given node.
 
         :param str node_name: Name of the node to modify.
+        :param int node_type: Type of the node, any of VAL_NODE_TYPE_*
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
         :return: A list containing ApiCallResponses from the controller.
@@ -1116,7 +1117,10 @@ class Linstor(object):
         msg = MsgModNode()
         msg.node_name = node_name
 
-        msg = self._modify_props(msg, property_dict, delete_props)
+        if node_type is not None:
+            msg.node_type = node_type
+
+        self._modify_props(msg, property_dict, delete_props)
 
         return self._send_and_wait(apiconsts.API_MOD_NODE, msg)
 
