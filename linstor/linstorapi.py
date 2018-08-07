@@ -997,12 +997,13 @@ class Linstor(object):
             msg.delete_prop_keys.extend(delete_props)
         return msg
 
-    def _send_and_wait(self, api_call, msg=None):
+    def _send_and_wait(self, api_call, msg=None, allow_no_reply=False):
         """
         Helper function that sends a api call[+msg] and waits for the answer from the controller
 
         :param str api_call: API call identifier
         :param msg: Proto message to send
+        :param bool allow_no_reply: Do not raise an error if there are no replies.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1018,7 +1019,7 @@ class Linstor(object):
         if errors:
             raise errors[0]  # for now only send the first error
 
-        if len(replies) == 0:
+        if not allow_no_reply and len(replies) == 0:
             raise LinstorNetworkError("No answer received")
 
         return replies
@@ -2064,7 +2065,7 @@ class Linstor(object):
             msg.to = int(time.mktime(to.timetuple()) * 1000)
         if ids:
             msg.ids.extend(ids)
-        return self._send_and_wait(apiconsts.API_REQ_ERROR_REPORTS, msg)
+        return self._send_and_wait(apiconsts.API_REQ_ERROR_REPORTS, msg, allow_no_reply=True)
 
     def hostname(self):
         """
