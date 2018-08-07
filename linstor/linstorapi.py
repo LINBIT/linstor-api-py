@@ -1636,7 +1636,7 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_DEL_VLM_DFN, msg)
 
-    def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None):
+    def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None):
         """
         Creates a new resource on the given node.
 
@@ -1657,6 +1657,10 @@ class Linstor(object):
 
         if diskless:
             msg.rsc.rsc_flags.append(apiconsts.FLAG_DISKLESS)
+
+        if node_id is not None:
+            msg.override_node_id = True
+            msg.rsc.node_id = node_id
 
         return self._send_and_wait(apiconsts.API_CRT_RSC, msg)
 
