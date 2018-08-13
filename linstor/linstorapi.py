@@ -682,11 +682,9 @@ class _LinstorNetClient(threading.Thread):
             if hdr.msg_content == apiconsts.API_EVENT:
                 event_header = MsgEvent()
                 event_header.ParseFromString(msgs[1])
-                if event_header.event_action in [
-                    apiconsts.EVENT_STREAM_OPEN,
-                    apiconsts.EVENT_STREAM_VALUE,
-                    apiconsts.EVENT_STREAM_CLOSE_REMOVED
-                ]:
+                self._logger.debug(
+                    "Event '" + event_header.event_name + "', action " + event_header.event_action + " received")
+                if event_header.event_action == apiconsts.EVENT_STREAM_VALUE:
                     event_data = self._parse_event(event_header.event_name, msgs[2]) \
                         if len(msgs) > 2 else None
                 else:
@@ -1056,25 +1054,26 @@ class Linstor(object):
                 if not self.all_api_responses_success(watch_responses):
                     return watch_responses
 
-            api_call_responses = self._send_and_wait(api_call, msg)
-            if async or not self.all_api_responses_success(api_call_responses):
-                return api_call_responses
+            responses = self._send_and_wait(api_call, msg)
+            if async or not self.all_api_responses_success(responses):
+                return responses
 
-            def event_handler(event_header, event_data):
-                if event_header.event_name == event_name and event_data and event_data.responses:
-                    responses = [ApiCallResponse(response) for response in event_data.responses]
+            def event_handler(event_header, event_data, responses):
+                if event_header.event_name == event_name:
                     if event_header.event_action in [
                         apiconsts.EVENT_STREAM_CLOSE_REMOVED,
                         apiconsts.EVENT_STREAM_CLOSE_NO_CONNECTION
                     ]:
-                        return api_call_responses + responses
+                        return ()
                     else:
-                        failure_responses = self.return_if_failure(responses)
-                        if failure_responses is not None:
-                            return api_call_responses + responses
+                        event_responses = [ApiCallResponse(response) for response in event_data.responses]
+                        responses += event_responses
+                        return self.return_if_failure(event_responses)
                 return None
 
-            return self._linstor_client.wait_for_events(event_handler)
+            self._linstor_client.wait_for_events(
+                watch_id, lambda event_header, event_data: event_handler(event_header, event_data, responses))
+            return responses
         finally:
             if watch_id is not None:
                 self._watch_delete(watch_id)
