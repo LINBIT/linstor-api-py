@@ -294,10 +294,12 @@ class _LinstorNetClient(threading.Thread):
     HDR_LEN = 16
 
     COMPLETE_ANSWERS = object()
+    END_OF_IMMEDIATE_ANSWERS = object()
 
     REPLY_MAP = {
         apiconsts.API_PONG: (None, None),
         apiconsts.API_REPLY: (MsgApiCallResponse, ApiCallResponse),
+        apiconsts.API_END_OF_IMMEDIATE_ANSWERS: (None, None),
         apiconsts.API_LST_STOR_POOL_DFN: (MsgLstStorPoolDfn, ProtoMessageResponse),
         apiconsts.API_LST_STOR_POOL: (MsgLstStorPool, ProtoMessageResponse),
         apiconsts.API_LST_NODE: (MsgLstNode, ProtoMessageResponse),
@@ -335,6 +337,7 @@ class _LinstorNetClient(threading.Thread):
         self._cv_sock = threading.Condition(self._slock)
         self._logger = logging.getLogger('LinstorNetClient')
         self._replies = {}
+        self._ignore_replies = set()
         self._events = {}
         self._errors = []  # list of errors that happened in the select thread
         self._api_version = None
@@ -703,25 +706,32 @@ class _LinstorNetClient(threading.Thread):
                 # parse other message according to the reply_map and add them to the self._replies
                 replies = self._parse_proto_msgs(self.REPLY_MAP[hdr.msg_content], msgs[1:])
                 with self._cv_sock:
-                    reply_deque = self._replies.get(hdr.api_call_id)
-                    if reply_deque is None:
-                        self._logger.warning(
-                            "Unexpected answer received for API call ID " + hdr.api_call_id)
-                    else:
-                        reply_deque.extend(replies)
-                        self._cv_sock.notifyAll()
+                    if hdr.api_call_id not in self._ignore_replies:
+                        reply_deque = self._replies.get(hdr.api_call_id)
+                        if reply_deque is None:
+                            self._logger.warning(
+                                "Unexpected answer received for API call ID " + str(hdr.api_call_id))
+                        else:
+                            if hdr.msg_content == apiconsts.API_END_OF_IMMEDIATE_ANSWERS:
+                                reply_deque.append(self.END_OF_IMMEDIATE_ANSWERS)
+                            else:
+                                reply_deque.extend(replies)
+                            self._cv_sock.notifyAll()
             else:
                 self._header_parsing_error(hdr)
 
         elif hdr.msg_type == MsgHeader.MsgType.Value('COMPLETE'):
             with self._cv_sock:
-                reply_deque = self._replies.get(hdr.api_call_id)
-                if reply_deque is None:
-                    self._logger.warning(
-                        "Unexpected completion received for API call ID " + hdr.api_call_id)
+                if hdr.api_call_id in self._ignore_replies:
+                    self._ignore_replies.remove(hdr.api_call_id)
                 else:
-                    reply_deque.append(self.COMPLETE_ANSWERS)
-                    self._cv_sock.notifyAll()
+                    reply_deque = self._replies.get(hdr.api_call_id)
+                    if reply_deque is None:
+                        self._logger.warning(
+                            "Unexpected completion received for API call ID " + str(hdr.api_call_id))
+                    else:
+                        reply_deque.append(self.COMPLETE_ANSWERS)
+                        self._cv_sock.notifyAll()
 
         else:
             self._header_parsing_error(hdr)
@@ -805,7 +815,8 @@ class _LinstorNetClient(threading.Thread):
         This method blocks and waits for all answers to the given api_call_id.
 
         :param int api_call_id: identifies the answers to wait for
-        :param Callable answer_handler: function that is called for each answer that is received
+        :param Callable answer_handler: function that is called for each answer that is received and returns whether
+            to continue waiting
         """
         with self._cv_sock:
             try:
@@ -822,7 +833,10 @@ class _LinstorNetClient(threading.Thread):
                             if reply == self.COMPLETE_ANSWERS:
                                 return
                             else:
-                                answer_handler(reply)
+                                continue_wait = answer_handler(reply)
+                                if not continue_wait:
+                                    self._ignore_replies.add(api_call_id)
+                                    return
             finally:
                 self._replies.pop(api_call_id)
 
@@ -997,13 +1011,14 @@ class Linstor(object):
             msg.delete_prop_keys.extend(delete_props)
         return msg
 
-    def _send_and_wait(self, api_call, msg=None, allow_no_reply=False):
+    def _send_and_wait(self, api_call, msg=None, allow_no_reply=False, async=False):
         """
         Helper function that sends a api call[+msg] and waits for the answer from the controller
 
         :param str api_call: API call identifier
         :param msg: Proto message to send
         :param bool allow_no_reply: Do not raise an error if there are no replies.
+        :param bool async: Terminate as soon as immediate replies have been received
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1011,7 +1026,11 @@ class Linstor(object):
         replies = []
 
         def answer_handler(answer):
-            replies.append(answer)
+            if answer != _LinstorNetClient.END_OF_IMMEDIATE_ANSWERS:
+                replies.append(answer)
+            elif async:
+                return False
+            return True
 
         self._linstor_client.wait_for_result(api_call_id, answer_handler)
 
@@ -1637,7 +1656,7 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_DEL_VLM_DFN, msg)
 
-    def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None):
+    def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, async=False):
         """
         Creates a new resource on the given node.
 
@@ -1663,7 +1682,7 @@ class Linstor(object):
             msg.override_node_id = True
             msg.rsc.node_id = node_id
 
-        return self._send_and_wait(apiconsts.API_CRT_RSC, msg)
+        return self._send_and_wait(apiconsts.API_CRT_RSC, msg, async=async)
 
     def resource_auto_place(
             self,
