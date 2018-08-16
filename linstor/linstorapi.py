@@ -78,8 +78,8 @@ from linstor.proto.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
 from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
 import linstor.sharedconsts as apiconsts
 
-API_VERSION = 1
-API_VERSION_MIN = 1
+API_VERSION = 2
+API_VERSION_MIN = 2
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -456,7 +456,9 @@ class _LinstorNetClient(threading.Thread):
             self._controller_info = msg.controller_info
             self._api_version = msg.version
             if API_VERSION_MIN > msg.version or msg.version > API_VERSION:
-                raise LinstorError("Client API version '{v}' is incompatible with controller version '{r}'.\n".format(
+                raise LinstorError(
+                    "Client API version '{v}' is incompatible with controller version '{r}', update your client."
+                    .format(
                         v=API_VERSION,
                         r=msg.version)
                 )
