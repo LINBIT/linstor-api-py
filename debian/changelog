@@ -1,3 +1,27 @@
+python-linstor (0.5.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * linstornetclient: last_read_time should only be a local var
+  * add keep alive mode, that send regular ping messages
+  * fix incorrect use of assert statement
+  * ProtoMessageResponse: add __nonzero__, __bool__ methods
+  * node_modify: add node_type argument
+  * add parameter that allows empty responses
+  * update linstor-common ref
+  * linstor-common: update StorPoolFreeSpace proto
+  * SizeCalc: move class from client to linstor api library
+  * linstor-common: use fixed typo
+  * watch-events: watch events is now threadsafe
+  * watch-events: add helper for common watch failure events
+  * bump client minimal API_VERSION to 2
+
+  [ Joel Colledge ]
+  * Support answer stream from controller
+  * Allow the node ID to be overridden when creating resources
+  * Events no longer send data with the close message
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 16 Aug 2018 07:58:14 +0200
+
 python-linstor (0.2.2-1) experimental; urgency=medium
 
   [ Joel Colledge ]
