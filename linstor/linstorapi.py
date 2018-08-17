@@ -1011,14 +1011,14 @@ class Linstor(object):
             msg.delete_prop_keys.extend(delete_props)
         return msg
 
-    def _send_and_wait(self, api_call, msg=None, allow_no_reply=False, async=False):
+    def _send_and_wait(self, api_call, msg=None, allow_no_reply=False, async_msg=False):
         """
         Helper function that sends a api call[+msg] and waits for the answer from the controller
 
         :param str api_call: API call identifier
         :param msg: Proto message to send
         :param bool allow_no_reply: Do not raise an error if there are no replies.
-        :param bool async: Terminate as soon as immediate replies have been received
+        :param bool async_msg: Terminate as soon as immediate replies have been received
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1028,7 +1028,7 @@ class Linstor(object):
         def answer_handler(answer):
             if answer != _LinstorNetClient.END_OF_IMMEDIATE_ANSWERS:
                 replies.append(answer)
-            elif async:
+            elif async_msg:
                 return False
             return True
 
@@ -1047,7 +1047,7 @@ class Linstor(object):
             self,
             api_call,
             msg,
-            async,
+            async_msg,
             event_name,
             object_identifier):
         """
@@ -1056,27 +1056,27 @@ class Linstor(object):
 
         :param str api_call: API call identifier
         :param msg: Proto message to send
-        :param bool async: True to return without waiting for the action to complete on the satellites.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :param str event_name: Event name
         :param ObjectIdentifier object_identifier: Object to subscribe for events
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
 
-        if async:
+        if async_msg:
             watch_id = None
         else:
             watch_id = self._linstor_client.next_watch_id()
 
         try:
-            if not async:
+            if not async_msg:
                 watch_responses = self.watch_create(watch_id, object_identifier)
 
                 if not self.all_api_responses_success(watch_responses):
                     return watch_responses
 
             responses = self._send_and_wait(api_call, msg)
-            if async or not self.all_api_responses_success(responses):
+            if async_msg or not self.all_api_responses_success(responses):
                 return responses
 
             def event_handler(event_header, event_data, responses):
@@ -1656,7 +1656,7 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_DEL_VLM_DFN, msg)
 
-    def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, async=False):
+    def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, async_msg=False):
         """
         Creates a new resource on the given node.
 
@@ -1682,7 +1682,7 @@ class Linstor(object):
             msg.override_node_id = True
             msg.rsc.node_id = node_id
 
-        return self._send_and_wait(apiconsts.API_CRT_RSC, msg, async=async)
+        return self._send_and_wait(apiconsts.API_CRT_RSC, msg, async_msg=async_msg)
 
     def resource_auto_place(
             self,
@@ -1978,14 +1978,14 @@ class Linstor(object):
         msg = self._modify_props(msg, property_dict, delete_props)
         return self._send_and_wait(apiconsts.API_MOD_RSC_CONN, msg)
 
-    def snapshot_create(self, node_names, rsc_name, snapshot_name, async):
+    def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg):
         """
         Create a snapshot.
 
         :param list[str] node_names: Names of the nodes.
         :param str rsc_name: Name of the resource.
         :param str snapshot_name: Name of the new snapshot.
-        :param bool async: True to return without waiting for the action to complete on the satellites.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2000,7 +2000,7 @@ class Linstor(object):
         return self._watch_send_and_wait(
             apiconsts.API_CRT_SNAPSHOT,
             msg,
-            async,
+            async_msg,
             apiconsts.EVENT_SNAPSHOT_DEPLOYMENT,
             ObjectIdentifier(resource_name=rsc_name, snapshot_name=snapshot_name)
         )
