@@ -2108,7 +2108,7 @@ class Linstor(object):
         :return: Message id used for this message
         :rtype: int
         """
-        return self._linstor_client.send_msg(apiconsts.API_PING, oneway=True)
+        return self._linstor_client.send_msg(apiconsts.API_PING)
 
     def wait_for_message(self, api_call_id):
         """
@@ -2118,7 +2118,9 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        return self._linstor_client.wait_for_result(api_call_id)
+        def answer_handler(answer):
+            return answer
+        return self._linstor_client.wait_for_result(api_call_id, answer_handler)
 
     def stats(self):
         """
