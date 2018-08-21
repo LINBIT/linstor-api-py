@@ -49,6 +49,7 @@ from linstor.proto.MsgDelVlmDfn_pb2 import MsgDelVlmDfn
 from linstor.proto.MsgCrtRsc_pb2 import MsgCrtRsc
 from linstor.proto.MsgModRsc_pb2 import MsgModRsc
 from linstor.proto.MsgDelRsc_pb2 import MsgDelRsc
+from linstor.proto.MsgToggleDisk_pb2 import MsgToggleDisk
 from linstor.proto.MsgLstRsc_pb2 import MsgLstRsc
 from linstor.proto.MsgLstSnapshotDfn_pb2 import MsgLstSnapshotDfn
 from linstor.proto.MsgSetCtrlCfgProp_pb2 import MsgSetCtrlCfgProp
@@ -1796,6 +1797,24 @@ class Linstor(object):
         if filter_by_resources:
             f.resource_names.extend(filter_by_resources)
         return self._send_and_wait(apiconsts.API_LST_VLM, f)
+
+    def resource_toggle_disk(self, node_name, rsc_name, storage_pool=None, async_msg=False):
+        """
+        Toggles a resource between diskless and having a disk.
+
+        :param str node_name: Node name where the resource is deployed.
+        :param str rsc_name: Name of the resource.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgToggleDisk()
+        msg.node_name = node_name
+        msg.rsc_name = rsc_name
+
+        if storage_pool:
+            msg.stor_pool_name = storage_pool
+
+        return self._send_and_wait(apiconsts.API_TOGGLE_DISK, msg, async_msg=async_msg)
 
     def controller_props(self):
         """
