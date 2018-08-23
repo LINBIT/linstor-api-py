@@ -1390,7 +1390,7 @@ class Linstor(object):
 
     @staticmethod
     def _storage_driver_pool_to_props(storage_driver, driver_pool_name):
-        if storage_driver == 'Diskless':
+        if storage_driver == 'Diskless' or storage_driver == 'Swordfish':
             return []
 
         if not driver_pool_name:
@@ -1413,7 +1413,8 @@ class Linstor(object):
             return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, driver_pool_name)]
 
         raise LinstorError(
-            "Unknown storage driver '{drv}', known drivers: lvm, lvmthin, zfs, diskless".format(drv=storage_driver)
+            "Unknown storage driver '{drv}', known drivers: "
+            "lvm, lvmthin, zfs, swordfish, diskless".format(drv=storage_driver)
         )
 
     @staticmethod
@@ -1454,7 +1455,7 @@ class Linstor(object):
 
         return ''
 
-    def storage_pool_create(self, node_name, storage_pool_name, storage_driver, driver_pool_name, shared_space=None):
+    def storage_pool_create(self, node_name, storage_pool_name, storage_driver, driver_pool_name, shared_space=None, property_dict=None):
         """
         Creates a new storage pool on the given node.
         If there doesn't yet exist a storage pool definition the controller will implicitly create one.
@@ -1464,6 +1465,7 @@ class Linstor(object):
         :param str storage_driver: Storage driver to use.
         :param str driver_pool_name: Name of the pool the storage driver should use on the node.
         :param str shared_space: Name of a shared space, if used.
+        :param dict property_dict: Initial properties for the storage pool.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1479,6 +1481,12 @@ class Linstor(object):
             prop = msg.stor_pool.props.add()
             prop.key = key
             prop.value = value
+
+        if property_dict:
+            for key, value in property_dict.items():
+                prop = msg.stor_pool.props.add()
+                prop.key = key
+                prop.value = value
 
         return self._send_and_wait(apiconsts.API_CRT_STOR_POOL, msg)
 
