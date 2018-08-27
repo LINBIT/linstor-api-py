@@ -6,7 +6,7 @@ override GITHEAD := $(shell test -e .git && $(GIT) rev-parse HEAD)
 U := $(shell $(PYTHON) ./setup.py versionup2date >/dev/null 2>&1; echo $$?;)
 TESTS = $(wildcard unit-tests/*_test.py)
 
-all: doc
+all:
 	$(PYTHON) setup.py build
 
 install: linstor/consts_githash.py
@@ -81,3 +81,6 @@ distclean: clean clean-protobuf
 check:
 	# currently none
 	# $(PYTHON) $(TESTS)
+
+doc:
+	make -C doc html
