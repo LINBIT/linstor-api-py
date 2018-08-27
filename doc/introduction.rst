@@ -50,7 +50,7 @@ Code Samples
 List nodes
 ~~~~~~~~~~
 
-A code ample on how to get the current node list from the Controller.
+A code sample on how to get the current node list from the Controller.
 
 .. code-block:: python
 
