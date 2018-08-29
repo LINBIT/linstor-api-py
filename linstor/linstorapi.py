@@ -1454,7 +1454,7 @@ class Linstor(object):
 
         return ''
 
-    def storage_pool_create(self, node_name, storage_pool_name, storage_driver, driver_pool_name):
+    def storage_pool_create(self, node_name, storage_pool_name, storage_driver, driver_pool_name, shared_space=None):
         """
         Creates a new storage pool on the given node.
         If there doesn't yet exist a storage pool definition the controller will implicitly create one.
@@ -1463,6 +1463,7 @@ class Linstor(object):
         :param str storage_pool_name: Name of the storage pool.
         :param str storage_driver: Storage driver to use.
         :param str driver_pool_name: Name of the pool the storage driver should use on the node.
+        :param str shared_space: Name of a shared space, if used.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1470,6 +1471,8 @@ class Linstor(object):
         msg.stor_pool.stor_pool_name = storage_pool_name
         msg.stor_pool.node_name = node_name
         msg.stor_pool.driver = '{driver}Driver'.format(driver=storage_driver)
+        if shared_space:
+            msg.stor_pool.free_space = shared_space
 
         # set driver device pool properties
         for key, value in self._storage_driver_pool_to_props(storage_driver, driver_pool_name):
