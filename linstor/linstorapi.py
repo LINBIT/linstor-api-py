@@ -1474,7 +1474,7 @@ class Linstor(object):
         msg.stor_pool.node_name = node_name
         msg.stor_pool.driver = '{driver}Driver'.format(driver=storage_driver)
         if shared_space:
-            msg.stor_pool.free_space = shared_space
+            msg.stor_pool.free_space_mgr_name = shared_space
 
         # set driver device pool properties
         for key, value in self._storage_driver_pool_to_props(storage_driver, driver_pool_name):
