@@ -38,10 +38,71 @@ There are 2 error classes that will or can be thrown from a :py:class:`~.Linstor
 Watches
 ~~~~~~~
 
-Watches are some kind of events that are sent to everyone who is described for an event or object.
-It is used to have realtime notifications of created/deleted resources on satellites.
+Watches are used to get notifications of events happing on for example resource objects.
+To use them you have to add a watch and provide a callback function that will take decisions
+on how long you will want to watch an object.
 
-WIP
+.. code-block:: python
+
+  with linstor.Linstor("linstor://localhost") as lin:
+    rsc_name = "rsc1"
+    def delete_rscdfn_handler(event_header, event_data):
+        if event_header.event_name in [linstor.consts.EVENT_RESOURCE_DEPLOYMENT_STATE]:
+            if event_header.event_action == linstor.consts.EVENT_STREAM_CLOSE_NO_CONNECTION:
+                print("WARNING: Satellite connection lost")
+                sys.exit(20)
+        elif event_header.event_name in [linstor.consts.EVENT_RESOURCE_DEFINITION_READY]:
+            if event_header.event_action == linstor.consts.EVENT_STREAM_CLOSE_REMOVED:
+                return []
+
+        return linstor.Linstor.exit_on_error_event_handler(event_header, event_data)
+
+
+    lin.resource_dfn_delete(rsc_name)
+    watch_result = lin.watch_events(
+        linstor.Linstor.return_if_failure,
+        delete_rscdfn_handler,
+        linstor.ObjectIdentifier(resource_name=rsc_name)
+    )
+    # watch_result will contain the result of delete_rscdfn_handler
+    return watch_result
+
+
+In this sample a resource definition with the name "rsc1" is deleted and a watch
+is created that checks if the resource is deleted on all deployed satellites.
+The callback function used is named ``delete_rscdfn_handler``, a watch callback
+function gets 2 parameters, event_header and event_data.
+The event_header is the MsgEvent protobuf message, check the protobuf definition
+for all attributes. Most important attributes are ``event_name`` and ``event_action``:
+
+  * ``event_name`` is one of
+
+    * :py:data:`linstor.consts.EVENT_RESOURCE_DEPLOYMENT_STATE`
+
+      Sent for Satellite device handler resource events
+
+    * :py:data:`linstor.consts.EVENT_RESOURCE_DEFINITION_READY`
+
+      Sent for resource definition events
+
+    * :py:data:`linstor.consts.EVENT_SNAPSHOT_DEPLOYMENT`
+    * :py:data:`linstor.consts.EVENT_RESOURCE_STATE`
+
+      Sent for resource definition events
+
+    * :py:data:`linstor.consts.EVENT_VOLUME_DISK_STATE`
+
+  * ``event_action`` is one of
+
+    * :py:data:`linstor.consts.EVENT_STREAM_OPEN`
+    * :py:data:`linstor.consts.EVENT_STREAM_VALUE`
+    * :py:data:`linstor.consts.EVENT_STREAM_CLOSE_NO_CONNECTION`
+
+      Satellite dropped connection to the controller
+
+    * :py:data:`linstor.consts.EVENT_STREAM_CLOSE_REMOVED`
+
+      Sent if an object was removed.
 
 
 Code Samples
