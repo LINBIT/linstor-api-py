@@ -1390,7 +1390,7 @@ class Linstor(object):
 
     @staticmethod
     def _storage_driver_pool_to_props(storage_driver, driver_pool_name):
-        if storage_driver == 'Diskless' or storage_driver == 'Swordfish':
+        if storage_driver in ['Diskless', 'SwordfishTarget', 'SwordfishInitiator']:
             return []
 
         if not driver_pool_name:
@@ -1455,7 +1455,15 @@ class Linstor(object):
 
         return ''
 
-    def storage_pool_create(self, node_name, storage_pool_name, storage_driver, driver_pool_name, shared_space=None, property_dict=None):
+    def storage_pool_create(
+            self,
+            node_name,
+            storage_pool_name,
+            storage_driver,
+            driver_pool_name,
+            shared_space=None,
+            property_dict=None
+    ):
         """
         Creates a new storage pool on the given node.
         If there doesn't yet exist a storage pool definition the controller will implicitly create one.
