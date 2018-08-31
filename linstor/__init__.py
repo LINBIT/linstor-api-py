@@ -5,7 +5,7 @@ from .linstorapi import Linstor
 from .size_calc import SizeCalc
 from . import sharedconsts as consts
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 try:
     from linstor.consts_githash import GITHASH

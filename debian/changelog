@@ -1,3 +1,27 @@
+python-linstor (0.6.0-1) experimental; urgency=medium
+
+  [ Joel Colledge ]
+  * Add async handling to the core processing loops
+  * Add command for adding a disk to a diskless resource
+  * Add option to remove a disk making a resource diskless
+  * Allow swordfish storage pool driver and init props
+
+  [ Rene Peinthor ]
+  * async is a reserverd keyword in python 3.7
+  * linstorapi: fix ping method
+  * doc: watches draft
+  * storage_pool_create: add shared_space argument
+  * allow SwordfishTarget and SwordfishInitiator
+
+  [ Roland Kammerer ]
+  * Makefile: fix doc dependency
+  * doc: fix typo
+
+  [ Gabor Hernadi ]
+  * Fixed wrong fieldname
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Fri, 31 Aug 2018 11:05:35 +0200
+
 python-linstor (0.5.0-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
