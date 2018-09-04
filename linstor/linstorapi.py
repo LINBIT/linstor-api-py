@@ -913,6 +913,89 @@ class _LinstorNetClient(threading.Thread):
         return s
 
 
+class StoragePoolDriver(object):
+    LVM = "LvmDriver"
+    LVMThin = "LvmThinDriver"
+    ZFS = "ZfsDriver"
+    Diskless = "DisklessDriver"
+    SwordfishTarget = "SwordfishTargetDriver"
+    SwordfishInitiator = "SwordfishInitiatorDriver"
+
+    @staticmethod
+    def list():
+        return [
+            StoragePoolDriver.LVM,
+            StoragePoolDriver.LVMThin,
+            StoragePoolDriver.ZFS,
+            StoragePoolDriver.Diskless,
+            StoragePoolDriver.SwordfishTarget,
+            StoragePoolDriver.SwordfishInitiator
+        ]
+
+    @staticmethod
+    def storage_driver_pool_to_props(storage_driver, driver_pool_name):
+        if storage_driver in [
+                StoragePoolDriver.Diskless,
+                StoragePoolDriver.SwordfishTarget,
+                StoragePoolDriver.SwordfishInitiator]:
+            return []
+
+        if not driver_pool_name:
+            raise LinstorError(
+                "Driver '{drv}' needs a driver pool name.".format(drv=storage_driver)
+            )
+
+        if storage_driver == StoragePoolDriver.LVM:
+            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, driver_pool_name)]
+
+        if storage_driver == StoragePoolDriver.LVMThin:
+            driver_pool_parts = driver_pool_name.split('/')
+            if not len(driver_pool_parts) == 2:
+                raise LinstorError("Pool name '{dp}' does not have format VG/LV".format(dp=driver_pool_name))
+            return \
+                [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, driver_pool_parts[0]),
+                 (apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL, driver_pool_parts[1])]
+
+        if storage_driver == StoragePoolDriver.ZFS:
+            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, driver_pool_name)]
+
+        raise LinstorError(
+            "Unknown storage driver '{drv}', known drivers: "
+            "lvm, lvmthin, zfs, swordfish, diskless".format(drv=storage_driver)
+        )
+
+    @staticmethod
+    def storage_props_to_driver_pool(storage_driver, props):
+        """
+        Find the storage pool value for the given storage_driver in the given props.
+
+        :param str storage_driver: String specifying a storage driver [``Lvm``, ``LvmThin``, ``Zfs``]
+        :param props: Properties to search the storage pool value.
+        :return: If found the storage pool value, else ''
+        :rtype: str
+        """
+        if storage_driver == StoragePoolDriver.LVM:
+            return Linstor._find_prop(
+                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, ''
+            )
+
+        if storage_driver == StoragePoolDriver.LVMThin:
+            vg = Linstor._find_prop(
+                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, ''
+            )
+            lv = Linstor._find_prop(
+                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL, ''
+            )
+            return "{vg}/{lv}".format(vg=vg, lv=lv)
+
+        if storage_driver == StoragePoolDriver.ZFS:
+            return Linstor._find_prop(
+                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, ''
+            )
+
+        return ''
+
+
 class Linstor(object):
     """
     Linstor class represents a client connection to the Linstor controller.
@@ -1394,71 +1477,11 @@ class Linstor(object):
         return self._send_and_wait(apiconsts.API_QRY_MAX_VLM_SIZE, msg)
 
     @staticmethod
-    def _storage_driver_pool_to_props(storage_driver, driver_pool_name):
-        if storage_driver in ['Diskless', 'SwordfishTarget', 'SwordfishInitiator']:
-            return []
-
-        if not driver_pool_name:
-            raise LinstorError(
-                "Driver '{drv}' needs a driver pool name.".format(drv=storage_driver)
-            )
-
-        if storage_driver == 'Lvm':
-            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, driver_pool_name)]
-
-        if storage_driver == 'LvmThin':
-            driver_pool_parts = driver_pool_name.split('/')
-            if not len(driver_pool_parts) == 2:
-                raise LinstorError("Pool name '{dp}' does not have format VG/LV".format(dp=driver_pool_name))
-            return \
-                [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, driver_pool_parts[0]),
-                 (apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL, driver_pool_parts[1])]
-
-        if storage_driver == 'Zfs':
-            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, driver_pool_name)]
-
-        raise LinstorError(
-            "Unknown storage driver '{drv}', known drivers: "
-            "lvm, lvmthin, zfs, swordfish, diskless".format(drv=storage_driver)
-        )
-
-    @staticmethod
     def _find_prop(props, search_key, default):
         for entry in props:
             if entry.key == search_key:
                 return entry.value
         return default
-
-    @staticmethod
-    def storage_props_to_driver_pool(storage_driver, props):
-        """
-        Find the storage pool value for the given storage_driver in the given props.
-
-        :param str storage_driver: String specifying a storage driver [``Lvm``, ``LvmThin``, ``Zfs``]
-        :param props: Properties to search the storage pool value.
-        :return: If found the storage pool value, else ''
-        :rtype: str
-        """
-        if storage_driver == 'Lvm':
-            return Linstor._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, ''
-            )
-
-        if storage_driver == 'LvmThin':
-            vg = Linstor._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, ''
-            )
-            lv = Linstor._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL, ''
-            )
-            return "{vg}/{lv}".format(vg=vg, lv=lv)
-
-        if storage_driver == 'Zfs':
-            return Linstor._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, ''
-            )
-
-        return ''
 
     def storage_pool_create(
             self,
@@ -1485,12 +1508,14 @@ class Linstor(object):
         msg = MsgCrtStorPool()
         msg.stor_pool.stor_pool_name = storage_pool_name
         msg.stor_pool.node_name = node_name
-        msg.stor_pool.driver = '{driver}Driver'.format(driver=storage_driver)
+        if storage_driver not in StoragePoolDriver.list():
+            raise LinstorError("Unknown storage driver: " + storage_driver)
+        msg.stor_pool.driver = storage_driver
         if shared_space:
             msg.stor_pool.free_space_mgr_name = shared_space
 
         # set driver device pool properties
-        for key, value in self._storage_driver_pool_to_props(storage_driver, driver_pool_name):
+        for key, value in StoragePoolDriver.storage_driver_pool_to_props(storage_driver, driver_pool_name):
             prop = msg.stor_pool.props.add()
             prop.key = key
             prop.value = value
