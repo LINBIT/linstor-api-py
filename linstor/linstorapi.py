@@ -196,13 +196,18 @@ class ApiCallResponse(ProtoMessageResponse):
 
         return ApiCallResponse(apiresp)
 
-    def is_error(self):
+    def is_error(self, code=None):
         """
-        Returns True if the ApiCallResponse is an error.
+        Returns True if the ApiCallResponse is any error and "code" is unset.
+        If "code" is set, return True if the given "code" matches the response code.
 
-        :return: True if it is an error.
+        :return: True if it is any error and "code" unset. If "code" is set return True if "code" matches
+        response code. In any other cases (e.g., not an error at all), return False.
         """
-        return True if self.ret_code & apiconsts.MASK_ERROR == apiconsts.MASK_ERROR else False
+        if self.ret_code & apiconsts.MASK_ERROR != apiconsts.MASK_ERROR:
+            return False  # not an error at all
+
+        return ((code | self.ret_code) != 0) if code else True
 
     def is_warning(self):
         """
