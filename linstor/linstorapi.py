@@ -1812,6 +1812,37 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_DEL_RSC, msg)
 
+    def resource_delete_if_diskless(self, node_name, rsc_name):
+        """
+        Deletes a given resource if, and only if, diskless on the given node.
+        If the resource does not even exit, then the delete is considered successful (NOOP).
+        If the resource is not diskless, then the action is considered successful.
+
+        :param str node_name: Name of the node where the resource is deployed.
+        :param str rsc_name: Name of the resource.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        apiresp = MsgApiCallResponse()
+        apiresp.ret_code = apiconsts.MASK_SUCCESS
+
+        # maximum number of ressources is 1 when filtering per node and resource
+        rsc_list_replies = self.resource_list(filter_by_nodes=[node_name], filter_by_resources=[rsc_name])
+        if not rsc_list_replies or not rsc_list_replies[0]:
+            apiresp.message = 'Resource {} did not exist on node {}'.format(rsc_name, node_name)
+            return [ApiCallResponse(apiresp)]
+
+        # did something else went wrong?
+        rsc_list_reply = rsc_list_replies[0]
+        if isinstance(rsc_list_reply, ApiCallResponse):
+            return rsc_list_replies
+
+        if apiconsts.FLAG_DISKLESS in rsc_list_reply.proto_msg.resources[0].rsc_flags:
+            return self.resource_delete(rsc_name=rsc_name, node_name=node_name)
+        else:
+            apiresp.message = 'Resource {} not diskless on node {}, not deleted'.format(rsc_name, node_name)
+            return [ApiCallResponse(apiresp)]
+
     def resource_list(self, filter_by_nodes=None, filter_by_resources=None):
         """
         Request a list of all resources known to the controller.
