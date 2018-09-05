@@ -1499,9 +1499,9 @@ class Linstor(object):
         :param str node_name: Node on which to create the storage pool.
         :param str storage_pool_name: Name of the storage pool.
         :param str storage_driver: Storage driver to use.
-        :param str driver_pool_name: Name of the pool the storage driver should use on the node.
-        :param str shared_space: Name of a shared space, if used.
-        :param dict property_dict: Initial properties for the storage pool.
+        :param Optional[str] driver_pool_name: Name of the pool the storage driver should use on the node.
+        :param Optional[str] shared_space: Name of a shared space, if used.
+        :param Optional[dict] property_dict: Initial properties for the storage pool.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
