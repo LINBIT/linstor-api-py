@@ -917,6 +917,7 @@ class StoragePoolDriver(object):
     LVM = "LvmDriver"
     LVMThin = "LvmThinDriver"
     ZFS = "ZfsDriver"
+    ZFSThin = "ZfsThinDriver"
     Diskless = "DisklessDriver"
     SwordfishTarget = "SwordfishTargetDriver"
     SwordfishInitiator = "SwordfishInitiatorDriver"
@@ -927,6 +928,7 @@ class StoragePoolDriver(object):
             StoragePoolDriver.LVM,
             StoragePoolDriver.LVMThin,
             StoragePoolDriver.ZFS,
+            StoragePoolDriver.ZFSThin,
             StoragePoolDriver.Diskless,
             StoragePoolDriver.SwordfishTarget,
             StoragePoolDriver.SwordfishInitiator
@@ -958,6 +960,9 @@ class StoragePoolDriver(object):
 
         if storage_driver == StoragePoolDriver.ZFS:
             return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, driver_pool_name)]
+
+        if storage_driver == StoragePoolDriver.ZFSThin:
+            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN, driver_pool_name)]
 
         raise LinstorError(
             "Unknown storage driver '{drv}', known drivers: "
@@ -991,6 +996,11 @@ class StoragePoolDriver(object):
         if storage_driver == StoragePoolDriver.ZFS:
             return Linstor._find_prop(
                 props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, ''
+            )
+
+        if storage_driver == StoragePoolDriver.ZFSThin:
+            return Linstor._find_prop(
+                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN, ''
             )
 
         return ''
