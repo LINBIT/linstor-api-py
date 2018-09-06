@@ -202,7 +202,7 @@ class ApiCallResponse(ProtoMessageResponse):
         If "code" is set, return True if the given "code" matches the response code.
 
         :return: True if it is any error and "code" unset. If "code" is set return True if "code" matches
-        response code. In any other cases (e.g., not an error at all), return False.
+         response code. In any other cases (e.g., not an error at all), return False.
         """
         if self.ret_code & apiconsts.MASK_ERROR != apiconsts.MASK_ERROR:
             return False  # not an error at all
