@@ -1788,6 +1788,32 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_AUTO_PLACE_RSC, msg)
 
+    def resource_create_and_auto_place(self, rsc_name, size, place_count, storage_pool=None,
+                                       diskless_on_remaining=False):
+        """
+        This is a convenience method mainly intended for plugins.
+        It is quite usual that plugins have a "create" step where they auto-place a resource.
+        Later, these plugins have an "open" call where they might create diskless assignments.
+
+        :param str name: Name of the new resource definition.
+        :param int size: Size of the volume definition in kibibytes.
+        :param int place_count: Number of placements, on how many different nodes
+        :param str storage_pool: Storage pool to use
+        :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        replies = self.resource_dfn_create(rsc_name)
+        if not replies[0].is_success():
+            return replies
+
+        replies = self.volume_dfn_create(rsc_name, size, storage_pool=storage_pool)
+        if not replies[0].is_success():
+            return replies
+
+        return self.resource_auto_place(rsc_name, place_count, storage_pool=storage_pool,
+                                        diskless_on_remaining=diskless_on_remaining)
+
     def resource_modify(self, node_name, rsc_name, property_dict, delete_props=None):
         """
         Modify properties of a given resource.
