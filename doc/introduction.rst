@@ -1,4 +1,4 @@
-Linstor python api introduction
+Linstor Python API Introduction
 ===============================
 
 Linstor python api is a python library wrapping all tcp client communication
@@ -105,8 +105,61 @@ for all attributes. Most important attributes are ``event_name`` and ``event_act
       Sent if an object was removed.
 
 
-Code Samples
-------------
+Code Samples for Plugin Developers
+----------------------------------
+
+In this section we describe methods that are typically used by plugin developers.
+
+Create a resource N-times redundant
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A code sample on how to create a resource "foo", with a size of 20MB 2-times redundant.
+Usually that code is executed in a "create" call in a plugin.
+
+.. code-block:: python
+
+  import linstor
+  with linstor.Linstor("linstor://localhost") as lin:
+    node_list_reply = lin.node_list()
+    rs = lin.resource_create_and_auto_place('foo', 20*1024, 2)
+    if not rs[0].is_success():
+      print('NO SUCCESS', rs[0])
+
+Create a diskless assignment if there isn't already an assignment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is useful in hyper-converged setups where a local diskless assignment should be created, but only if
+there is not already an assignment with a disk.
+
+.. code-block:: python
+
+  import linstor
+  from linstor.sharedconsts import FAIL_EXISTS_RSC
+  with linstor.Linstor("linstor://localhost") as lin:
+    rsc_create_replies = lin.resource_create(rsc_name='foo', node_name='alpha', diskless=True)
+    rsc_create_reply = rsc_create_replies[0]
+    if rsc_create_reply.is_success() or rsc_create_reply.is_error(code=FAIL_EXISTS_RSC):
+      print('SUCCESS')
+
+Remove diskless assignment (only if diskless)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is usually called in a plugin in a "close" call, where then a diskless assignment should be deleted.
+Deletion in such cases is limited to diskless assignments as the redundancy should not be decreased
+
+.. code-block:: python
+
+  import linstor
+  from linstor.sharedconsts import FAIL_EXISTS_RSC
+    with linstor.Linstor("linstor://localhost") as lin:
+      rsc_delete_replies = lin.resource_delete_if_diskless(rsc_name='foo', node_name='alpha')
+      rsc_delete_reply = rsc_delete_replies[0]
+      if not rsc_delete_reply.is_success():
+        print('NO SUCCESS', rsc_delete_reply)
+
+
+Generic Code Samples
+--------------------
 
 List nodes
 ~~~~~~~~~~
