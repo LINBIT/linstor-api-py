@@ -77,6 +77,7 @@ from linstor.proto.eventdata.EventRscDfnReady_pb2 import EventRscDfnReady
 from linstor.proto.eventdata.EventSnapshotDeployment_pb2 import EventSnapshotDeployment
 from linstor.proto.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
 from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
+from linstor.proto.MsgCrtSfTargetNode_pb2 import MsgCrtSfTargetNode
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 2
@@ -1278,6 +1279,16 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_CRT_NODE, msg)
 
+    def node_create_swordfish_target(self, node_name, storage_service):
+        msg = MsgCrtSfTargetNode()
+        msg.name = node_name
+
+        prop = msg.props.add()
+        prop.key = apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_SF_STOR_SVC
+        prop.value = storage_service
+
+        return self._send_and_wait(apiconsts.API_CRT_SF_TARGET_NODE, msg)
+
     def node_modify(self, node_name, node_type=None, property_dict=None, delete_props=None):
         """
         Modify the properties of a given node.
@@ -1396,6 +1407,15 @@ class Linstor(object):
         :rtype: list[ProtoMessageResponse]
         """
         return self._send_and_wait(apiconsts.API_LST_NODE)
+
+    def node_types(self):
+        """
+        Returns all allowed node types by the api.
+
+        :return: A list containing all node type strings.
+        :rtype: list[str]
+        """
+        return self._node_types
 
     def storage_pool_dfn_create(self, name):
         """
