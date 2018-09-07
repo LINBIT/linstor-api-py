@@ -779,7 +779,8 @@ class _LinstorNetClient(threading.Thread):
         hdr_msg.msg_content = api_call_type
 
         api_call_id = self._cur_api_call_id.get_and_inc()
-        self._replies[api_call_id] = deque()
+        with self._cv_sock:
+            self._replies[api_call_id] = deque()
 
         hdr_msg.msg_type = MsgHeader.MsgType.Value('API_CALL')
         hdr_msg.api_call_id = api_call_id
