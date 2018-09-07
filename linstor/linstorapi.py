@@ -827,7 +827,7 @@ class _LinstorNetClient(threading.Thread):
         """
         with self._cv_sock:
             try:
-                while api_call_id in self._replies and len(self._replies[api_call_id]) == 0:
+                while api_call_id in self._replies:
                     if not self.connected:
                         return
 
@@ -1139,7 +1139,7 @@ class Linstor(object):
             raise errors[0]  # for now only send the first error
 
         if not allow_no_reply and len(replies) == 0:
-            raise LinstorNetworkError("No answer received")
+            raise LinstorNetworkError("No answer received for api_call '{id}:{c}'".format(id=api_call_id, c=api_call))
 
         return replies
 
