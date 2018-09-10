@@ -1,3 +1,23 @@
+python-linstor (0.6.1-1) experimental; urgency=medium
+
+  [ Roland Kammerer ]
+  * is_error(): add code parameter
+  * linstorapi: add resource_delete_if_diskless
+  * linstorapi: add resource_create_and_auto_place
+  * doc: fix indenting
+  * doc: add samples for plugin devs
+
+  [ Rene Peinthor ]
+  * storage-pools: storage_pool_create now needs the exact driver name
+  * storage-pool: correcting docstring for storage_pool_create
+  * setup.py: python-setuptools is a build requirement
+  * add support for zfsthin driver
+  * networkclient: fix unsafe access to _replies map
+  * fix a possible too early exit from wait loop
+  * swordfish: add node_create_swordfish_target
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 10 Sep 2018 14:50:37 +0200
+
 python-linstor (0.6.0-1) experimental; urgency=medium
 
   [ Joel Colledge ]
