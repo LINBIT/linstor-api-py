@@ -1802,6 +1802,28 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_DEL_VLM_DFN, msg)
 
+    def _volume_dfn_size(self, rsc_name, volume_nr):
+        """
+        Return size of given volume for given resource.
+
+        :param str rsc_name: Resource definition name
+        :param volume_nr: Volume number.
+        :return: Size of the volume definition in kibibytes. IMPORTANT: This will change to a tuple/dict type
+        :raises LinstorError: if resource or volume_nr can not be found
+        """
+        rsc_dfn_list_replies = self.resource_dfn_list()
+        if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
+            raise LinstorError('Could not list resource definitions, or they are empty')
+
+        rsc_dfn_list_reply = rsc_dfn_list_replies[0]
+        for rsc_dfn in rsc_dfn_list_reply.proto_msg.rsc_dfns:
+            if rsc_dfn.rsc_name == rsc_name:
+                for vlm_dfn in rsc_dfn.vlm_dfns:
+                    if vlm_dfn.vlm_nr == volume_nr:
+                        return vlm_dfn.vlm_size
+
+        raise LinstorError('Could not find volume number {} in resource {}'.format(volume_nr, rsc_name))
+
     def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, async_msg=False):
         """
         Creates a new resource on the given node.
