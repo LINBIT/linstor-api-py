@@ -1514,6 +1514,10 @@ class Linstor(object):
                 return entry.value
         return default
 
+    @staticmethod
+    def _filter_props(props, namespace=''):
+        return {prop.key: prop.value for prop in props if prop.key.startswith(namespace)}
+
     def storage_pool_create(
             self,
             node_name,
@@ -1664,6 +1668,26 @@ class Linstor(object):
         :rtype: list[ProtoMessageResponse]
         """
         return self._send_and_wait(apiconsts.API_LST_RSC_DFN)
+
+    def resource_dfn_props_list(self, rsc_name, filter_by_namespace=''):
+        """
+        Return a dictionary containing keys for a resource definition filtered by namespace.
+
+        :param str rsc_name: Name of the resource definition it is linked to.
+        :param str filter_by_namespace: Retrun only keys starting with the given prefix.
+        :return: dict containing mathing keys
+        :raises LinstorError: if resource can not be found
+        """
+        rsc_dfn_list_replies = self.resource_dfn_list()
+        if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
+            raise LinstorError('Could not list resource definitions, or they are empty')
+
+        rsc_dfn_list_reply = rsc_dfn_list_replies[0]
+        for rsc_dfn in rsc_dfn_list_reply.proto_msg.rsc_dfns:
+            if rsc_dfn.rsc_name == rsc_name:
+                return Linstor._filter_props(rsc_dfn.rsc_dfn_props, filter_by_namespace)
+
+        return {}
 
     def volume_dfn_create(self, rsc_name, size, volume_nr=None, minor_nr=None, encrypt=False, storage_pool=None):
         """
