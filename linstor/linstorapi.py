@@ -353,6 +353,7 @@ class _LinstorNetClient(threading.Thread):
         self._stats_received = 0
         self._controller_info = None  # type: str
         self._keep_alive = keep_alive  # type: bool
+        self._run_disconnect_lock = threading.RLock()
 
     def __del__(self):
         self.disconnect()
@@ -569,13 +570,15 @@ class _LinstorNetClient(threading.Thread):
 
         :return: True if socket was connected, else False
         """
+        ret = False
         with self._slock:
             if self._socket:
                 self._logger.debug("disconnecting")
                 self._socket.close()
                 self._socket = None
-                return True
-        return False
+                ret = True
+        self._run_disconnect_lock.acquire()
+        return ret
 
     def controller_info(self):
         """
@@ -591,6 +594,10 @@ class _LinstorNetClient(threading.Thread):
         return int(round(time.time() * 1000))
 
     def run(self):
+        with self._run_disconnect_lock:
+            self._run()
+
+    def _run(self):
         """
         Runs the main select loop that handles incoming messages, parses them and
         puts them on the self._replies map.
@@ -611,8 +618,11 @@ class _LinstorNetClient(threading.Thread):
             eds = []
             try:
                 rds, wds, eds = select.select([self._socket], [], [self._socket], 2)
-            except (IOError, TypeError):
-                pass  # maybe check if socket is None, so we know it was closed on purpose
+            except Exception as e:  # (IOError, TypeError):
+                if self._socket is None:  # disconnect closed it
+                    break
+                if not (e is IOError or e is TypeError):
+                    raise e
 
             self._logger.debug("select exit with:" + ",".join([str(rds), str(wds), str(eds)]))
 
