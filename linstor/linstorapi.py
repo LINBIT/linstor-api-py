@@ -1058,7 +1058,7 @@ class Linstor(object):
         self.disconnect()
 
     @classmethod
-    def all_api_responses_success(cls, replies):
+    def all_api_responses_no_error(cls, replies):
         """
         Checks if none of the responses has an error.
 
@@ -1067,6 +1067,17 @@ class Linstor(object):
         :rtype: bool
         """
         return all([not r.is_error() for r in replies])
+
+    @classmethod
+    def all_api_responses_success(cls, replies):
+        """
+        Checks if none of the responses has an error.
+
+        :param list[ApiCallResponse] replies: apicallresponse to check
+        :return: True if all replies are success
+        :rtype: bool
+        """
+        return all([r.is_success() for r in replies])
 
     @classmethod
     def filter_api_call_response(cls, replies):
@@ -1088,6 +1099,18 @@ class Linstor(object):
         :return: None if any is not success, else all given replies
         """
         if not cls.all_api_responses_success(replies_):
+            return replies_
+        return None
+
+    @classmethod
+    def return_if_error(cls, replies_):
+        """
+        Returns None if any of the replies is an error.
+
+        :param list[ApiCallResponse] replies_: list of api call responses
+        :return: None if any is not success, else all given replies
+        """
+        if not cls.all_api_responses_no_error(replies_):
             return replies_
         return None
 
