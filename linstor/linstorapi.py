@@ -247,6 +247,10 @@ class ApiCallResponse(ProtoMessageResponse):
     def message(self):
         return self._proto_msg.message
 
+    @property
+    def error_report_ids(self):
+        return self._proto_msg.error_report_ids
+
     def __str__(self):
         return self._proto_msg.message
 
