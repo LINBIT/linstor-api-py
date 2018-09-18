@@ -1,4 +1,6 @@
 import locale
+import re
+from .errors import LinstorError
 from collections import OrderedDict
 
 
@@ -35,6 +37,7 @@ class SizeCalc(object):
     convert the unit name to lower-case to look it up in this table
     """
     UNITS_MAP = OrderedDict([(unit_str.lower(), (unit_str, unit)) for unit_str, unit in [
+        ('B', UNIT_B),
         ('K', UNIT_KiB),
         ('kB', UNIT_kB),
         ('KiB', UNIT_KiB),
@@ -53,6 +56,48 @@ class SizeCalc(object):
     ]])
 
     UNITS_LIST_STR = ', '.join([unit_str for unit_str, _ in UNITS_MAP.values()])
+
+    @classmethod
+    def parse_unit(cls, value):
+        """
+        Parses the given value as a computer size + unit.
+        If the value doesn't contain a unit indicator, bytes are assumed.
+
+        :param str value: string value to parse
+        :return: a tuple of the size value as int and the SizeCalc.UNIT
+        :rtype: (int, int)
+        """
+        m = re.match('(\d+)(\D*)', value)
+
+        size = None
+        if m:
+            size = int(m.group(1))
+        else:
+            raise LinstorError("Size is not a number.")
+
+        unit_str = m.group(2)
+        if unit_str == "":
+            unit_str = "B"
+
+        try:
+            _, unit = SizeCalc.UNITS_MAP[unit_str.lower()]
+        except KeyError:
+            raise LinstorError('"%s" is not a valid unit!\n' % unit_str)
+
+        return size, unit
+
+    @classmethod
+    def auto_convert(cls, value, unit_to):
+        """
+        Convertes the given value to another byte unit.
+        :param str value: string value that should be converted.
+        :param int unit_to: SizeCalc.UNIT enum to convert to
+        :return: the converted value
+        :rtype: int
+        """
+        size, unit_from = cls.parse_unit(value)
+
+        return cls.convert(size, unit_from, unit_to)
 
     @classmethod
     def convert(cls, size, unit_in, unit_out):
