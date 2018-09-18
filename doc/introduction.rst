@@ -105,25 +105,35 @@ for all attributes. Most important attributes are ``event_name`` and ``event_act
       Sent if an object was removed.
 
 
-Code Samples for Plugin Developers
-----------------------------------
+Code Samples Using the High-Level API
+-------------------------------------
 
 In this section we describe methods that are typically used by plugin developers.
 
 Create a resource N-times redundant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A code sample on how to create a resource "foo", with a size of 20MB 2-times redundant.
+A code sample on how to create a resource "foo", with a size of 20MiB 3-times redundant.
 Usually that code is executed in a "create" call in a plugin.
 
 .. code-block:: python
 
   import linstor
-  with linstor.Linstor("linstor://localhost") as lin:
-    node_list_reply = lin.node_list()
-    rs = lin.resource_create_and_auto_place('foo', 20*1024, 2)
-    if not rs[0].is_success():
-      print('NO SUCCESS', rs[0])
+  foo = linstor.Resource('foo', uri='linstor://192.168.0.42')  # by default uri is localhost
+  foo.volumes[0] = linstor.Volume('20 MiB')
+  foo.placement.redundancy = 3
+  foo.autoplace()
+
+Resizing an existing resource/volume
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+  import linstor
+  foo = linstor.Resource('foo')
+  foo.volumes[0].size = linstor.Volume('30 MiB')
+  # resize again
+  foo.volumes[0].size += 10 * 1024 * 1024
 
 Create a diskless assignment if there isn't already an assignment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -134,12 +144,8 @@ there is not already an assignment with a disk.
 .. code-block:: python
 
   import linstor
-  from linstor.sharedconsts import FAIL_EXISTS_RSC
-  with linstor.Linstor("linstor://localhost") as lin:
-    rsc_create_replies = lin.resource_create(rsc_name='foo', node_name='alpha', diskless=True)
-    rsc_create_reply = rsc_create_replies[0]
-    if rsc_create_reply.is_success() or rsc_create_reply.is_error(code=FAIL_EXISTS_RSC):
-      print('SUCCESS')
+  foo = linstor.Resource('foo')
+  foo.activate('bravo')
 
 Remove diskless assignment (only if diskless)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -150,16 +156,51 @@ Deletion in such cases is limited to diskless assignments as the redundancy shou
 .. code-block:: python
 
   import linstor
-  from linstor.sharedconsts import FAIL_EXISTS_RSC
-    with linstor.Linstor("linstor://localhost") as lin:
-      rsc_delete_replies = lin.resource_delete_if_diskless(rsc_name='foo', node_name='alpha')
-      rsc_delete_reply = rsc_delete_replies[0]
-      if not rsc_delete_reply.is_success():
-        print('NO SUCCESS', rsc_delete_reply)
+  foo = linstor.Resource('foo')
+  foo.deactivate('bravo')
 
+Setting the assignment state of a resource
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Generic Code Samples
---------------------
+This assigns the resource if it isn't assigned yet and convertes if necessary.
+
+.. code-block:: python
+
+  import linstor
+  foo = linstor.Resource('foo')
+  foo.placement.storage_pool = 'drbdpool'
+  foo.diskful('alpha')  # whatever it was it is now diskful
+  foo.diskless('alpha')  # converted to diskless
+  foo.delete('alpha')
+  foo.diskless('alpha')  # created diskless
+
+Setting and unsetting dual primary
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+  import linstor
+  foo = linstor.Resource('foo')
+  foo.allow_two_primaries = True
+  # do some live migration
+  foo.allow_two_primaries = False
+
+Various query and list operations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+  import linstor
+  foo = linstor.Resource('foo')
+  for diskless_node in foo.diskless_nodes():
+    print(diskless_node)
+  print(foo.is_diskful('alpha'))
+  print(foo.is_assigned('bravo'))
+  print(foo.volumes[0].backing_disk)
+  print(foo.volumes[0].device_path)
+
+Code Samples using the Low-Level API
+------------------------------------
 
 List nodes
 ~~~~~~~~~~

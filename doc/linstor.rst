@@ -11,6 +11,14 @@ Subpackages
 Submodules
 ----------
 
+linstor.resource module
+-------------------------
+
+.. automodule:: linstor.resource
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 linstor.linstorapi module
 -------------------------
 
