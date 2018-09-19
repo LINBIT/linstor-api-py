@@ -8,12 +8,12 @@ import logging
 import socket
 import select
 import ssl
+import time
 from collections import deque
 from datetime import datetime
-import time
 from google.protobuf.internal import encoder
 from google.protobuf.internal import decoder
-from errors import LinstorError, LinstorNetworkError, LinstorTimeoutError
+from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError
 
 try:
     from urlparse import urlparse
