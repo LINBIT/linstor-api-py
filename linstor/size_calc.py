@@ -67,7 +67,7 @@ class SizeCalc(object):
         :return: a tuple of the size value as int and the SizeCalc.UNIT
         :rtype: (int, int)
         """
-        m = re.match('(\d+)(\D*)', value)
+        m = re.match('(\d+)\s*(\D*)', value)
 
         size = None
         if m:
