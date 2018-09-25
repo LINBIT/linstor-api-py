@@ -1312,31 +1312,33 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_MOD_NODE, msg)
 
-    def node_delete(self, node_name):
+    def node_delete(self, node_name, async_msg=False):
         """
         Deletes the given node on the controller.
 
         :param str node_name: Node name to delete.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         msg = MsgDelNode()
         msg.node_name = node_name
 
-        return self._send_and_wait(apiconsts.API_DEL_NODE, msg)
+        return self._send_and_wait(apiconsts.API_DEL_NODE, msg, async_msg=async_msg)
 
-    def node_lost(self, node_name):
+    def node_lost(self, node_name, async_msg=False):
         """
         Deletes an unrecoverable node on the controller.
 
         :param str node_name: Node name to delete.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         msg = MsgDelNode()
         msg.node_name = node_name
 
-        return self._send_and_wait(apiconsts.API_LOST_NODE, msg)
+        return self._send_and_wait(apiconsts.API_LOST_NODE, msg, async_msg=async_msg)
 
     def netinterface_create(self, node_name, interface_name, ip, port=None, com_type=None):
         """
@@ -1649,18 +1651,19 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_MOD_RSC_DFN, msg)
 
-    def resource_dfn_delete(self, name):
+    def resource_dfn_delete(self, name, async_msg=False):
         """
         Delete a given resource definition.
 
         :param str name: Resource definition name to delete.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         msg = MsgDelRscDfn()
         msg.rsc_name = name
 
-        return self._send_and_wait(apiconsts.API_DEL_RSC_DFN, msg)
+        return self._send_and_wait(apiconsts.API_DEL_RSC_DFN, msg, async_msg=async_msg)
 
     def resource_dfn_list(self):
         """
@@ -1748,12 +1751,13 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_MOD_VLM_DFN, msg)
 
-    def volume_dfn_delete(self, rsc_name, volume_nr):
+    def volume_dfn_delete(self, rsc_name, volume_nr, async_msg=False):
         """
         Delete a given volume definition.
 
         :param str rsc_name: Resource definition name of the volume definition.
         :param volume_nr: Volume number.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1761,7 +1765,7 @@ class Linstor(object):
         msg.rsc_name = rsc_name
         msg.vlm_nr = volume_nr
 
-        return self._send_and_wait(apiconsts.API_DEL_VLM_DFN, msg)
+        return self._send_and_wait(apiconsts.API_DEL_VLM_DFN, msg, async_msg=async_msg)
 
     def _volume_dfn_size(self, rsc_name, volume_nr):
         """
@@ -1793,6 +1797,7 @@ class Linstor(object):
         :param str rsc_name:
         :param bool diskless: Should the resource be diskless
         :param storage_pool:
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return:
         """
         msg = MsgCrtRsc()
@@ -1902,12 +1907,13 @@ class Linstor(object):
 
         return self._send_and_wait(apiconsts.API_MOD_RSC, msg)
 
-    def resource_delete(self, node_name, rsc_name):
+    def resource_delete(self, node_name, rsc_name, async_msg=False):
         """
         Deletes a given resource on the given node.
 
         :param str node_name: Name of the node where the resource is deployed.
         :param str rsc_name: Name of the resource.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1915,7 +1921,7 @@ class Linstor(object):
         msg.node_name = node_name
         msg.rsc_name = rsc_name
 
-        return self._send_and_wait(apiconsts.API_DEL_RSC, msg)
+        return self._send_and_wait(apiconsts.API_DEL_RSC, msg, async_msg=async_msg)
 
     def resource_delete_if_diskless(self, node_name, rsc_name):
         """
@@ -1989,6 +1995,7 @@ class Linstor(object):
 
         :param str node_name: Node name where the resource is deployed.
         :param str rsc_name: Name of the resource.
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
