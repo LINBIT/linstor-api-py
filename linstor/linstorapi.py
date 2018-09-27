@@ -987,6 +987,42 @@ class StoragePoolDriver(object):
         return ''
 
 
+class ResourceData(object):
+    def __init__(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None):
+        """
+        :param str node_name: The node on which to place the resource
+        :param str rsc_name: The resource definition to place
+        :param bool diskless: Should the resource be diskless
+        :param str storage_pool: The storage pool to use
+        :param int node_id: Use this DRBD node_id
+        """
+        self._node_name = node_name
+        self._rsc_name = rsc_name
+        self._diskless = diskless
+        self._storage_pool = storage_pool
+        self._node_id = node_id
+
+    @property
+    def node_name(self):
+        return self._node_name
+
+    @property
+    def rsc_name(self):
+        return self._rsc_name
+
+    @property
+    def diskless(self):
+        return self._diskless
+
+    @property
+    def storage_pool(self):
+        return self._storage_pool
+
+    @property
+    def node_id(self):
+        return self._node_id
+
+
 class Linstor(object):
     """
     Linstor class represents a client connection to the Linstor controller.
@@ -1789,32 +1825,33 @@ class Linstor(object):
 
         raise LinstorError('Could not find volume number {} in resource {}'.format(volume_nr, rsc_name))
 
-    def resource_create(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, async_msg=False):
+    def resource_create(self, rscs, async_msg=False):
         """
-        Creates a new resource on the given node.
+        Creates new resources in a resource definition.
 
-        :param str node_name:
-        :param str rsc_name:
-        :param bool diskless: Should the resource be diskless
-        :param storage_pool:
+        :param list[ResourceData] rscs: Resources to create
         :param bool async_msg: True to return without waiting for the action to complete on the satellites.
         :return:
         """
         msg = MsgCrtRsc()
-        msg.rsc.name = rsc_name
-        msg.rsc.node_name = node_name
 
-        if storage_pool:
-            prop = msg.rsc.props.add()
-            prop.key = apiconsts.KEY_STOR_POOL_NAME
-            prop.value = storage_pool
+        for rsc in rscs:
+            proto_rsc = msg.rscs.add()
 
-        if diskless:
-            msg.rsc.rsc_flags.append(apiconsts.FLAG_DISKLESS)
+            proto_rsc.name = rsc.rsc_name
+            proto_rsc.node_name = rsc.node_name
 
-        if node_id is not None:
-            msg.override_node_id = True
-            msg.rsc.node_id = node_id
+            if rsc.storage_pool:
+                prop = proto_rsc.props.add()
+                prop.key = apiconsts.KEY_STOR_POOL_NAME
+                prop.value = rsc.storage_pool
+
+            if rsc.diskless:
+                proto_rsc.rsc_flags.append(apiconsts.FLAG_DISKLESS)
+
+            if rsc.node_id is not None:
+                proto_rsc.override_node_id = True
+                proto_rsc.node_id = rsc.node_id
 
         return self._send_and_wait(apiconsts.API_CRT_RSC, msg, async_msg=async_msg)
 

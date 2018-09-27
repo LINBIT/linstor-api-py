@@ -356,8 +356,13 @@ class Resource(object):
         If the host already contains a diskful assignment, this is a NOOP. Otherwise a diskless assignment is
         created.
         """
-        rsc_create_replies = self._lin.resource_create(rsc_name=self._name,
-                                                       node_name=node_name, diskless=True)
+        rsc_create_replies = self._lin.resource_create([
+            linstor.ResourceData(
+                node_name,
+                self._name,
+                diskless=True
+            )
+        ])
         rsc_create_reply = rsc_create_replies[0]
         if rsc_create_reply.is_success() or rsc_create_reply.is_error(code=FAIL_EXISTS_RSC):
             return
@@ -385,8 +390,14 @@ class Resource(object):
             sp = self.placement.storage_pool
 
         if not is_assigned:
-            rs = self._lin.resource_create(node_name, self._name, diskless=diskless,
-                                           storage_pool=sp)
+            rs = self._lin.resource_create([
+                linstor.ResourceData(
+                    node_name,
+                    self._name,
+                    diskless=diskless,
+                    storage_pool=sp
+                )
+            ])
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not create resource {} on node {} as diskless={}: {}'
                                            .format(self._name, node_name, diskless, rs[0]))
