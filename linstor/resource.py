@@ -460,10 +460,6 @@ class Resource(object):
         return (n for n in self._assignments.keys() if self.is_diskful(n))
 
     # no decorator! (could recreate)
-    # TODO: dfn_delete with resources is async =>
-    # we set defined to False
-    # we call _update_volumes, we still get the resource_dfn; we set it to True :-/
-    # there is ongoing work to make calls sync when one would expect them to be sync.
     def _delete(self, node_name=None):
         rs = None
         reinit = False
