@@ -1,3 +1,26 @@
+python-linstor (0.6.2-1) experimental; urgency=medium
+
+  [ Roland Kammerer ]
+  * linstorapi: add resource_dfn_props_list
+  * linstorapi: fix concurrency bug run()/disconnect()
+  * linstorapi: add _volume_dfn_size
+  * SizeCalc: allow spaces between number an unit
+  * introduce a higher-level API
+  * higher-level API: remove TODO, delete is now sync
+
+  [ Rene Peinthor ]
+  * ApiCallResponse: add message property
+  * linstorapi: fix reply checker methods meaning
+  * apicallresponse: added error_report_ids
+  * errors: move LinstorErrors into their own module
+  * SizeCalc: add parse_unit and auto_convert functions
+  * fix error module imports for py3
+
+  [ Joel Colledge ]
+  * Delete APIs are now synchronous so add support for also calling them a [...]
+
+ -- Rene Peinthor <rene.peinthor@linbit.com> Tue, 02 Oct 2018 08:23:46 +0200
+
 python-linstor (0.6.1-1) experimental; urgency=medium
 
   [ Roland Kammerer ]
