@@ -1864,7 +1864,8 @@ class Linstor(object):
             do_not_place_with_regex=None,
             replicas_on_same=None,
             replicas_on_different=None,
-            diskless_on_remaining=False
+            diskless_on_remaining=False,
+            async_msg=False
     ):
         """
         Auto places(deploys) a resource to the amount of place_count.
@@ -1877,6 +1878,7 @@ class Linstor(object):
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
+        :param bool async_msg: True to return without waiting for the action to complete on the satellites
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1897,7 +1899,7 @@ class Linstor(object):
         if replicas_on_different:
             msg_filter.replicas_on_different.extend(replicas_on_different)
 
-        return self._send_and_wait(apiconsts.API_AUTO_PLACE_RSC, msg)
+        return self._send_and_wait(apiconsts.API_AUTO_PLACE_RSC, msg, async_msg=async_msg)
 
     def resource_create_and_auto_place(self, rsc_name, size, place_count, storage_pool=None,
                                        diskless_on_remaining=False):
