@@ -46,31 +46,28 @@ on how long you will want to watch an object.
 
   with linstor.Linstor("linstor://localhost") as lin:
     rsc_name = "rsc1"
-    def delete_rscdfn_handler(event_header, event_data):
-        if event_header.event_name in [linstor.consts.EVENT_RESOURCE_DEPLOYMENT_STATE]:
+
+    def vlm_state_handler(event_header, event_data):
+        if event_header.event_name in [linstor.consts.EVENT_VOLUME_DISK_STATE]:
             if event_header.event_action == linstor.consts.EVENT_STREAM_CLOSE_NO_CONNECTION:
                 print("WARNING: Satellite connection lost")
                 sys.exit(20)
-        elif event_header.event_name in [linstor.consts.EVENT_RESOURCE_DEFINITION_READY]:
-            if event_header.event_action == linstor.consts.EVENT_STREAM_CLOSE_REMOVED:
-                return []
 
-        return linstor.Linstor.exit_on_error_event_handler(event_header, event_data)
+            print(event_data.disk_state)
+            if event_data.disk_state == "UpToDate":
+                return "Done"
 
-
-    lin.resource_dfn_delete(rsc_name)
     watch_result = lin.watch_events(
         linstor.Linstor.return_if_failure,
-        delete_rscdfn_handler,
+        vlm_state_handler,
         linstor.ObjectIdentifier(resource_name=rsc_name)
     )
     # watch_result will contain the result of delete_rscdfn_handler
-    return watch_result
+    print(watch_result)
 
 
-In this sample a resource definition with the name "rsc1" is deleted and a watch
-is created that checks if the resource is deleted on all deployed satellites.
-The callback function used is named ``delete_rscdfn_handler``, a watch callback
+In this sample a watch is created that waits for the resource to be UpToDate on any satellite.
+The callback function used is named ``vlm_state_handler``, a watch callback
 function gets 2 parameters, event_header and event_data.
 The event_header is the MsgEvent protobuf message, check the protobuf definition
 for all attributes. Most important attributes are ``event_name`` and ``event_action``:
@@ -80,10 +77,6 @@ for all attributes. Most important attributes are ``event_name`` and ``event_act
     * :py:data:`linstor.consts.EVENT_RESOURCE_DEPLOYMENT_STATE`
 
       Sent for Satellite device handler resource events
-
-    * :py:data:`linstor.consts.EVENT_RESOURCE_DEFINITION_READY`
-
-      Sent for resource definition events
 
     * :py:data:`linstor.consts.EVENT_SNAPSHOT_DEPLOYMENT`
     * :py:data:`linstor.consts.EVENT_RESOURCE_STATE`

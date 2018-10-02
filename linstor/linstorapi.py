@@ -74,7 +74,6 @@ from linstor.proto.Filter_pb2 import Filter
 from linstor.proto.eventdata.EventVlmDiskState_pb2 import EventVlmDiskState
 from linstor.proto.eventdata.EventRscState_pb2 import EventRscState
 from linstor.proto.eventdata.EventRscDeploymentState_pb2 import EventRscDeploymentState
-from linstor.proto.eventdata.EventRscDfnReady_pb2 import EventRscDfnReady
 from linstor.proto.eventdata.EventSnapshotDeployment_pb2 import EventSnapshotDeployment
 from linstor.proto.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
 from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
@@ -293,7 +292,6 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.EVENT_VOLUME_DISK_STATE: EventVlmDiskState,
         apiconsts.EVENT_RESOURCE_STATE: EventRscState,
         apiconsts.EVENT_RESOURCE_DEPLOYMENT_STATE: EventRscDeploymentState,
-        apiconsts.EVENT_RESOURCE_DEFINITION_READY: EventRscDfnReady,
         apiconsts.EVENT_SNAPSHOT_DEPLOYMENT: EventSnapshotDeployment
     }
 
@@ -1113,29 +1111,6 @@ class Linstor(object):
         """
         if not cls.all_api_responses_no_error(replies_):
             return replies_
-        return None
-
-    @classmethod
-    def exit_on_error_event_handler(cls, event_header, event_data):
-        """
-        Extracts non success ApiCallResponses from event_data.
-
-        :param MsgEvent event_header: protobuf event message
-        :param MsgEventRscDeploymentState event_data: to check for non success replies.
-        :return: None if there are only success replies, else list of error ApiCallResponses
-        :rtype: [AbiCallResponse]
-        """
-        if event_header.event_name == apiconsts.EVENT_RESOURCE_DEPLOYMENT_STATE and event_data is not None:
-            api_call_responses = [
-                ApiCallResponse(response)
-                for response in event_data.responses
-            ]
-            failure_responses = [
-                api_call_response for api_call_response in api_call_responses
-                if not api_call_response.is_success()
-            ]
-
-            return failure_responses if failure_responses else None
         return None
 
     @classmethod
