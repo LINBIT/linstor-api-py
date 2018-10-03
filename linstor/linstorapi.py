@@ -2098,6 +2098,15 @@ class Linstor(object):
         """
         return self._linstor_client.controller_info()
 
+    def controller_host(self):
+        """
+        Returns the used controller hostname.
+
+        :return: Uri used to connect.
+        :rtype: str
+        """
+        return self._ctrl_host
+
     def watch_create(self, watch_id, object_identifier):
         """
         Create watch for events from the controller.
