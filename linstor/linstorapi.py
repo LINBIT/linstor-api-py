@@ -78,6 +78,8 @@ from linstor.proto.eventdata.EventSnapshotDeployment_pb2 import EventSnapshotDep
 from linstor.proto.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
 from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
 from linstor.proto.MsgCrtSfTargetNode_pb2 import MsgCrtSfTargetNode
+from linstor.proto.MsgReqRscConn_pb2 import MsgReqRscConn
+from linstor.proto.MsgLstRscConn_pb2 import MsgLstRscConn
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 2
@@ -283,6 +285,7 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.API_LST_VLM: (MsgLstRsc, ProtoMessageResponse),
         apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, ProtoMessageResponse),
         apiconsts.API_LST_CFG_VAL: (MsgLstCtrlCfgProps, ProtoMessageResponse),
+        apiconsts.API_LST_RSC_CONN: (MsgLstRscConn, ProtoMessageResponse),
         apiconsts.API_HOSTNAME: (MsgHostname, ProtoMessageResponse),
         apiconsts.API_LST_ERROR_REPORTS: (MsgErrorReport, ErrorReport),
         apiconsts.API_RSP_MAX_VLM_SIZE: (MsgRspMaxVlmSizes, ProtoMessageResponse)
@@ -2213,6 +2216,18 @@ class Linstor(object):
         msg.node_2_name = node_b
         msg = self._modify_props(msg, property_dict, delete_props)
         return self._send_and_wait(apiconsts.API_MOD_RSC_CONN, msg)
+
+    def resource_conn_list(self, rsc_name):
+        """
+        Request a list of all resource connection to the given resource name.
+
+        :param rsc_name: Name of the resource to get the connections.
+        :return: MsgLstRscConn
+        :rtype: list[ProtoMessageResponse]
+        """
+        msg = MsgReqRscConn()
+        msg.rsc_name = rsc_name
+        return self._send_and_wait(apiconsts.API_REQ_RSC_CONN_LIST, msg)
 
     def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg):
         """
