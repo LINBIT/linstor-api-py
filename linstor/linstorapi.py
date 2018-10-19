@@ -80,6 +80,8 @@ from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
 from linstor.proto.MsgCrtSfTargetNode_pb2 import MsgCrtSfTargetNode
 from linstor.proto.MsgReqRscConn_pb2 import MsgReqRscConn
 from linstor.proto.MsgLstRscConn_pb2 import MsgLstRscConn
+from linstor.proto.MsgEnableDrbdProxy_pb2 import MsgEnableDrbdProxy
+from linstor.proto.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 2
@@ -2228,6 +2230,45 @@ class Linstor(object):
         msg = MsgReqRscConn()
         msg.rsc_name = rsc_name
         return self._send_and_wait(apiconsts.API_REQ_RSC_CONN_LIST, msg)
+
+    def drbd_proxy_enable(self, rsc_name, node_a, node_b, port):
+        """
+        Enables DRBD Proxy on a resource connection.
+        Identified by the resource name, node1 and node2 arguments.
+
+        :param str rsc_name: Name of the resource.
+        :param str node_a: Name of the first node.
+        :param str node_b: Name of the second node.
+        :param int port: Port the Proxy connection should use.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgEnableDrbdProxy()
+
+        msg.rsc_name = rsc_name
+        msg.node_1_name = node_a
+        msg.node_2_name = node_b
+        if port is not None:
+            msg.port = port
+        return self._send_and_wait(apiconsts.API_ENABLE_DRBD_PROXY, msg)
+
+    def drbd_proxy_disable(self, rsc_name, node_a, node_b):
+        """
+        Disables DRBD Proxy on a resource connection.
+        Identified by the resource name, node1 and node2 arguments.
+
+        :param str rsc_name: Name of the resource.
+        :param str node_a: Name of the first node.
+        :param str node_b: Name of the second node.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgDisableDrbdProxy()
+
+        msg.rsc_name = rsc_name
+        msg.node_1_name = node_a
+        msg.node_2_name = node_b
+        return self._send_and_wait(apiconsts.API_DISABLE_DRBD_PROXY, msg)
 
     def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg):
         """
