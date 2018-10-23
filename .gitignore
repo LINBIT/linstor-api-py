@@ -20,7 +20,6 @@ linstor/proto/eventdata/*.py
 linstor/sharedconsts.py
 linstor/properties.py
 linstor/consts_githash.py
-linstor/drbdsetup_options.py
 
 # unittests ignores
 test-reports/
