@@ -82,6 +82,7 @@ from linstor.proto.MsgReqRscConn_pb2 import MsgReqRscConn
 from linstor.proto.MsgLstRscConn_pb2 import MsgLstRscConn
 from linstor.proto.MsgEnableDrbdProxy_pb2 import MsgEnableDrbdProxy
 from linstor.proto.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
+from linstor.proto.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 2
@@ -2269,6 +2270,23 @@ class Linstor(object):
         msg.node_1_name = node_a
         msg.node_2_name = node_b
         return self._send_and_wait(apiconsts.API_DISABLE_DRBD_PROXY, msg)
+
+    def drbd_proxy_modify(self, rsc_name, property_dict, delete_props=None):
+        """
+        Modify DRBD Proxy properties of the given resource definition.
+
+        :param str rsc_name: Name of the resource definition to modify.
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param list[str] delete_props: List of properties to delete
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgModDrbdProxy()
+        msg.rsc_name = rsc_name
+
+        msg = self._modify_props(msg, property_dict, delete_props)
+
+        return self._send_and_wait(apiconsts.API_MOD_DRBD_PROXY, msg)
 
     def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg):
         """
