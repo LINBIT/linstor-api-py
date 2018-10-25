@@ -2271,13 +2271,22 @@ class Linstor(object):
         msg.node_2_name = node_b
         return self._send_and_wait(apiconsts.API_DISABLE_DRBD_PROXY, msg)
 
-    def drbd_proxy_modify(self, rsc_name, property_dict, delete_props=None):
+    def drbd_proxy_modify(
+            self,
+            rsc_name,
+            property_dict=None,
+            delete_props=None,
+            compression_type=None,
+            compression_property_dict=None
+    ):
         """
-        Modify DRBD Proxy properties of the given resource definition.
+        Configure DRBD Proxy for the given resource definition.
 
         :param str rsc_name: Name of the resource definition to modify.
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
+        :param str compression_type: The compression type to use.
+        :param dict[str, str] compression_property_dict: Dict containing key, value pairs for compression values.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2285,6 +2294,15 @@ class Linstor(object):
         msg.rsc_name = rsc_name
 
         msg = self._modify_props(msg, property_dict, delete_props)
+
+        if compression_type:
+            msg.compression_type = compression_type
+
+            if compression_property_dict:
+                for key, val in compression_property_dict.items():
+                    lin_kv = msg.compression_props.add()
+                    lin_kv.key = key
+                    lin_kv.value = val
 
         return self._send_and_wait(apiconsts.API_MOD_DRBD_PROXY, msg)
 
