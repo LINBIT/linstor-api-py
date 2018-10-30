@@ -1,3 +1,23 @@
+python-linstor (0.7.0-1) experimental; urgency=medium
+
+  [ Joel Colledge ]
+  * Allow multiple resources to be created with a single API call
+  * The auto-place API is now synchronous so add support for also calling  [...]
+  * Remove resource definition ready event which is no longer used
+  * Add max oversubscription ratio property
+  * Include full stor pool definition in the max volume size query list
+  * Add DRBD proxy configuration commands
+  * Remove need for drbdsetup_options.py
+  * Add configuration of DRBD Proxy options
+  * Add configuration of DRBD Proxy compression plugins
+
+  [ Rene Peinthor ]
+  * linstorapi: controller_host method
+  * linstorapi: request resource connection list
+  * increase API_VERSION to be compatible with linstor-controller 0.7
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 30 Oct 2018 09:55:20 +0100
+
 python-linstor (0.6.2-1) experimental; urgency=medium
 
   [ Roland Kammerer ]
