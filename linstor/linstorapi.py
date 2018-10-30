@@ -85,8 +85,8 @@ from linstor.proto.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
 from linstor.proto.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
 import linstor.sharedconsts as apiconsts
 
-API_VERSION = 2
-API_VERSION_MIN = 2
+API_VERSION = 3
+API_VERSION_MIN = 3
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -441,7 +441,7 @@ class _LinstorNetClient(threading.Thread):
             self._api_version = msg.version
             if API_VERSION_MIN > msg.version or msg.version > API_VERSION:
                 raise LinstorError(
-                    "Client API version '{v}' is incompatible with controller version '{r}', update your client."
+                    "Client API version '{v}' is incompatible with controller version '{r}', please update your client."
                     .format(
                         v=API_VERSION,
                         r=msg.version)
