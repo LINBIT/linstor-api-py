@@ -83,6 +83,7 @@ from linstor.proto.MsgLstRscConn_pb2 import MsgLstRscConn
 from linstor.proto.MsgEnableDrbdProxy_pb2 import MsgEnableDrbdProxy
 from linstor.proto.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
 from linstor.proto.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
+from linstor.proto.MsgNodeReconnect_pb2 import MsgNodeReconnect
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 3
@@ -1356,6 +1357,19 @@ class Linstor(object):
         msg.node_name = node_name
 
         return self._send_and_wait(apiconsts.API_LOST_NODE, msg, async_msg=async_msg)
+
+    def node_reconnect(self, node_names):
+        """
+        Forces the controller to drop a connection on a satellite and reconnect.
+
+        :param list[str] node_names: List of nodes to reconnect.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgNodeReconnect()
+        msg.nodes.extend(node_names)
+
+        return self._send_and_wait(apiconsts.API_NODE_RECONNECT, msg)
 
     def netinterface_create(self, node_name, interface_name, ip, port=None, com_type=None):
         """
