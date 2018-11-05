@@ -74,11 +74,6 @@ for all attributes. Most important attributes are ``event_name`` and ``event_act
 
   * ``event_name`` is one of
 
-    * :py:data:`linstor.consts.EVENT_RESOURCE_DEPLOYMENT_STATE`
-
-      Sent for Satellite device handler resource events
-
-    * :py:data:`linstor.consts.EVENT_SNAPSHOT_DEPLOYMENT`
     * :py:data:`linstor.consts.EVENT_RESOURCE_STATE`
 
       Sent for resource definition events

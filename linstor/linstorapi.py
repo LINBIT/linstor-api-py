@@ -297,9 +297,7 @@ class _LinstorNetClient(threading.Thread):
 
     EVENT_READER_TABLE = {
         apiconsts.EVENT_VOLUME_DISK_STATE: EventVlmDiskState,
-        apiconsts.EVENT_RESOURCE_STATE: EventRscState,
-        apiconsts.EVENT_RESOURCE_DEPLOYMENT_STATE: EventRscDeploymentState,
-        apiconsts.EVENT_SNAPSHOT_DEPLOYMENT: EventSnapshotDeployment
+        apiconsts.EVENT_RESOURCE_STATE: EventRscState
     }
 
     URL_SCHEMA_MAP = {
@@ -1163,62 +1161,6 @@ class Linstor(object):
             raise LinstorNetworkError("No answer received for api_call '{id}:{c}'".format(id=api_call_id, c=api_call))
 
         return replies
-
-    def _watch_send_and_wait(
-            self,
-            api_call,
-            msg,
-            async_msg,
-            event_name,
-            object_identifier):
-        """
-        Helper function that sends a api call[+msg], waits for the answer from the controller and waits for a response
-        in the form of an event containing API responses.
-
-        :param str api_call: API call identifier
-        :param msg: Proto message to send
-        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
-        :param str event_name: Event name
-        :param ObjectIdentifier object_identifier: Object to subscribe for events
-        :return: A list containing ApiCallResponses from the controller.
-        :rtype: list[ApiCallResponse]
-        """
-
-        if async_msg:
-            watch_id = None
-        else:
-            watch_id = self._linstor_client.next_watch_id()
-
-        try:
-            if not async_msg:
-                watch_responses = self.watch_create(watch_id, object_identifier)
-
-                if not self.all_api_responses_success(watch_responses):
-                    return watch_responses
-
-            responses = self._send_and_wait(api_call, msg)
-            if async_msg or not self.all_api_responses_success(responses):
-                return responses
-
-            def event_handler(event_header, event_data, responses):
-                if event_header.event_name == event_name:
-                    if event_header.event_action in [
-                        apiconsts.EVENT_STREAM_CLOSE_REMOVED,
-                        apiconsts.EVENT_STREAM_CLOSE_NO_CONNECTION
-                    ]:
-                        return ()
-                    else:
-                        event_responses = [ApiCallResponse(response) for response in event_data.responses]
-                        responses += event_responses
-                        return self.return_if_failure(event_responses)
-                return None
-
-            self._linstor_client.wait_for_events(
-                watch_id, lambda event_header, event_data: event_handler(event_header, event_data, responses))
-            return responses
-        finally:
-            if watch_id is not None:
-                self._watch_delete(watch_id)
 
     def connect(self):
         """
@@ -2339,12 +2281,10 @@ class Linstor(object):
 
         msg.snapshot_dfn.rsc_name = rsc_name
         msg.snapshot_dfn.snapshot_name = snapshot_name
-        return self._watch_send_and_wait(
+        return self._send_and_wait(
             apiconsts.API_CRT_SNAPSHOT,
             msg,
-            async_msg,
-            apiconsts.EVENT_SNAPSHOT_DEPLOYMENT,
-            ObjectIdentifier(resource_name=rsc_name, snapshot_name=snapshot_name)
+            async_msg=async_msg
         )
 
     def snapshot_volume_definition_restore(self, from_resource, from_snapshot, to_resource):
