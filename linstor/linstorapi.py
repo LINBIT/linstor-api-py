@@ -73,8 +73,6 @@ from linstor.proto.MsgRestoreSnapshotRsc_pb2 import MsgRestoreSnapshotRsc
 from linstor.proto.Filter_pb2 import Filter
 from linstor.proto.eventdata.EventVlmDiskState_pb2 import EventVlmDiskState
 from linstor.proto.eventdata.EventRscState_pb2 import EventRscState
-from linstor.proto.eventdata.EventRscDeploymentState_pb2 import EventRscDeploymentState
-from linstor.proto.eventdata.EventSnapshotDeployment_pb2 import EventSnapshotDeployment
 from linstor.proto.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
 from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
 from linstor.proto.MsgCrtSfTargetNode_pb2 import MsgCrtSfTargetNode
