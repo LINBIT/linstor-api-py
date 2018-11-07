@@ -9,7 +9,7 @@ TESTS = $(wildcard unit-tests/*_test.py)
 all:
 	$(PYTHON) setup.py build
 
-install: linstor/consts_githash.py
+install: gensrc linstor/consts_githash.py
 	$(PYTHON) setup.py install --record $(INSTALLFILES)
 
 uninstall:
