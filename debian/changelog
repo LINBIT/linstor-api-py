@@ -1,3 +1,15 @@
+python-linstor (0.7.1-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * linstorapi: add node reconnect call
+  * make: add gensrc dependency to install target
+
+  [ Joel Colledge ]
+  * Create snapshots using reactive approach
+  * Remove unused and non-existent imports
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 12 Nov 2018 11:47:52 +0100
+
 python-linstor (0.7.0-1) experimental; urgency=medium
 
   [ Joel Colledge ]

@@ -8,7 +8,7 @@ from .size_calc import SizeCalc
 from .errors import LinstorError, LinstorTimeoutError, LinstorNetworkError
 from . import sharedconsts as consts
 
-VERSION = "0.7.0"
+VERSION = "0.7.1"
 
 try:
     from linstor.consts_githash import GITHASH
