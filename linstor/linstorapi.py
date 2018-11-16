@@ -68,6 +68,7 @@ from linstor.proto.MsgErrorReport_pb2 import MsgErrorReport
 from linstor.proto.MsgHostname_pb2 import MsgHostname
 from linstor.proto.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
 from linstor.proto.MsgDelSnapshot_pb2 import MsgDelSnapshot
+from linstor.proto.MsgRollbackSnapshot_pb2 import MsgRollbackSnapshot
 from linstor.proto.MsgRestoreSnapshotVlmDfn_pb2 import MsgRestoreSnapshotVlmDfn
 from linstor.proto.MsgRestoreSnapshotRsc_pb2 import MsgRestoreSnapshotRsc
 from linstor.proto.Filter_pb2 import Filter
@@ -2337,6 +2338,21 @@ class Linstor(object):
         msg.rsc_name = rsc_name
         msg.snapshot_name = snapshot_name
         return self._send_and_wait(apiconsts.API_DEL_SNAPSHOT, msg)
+
+    def snapshot_rollback(self, rsc_name, snapshot_name):
+        """
+        Roll a resource back to a snapshot state.
+
+        :param str rsc_name: Name of the resource.
+        :param str snapshot_name: Name of the snapshot.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgRollbackSnapshot()
+
+        msg.rsc_name = rsc_name
+        msg.snapshot_name = snapshot_name
+        return self._send_and_wait(apiconsts.API_ROLLBACK_SNAPSHOT, msg)
 
     def snapshot_dfn_list(self):
         """
