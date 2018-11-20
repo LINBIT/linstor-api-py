@@ -1661,7 +1661,7 @@ class Linstor(object):
 
         rsc_dfn_list_reply = rsc_dfn_list_replies[0]
         for rsc_dfn in rsc_dfn_list_reply.proto_msg.rsc_dfns:
-            if rsc_dfn.rsc_name == rsc_name:
+            if rsc_dfn.rsc_name.lower() == rsc_name.lower():
                 return Linstor._filter_props(rsc_dfn.rsc_dfn_props, filter_by_namespace)
 
         return {}
