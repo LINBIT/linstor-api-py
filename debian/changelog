@@ -1,3 +1,14 @@
+python-linstor (0.7.2-1) experimental; urgency=medium
+
+  [ Joel Colledge ]
+  * Add snapshot rollback API
+
+  [ Rene Peinthor ]
+  * drbd-options: use patched resync-after option
+  * case insensitive lookup
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 22 Nov 2018 10:46:23 +0100
+
 python-linstor (0.7.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
