@@ -2439,20 +2439,55 @@ class Linstor(object):
         return self._linstor_client.stats()
 
 
+class MultiLinstor(Linstor):
+    def __init__(self, ctrl_host_list, timeout=300, keep_alive=False):
+        """
+
+        :param list[str] ctrl_host_list:
+        :param timeout:
+        :param keep_alive:
+        """
+        super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive)
+        self._ctrl_host_list = ctrl_host_list  # type: list[str]
+
+    def connect(self):
+        conn_errors = []
+        for ctrl_host in self._ctrl_host_list:
+            self._ctrl_host = ctrl_host
+            try:
+                return super(MultiLinstor, self).connect()
+            except LinstorNetworkError as lne:
+                conn_errors.append(lne)
+
+        if len(conn_errors) == len(self._ctrl_host_list):
+            raise LinstorNetworkError("Unable to connect to any of the given controller hosts.", conn_errors)
+
+    @classmethod
+    def controller_uri_list(cls, controller_list):
+        """
+        Converts a simple '10.0.0.1,10.0.0.2' ip/host list to ['linstor://10.0.0.1', 'linstor://10.0.0.2'] uris.
+        :param str controller_list: list of controller addresses separated by comma
+        :return: List of linstor uris
+        :rtype: list[str]
+        """
+        servers = []
+        # add linstor uri scheme
+        for hp in controller_list.split(','):
+            if hp:
+                if '://' in hp:
+                    servers.append(hp)
+                else:
+                    servers.append("linstor://" + hp)
+        return servers
+
+
 if __name__ == "__main__":
-    lin = Linstor("linstor://127.0.0.1")
+    lin = MultiLinstor(["linstor://10.0.0.138", "linstor://10.0.0.1", "linstor://localhost"])
     lin.connect()
-    id = lin.ping()
-    print(id)
-    lin.wait_for_message(id)
+    print(lin.controller_host())
+    id_ = lin.ping()
+    print(id_)
+    lin.wait_for_message(id_)
 
-    #print(lin.node_create('testnode', apiconsts.VAL_NODE_TYPE_STLT, '10.0.0.1'))
-    for x in range(1, 20):
-        print(lin.node_create('testnode' + str(x), apiconsts.VAL_NODE_TYPE_STLT, '10.0.0.' + str(x)))
-
-    for x in range(1, 20):
-        print(lin.node_delete('testnode' + str(x)))
-    # replies = lin.storage_pool_list()
-    # print(replies)
-    # print(lin.list_nodes())
-    # print(lin.list_resources())
+    print(lin.node_list())
+    print(lin.resource_list())

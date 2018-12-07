@@ -9,9 +9,9 @@ from linstor.sharedconsts import FAIL_EXISTS_RSC, FLAG_DISKLESS
 
 
 class _Client(object):
-    def __init__(self, uri, timeout=300, keep_alive=False):
+    def __init__(self, uris, timeout=300, keep_alive=False):
         # external properties
-        self.uri = uri
+        self.uri_list = linstor.MultiLinstor.controller_uri_list(uris)  # type: list[str]
         self.timeout = timeout
         self.keep_alive = keep_alive
 
@@ -104,6 +104,7 @@ class Volume(object):
         """
         return self._size
 
+    @classmethod
     def _size_to_bytes(cls, size):
         if isinstance(size, str):
             return linstor.SizeCalc.auto_convert(size, linstor.SizeCalc.UNIT_B)
@@ -122,7 +123,7 @@ class Volume(object):
 
             size_kib = linstor.SizeCalc.convert_round_up(size, linstor.SizeCalc.UNIT_B,
                                                          linstor.SizeCalc.UNIT_KiB)
-            with linstor.Linstor(self._client_ref.uri,
+            with linstor.MultiLinstor(self._client_ref.uri_list,
                                  self._client_ref.timeout,
                                  self._client_ref.keep_alive) as lin:
                 rs = lin.volume_dfn_modify(r, v, size=size_kib)
@@ -137,7 +138,7 @@ class Volume(object):
     def _delete(self):
         if self._rsc_name is None:  # this volume was created, but never deployed, no linstor action.
             return
-        with linstor.Linstor(self._client_ref.uri,
+        with linstor.MultiLinstor(self._client_ref.uri_list,
                              self._client_ref.timeout,
                              self._client_ref.keep_alive) as lin:
             r, v = self._rsc_name, self._volume_id
@@ -168,13 +169,13 @@ class Resource(object):
     This object allows managing existing DRBD Resources as well as creating new ones.
 
     :param str name: The name of the DRBD resource.
-    :param str uri: The controller host address, specified as linstor url.
-     e.g: ``linstor://localhost``, ``linstor+ssl://localhost``
+    :param str uri: A list of controller addresses.
+     e.g: ``linstor://localhost,10.0.0.2``, ``linstor+ssl://localhost,linstor://192.168.0.1``
     """
     def update_volumes(f):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
-            with linstor.Linstor(self.client.uri, self.client.timeout, self.client.keep_alive) as lin:
+            with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
                 self._lin = lin
                 self._maybe_create_rd()
                 f(self, *args, **kwargs)
@@ -198,7 +199,7 @@ class Resource(object):
         self._lin = None  # used to pass in an existing client (e.g,, update_volumes)
         self._assignments = {}
 
-        with linstor.Linstor(self.client.uri, self.client.timeout, self.client.keep_alive) as lin:
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
             self._update_volumes()
 
@@ -288,7 +289,7 @@ class Resource(object):
 
         self._allow_two_primaries = value
         if self.defined:
-            with linstor.Linstor(self.client.uri, self.client.timeout, self.client.keep_alive) as lin:
+            with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
                 self._lin = lin
                 self._set_properties()
 
@@ -501,6 +502,6 @@ class Resource(object):
 
         If the node name is None, deletes the resource globaly.
         """
-        with linstor.Linstor(self.client.uri, self.client.timeout, self.client.keep_alive) as lin:
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
             self._delete(node_name)
