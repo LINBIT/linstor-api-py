@@ -1964,7 +1964,15 @@ class Linstor(object):
             f.resource_names.extend(filter_by_resources)
         return self._send_and_wait(apiconsts.API_LST_VLM, f)
 
-    def resource_toggle_disk(self, node_name, rsc_name, storage_pool=None, diskless=False, async_msg=False):
+    def resource_toggle_disk(
+            self,
+            node_name,
+            rsc_name,
+            storage_pool=None,
+            diskless=False,
+            async_msg=False,
+            migrate_from=None
+    ):
         """
         Toggles a resource between diskless and having a disk.
 
@@ -1980,6 +1988,9 @@ class Linstor(object):
 
         if storage_pool:
             msg.stor_pool_name = storage_pool
+
+        if migrate_from:
+            msg.migrate_from = migrate_from
 
         msg.diskless = diskless
 
