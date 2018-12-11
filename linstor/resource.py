@@ -189,7 +189,7 @@ class Resource(object):
         self._port = None
         self.client = _Client(uri)
         self.placement = _Placement()
-        self.volumes = _VolumeDict()
+        self.volumes = _VolumeDict()  # type: dict[int, Volume]
         self.defined = False
 
         # THINK(rck): maybe a dict, KISS for now
