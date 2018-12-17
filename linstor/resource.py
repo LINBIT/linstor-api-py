@@ -203,6 +203,9 @@ class Resource(object):
             self._lin = lin
             self._update_volumes()
 
+    def __str__(self):
+        return self._name
+
     def _set_properties(self):
         dp = 'yes' if self._allow_two_primaries else 'no'
         props = {'DrbdOptions/Net/allow-two-primaries': dp}
