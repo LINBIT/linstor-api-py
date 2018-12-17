@@ -481,6 +481,17 @@ class Resource(object):
         """
         return [n for n in self._assignments.keys() if self.is_diskful(n)]
 
+    def is_thin(self):
+        """
+        Returns if the used storage pool of the resource is thin.
+
+        :return: True if storage pool used is thin.
+        :rtype: bool
+        """
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            stor_pool_list = lin.storage_pool_list_raise(None, filter_by_stor_pools=[self.volumes[0].storage_pool_name])
+            return stor_pool_list.storage_pools[0].is_thin()
+
     # no decorator! (could recreate)
     def _delete(self, node_name=None):
         rs = None
