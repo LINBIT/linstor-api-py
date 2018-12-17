@@ -29,7 +29,7 @@ class Volume(object):
     Volume class represents a DRBD Volume.
 
     This object contains important properties of a Volume, including
-    e.g: ``siye``, and ``device_path``
+    e.g: ``size``, and ``device_path``
 
     :param size: String parsable by linstor.SizeCalc or size in bytes.
     """
@@ -498,9 +498,9 @@ class Resource(object):
     # no decorator! (could recreate)
     def delete(self, node_name=None):
         """
-        Returns the resource gobally or on the given host.
+        Returns the resource globally or on the given host.
 
-        If the node name is None, deletes the resource globaly.
+        If the node name is None, deletes the resource globally.
         """
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
