@@ -418,6 +418,90 @@ class Resource(object):
                 raise linstor.LinstorError('Could not toggle disk for resource {} on node {} to diskless={}: {}'
                                            .format(self._name, node_name, diskless, rs[0]))
 
+    def snapshot_create(self, name):
+        """
+        Creates a new snapshot for the resource.
+
+        :param str name: Name of the snapshot
+        :return: True if success, else raises LinstorError
+        """
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            rs = lin.snapshot_create(node_names=[], rsc_name=self.name, snapshot_name=name, async_msg=False)
+            if not rs[0].is_success():
+                raise linstor.LinstorError('Could not create snapshot {}: {}'.format(name, rs[0].message))
+        return True
+
+    def snapshot_delete(self, name):
+        """
+        Deletes a given snapshot of this resource.
+
+        :param str name: Name of the snapshot
+        :return: True if success, else raises LinstorError
+        """
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            rs = lin.snapshot_delete(rsc_name=self.name, snapshot_name=name)
+            if not rs[0].is_success():
+                raise linstor.LinstorError('Could not delete snapshot {}: {}'.format(name, rs[0].message))
+        return True
+
+    def snapshot_rollback(self, name):
+        """
+        Rolls resource data back to snapshot state. The resource must not be in use.
+        The snapshot will not be removed and can be used for subsequent rollbacks.
+        Only the most recent snapshot may be used; to roll back to an earlier
+        snapshot, the intermediate snapshots must first be deleted.
+
+        :param str name: Name of the snapshot
+        :return: True if success, else raises LinstorError
+        """
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            rs = lin.snapshot_rollback(rsc_name=self.name, snapshot_name=name)
+            if not rs[0].is_success():
+                raise linstor.LinstorError('Could not rollback to snapshot {}: {}'.format(name, rs[0].message))
+        return True
+
+    def restore_from_snapshot(self, snapshot_name, resource_name_to):
+        """
+        Restores a new resource from a snapshot.
+
+        :param snapshot_name: Snapshot name to use for restoration.
+        :param resource_name_to: Name of the new resource.
+        :return: A new resource object restored from the snapshot.
+        :rtype: Resource
+        """
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            rs = lin.resource_dfn_create(resource_name_to)
+            if not rs[0].is_success():
+                raise linstor.LinstorError("Could not resource definition '{}' for snapshot restore"
+                                           .format(resource_name_to))
+
+            rs = lin.snapshot_volume_definition_restore(
+                from_resource=self.name,
+                from_snapshot=snapshot_name,
+                to_resource=resource_name_to
+            )
+
+            if not rs[0].is_success():
+                raise linstor.LinstorError(
+                    "Could not restore volume definition '{rd}' from snapshot {sn} to resource definition '{tr}'"
+                    .format(rd=self.name, sn=snapshot_name, tr=resource_name_to)
+                )
+
+            rs = lin.snapshot_resource_restore(
+                node_names=[],  # to all
+                from_resource=self.name,
+                from_snapshot=snapshot_name,
+                to_resource=resource_name_to
+            )
+
+            if not rs[0].is_success():
+                raise linstor.LinstorError(
+                    "Could not restore resource '{rd}' from snapshot {sn} to resource definition '{tr}'"
+                    .format(rd=self.name, sn=snapshot_name, tr=resource_name_to)
+                )
+
+        return Resource(resource_name_to, ",".join(self.client.uri_list))
+
     def diskless(self, node_name):
         """
         Assign a resource diskless on a given node.
