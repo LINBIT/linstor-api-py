@@ -1,3 +1,24 @@
+python-linstor (0.7.3-1) experimental; urgency=medium
+
+  [ Joel Colledge ]
+  * Include thin volume allocated capacity in the volume list
+  * Add option to migrate disk from another node when adding disk to diskl [...]
+
+  [ Rene Peinthor ]
+  * introduce MultiLinstor
+  * resource: add type annotation
+  * refer to new swordfish target constant
+  * errors: add LinstorApiCallError
+  * resource: return list instead of generator
+  * resource: fix typos in docstrings
+  * resource: add __str__ method
+  * resource: store volume storage pool name
+  * linstorapi: interface for list queries
+  * resource: add is_thin method
+  * resource: add snapshot_* methods
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 17 Dec 2018 13:31:38 +0100
+
 python-linstor (0.7.2-1) experimental; urgency=medium
 
   [ Joel Colledge ]
