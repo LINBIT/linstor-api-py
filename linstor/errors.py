@@ -36,3 +36,11 @@ class LinstorTimeoutError(LinstorError):
     """
     def __init__(self, msg, more_errors=None):
         super(LinstorTimeoutError, self).__init__(msg, more_errors)
+
+
+class LinstorApiCallError(LinstorError):
+    """
+    Linstor error from an apicall response.
+    """
+    def __init__(self, apicallresponse, more_errors=None):
+        super(LinstorApiCallError, self).__init__(str(apicallresponse), more_errors)
