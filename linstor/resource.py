@@ -39,12 +39,17 @@ class Volume(object):
         self._minor = None
         self._backing_disk = ''
         self._device_path = ''
+        self._storage_pool_name = ''
 
         # internal
         self._volume_id = None
         self._rsc_name = None
         self._client_ref = None
         self._assignments = []
+
+    @property
+    def storage_pool_name(self):
+        return self._storage_pool_name
 
     @property
     def backing_disk(self):
@@ -274,6 +279,8 @@ class Resource(object):
                 vlm_nr = vlm.vlm_nr
                 self.volumes[vlm_nr]._backing_disk = vlm.backing_disk
                 self.volumes[vlm_nr]._device_path = vlm.device_path
+                self.volumes[vlm_nr]._storage_pool_name = vlm.stor_pool_name
+                self.volumes[vlm_nr]._minor = vlm.vlm_minor_nr
 
     @property
     def allow_two_primaries(self):
