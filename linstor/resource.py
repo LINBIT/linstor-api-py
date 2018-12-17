@@ -458,18 +458,18 @@ class Resource(object):
         Returns the host names of all diskless nodes.
 
         :return: Host names of diskless nodes.
-        :rtype: generator
+        :rtype: list[str]
         """
-        return (n for n in self._assignments.keys() if self.is_diskless(n))
+        return [n for n in self._assignments.keys() if self.is_diskless(n)]
 
     def diskful_nodes(self):
         """
         Returns the host names of all diskful nodes.
 
         :return: Host names of diskful nodes.
-        :rtype: generator
+        :rtype: list[str]
         """
-        return (n for n in self._assignments.keys() if self.is_diskful(n))
+        return [n for n in self._assignments.keys() if self.is_diskful(n)]
 
     # no decorator! (could recreate)
     def _delete(self, node_name=None):
