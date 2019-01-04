@@ -601,12 +601,21 @@ class Resource(object):
         self._update_volumes()
 
     # no decorator! (could recreate)
-    def delete(self, node_name=None):
+    def delete(self, node_name=None, snapshots=True):
         """
-        Returns the resource globally or on the given host.
+        Deletes the resource globally or on the given host.
 
         If the node name is None, deletes the resource globally.
+
+        :param str node_name: Deletes resource only from the specified node.
+        :param bool snapshots: If True deletes snapshots prior deleting the resource
         """
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
+
+            if snapshots:
+                snapshot_list = lin.snapshot_dfn_list()[0]
+                for snap in [x for x in snapshot_list.proto_msg.snapshot_dfns if x.rsc_name == self._name]:
+                    lin.snapshot_delete(rsc_name=self._name, snapshot_name=snap.snapshot_name)
+
             self._delete(node_name)
