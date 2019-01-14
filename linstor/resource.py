@@ -322,7 +322,7 @@ class Resource(object):
     @property
     def port(self):
         """
-        Returns the prot of the Resource.
+        Returns the port of the Resource.
 
         :return: The port of the Resource.
         :rtype: str
