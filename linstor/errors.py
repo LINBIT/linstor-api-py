@@ -44,3 +44,13 @@ class LinstorApiCallError(LinstorError):
     """
     def __init__(self, apicallresponse, more_errors=None):
         super(LinstorApiCallError, self).__init__(str(apicallresponse), more_errors)
+
+
+class LinstorReadOnlyAfterSetError(LinstorError):
+    """
+    Linstor error raised if a property that is only allowed to be set once, is re-set.
+    """
+    def __init__(self, msg=None, more_errors=None):
+        if msg is None:
+            msg = 'After this property got set it is read-only'
+        super(LinstorReadOnlyAfterSetError, self).__init__(msg, more_errors)

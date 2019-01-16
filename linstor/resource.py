@@ -64,7 +64,7 @@ class Volume(object):
     @backing_disk.setter
     def backing_disk(self, backing_disk):
         if self._rsc_name is not None:
-            raise Exception('After a volume is deployed, this is a read-only property')
+            raise linstor.LinstorReadOnlyAfterSetError()
         self._backing_disk = backing_disk
 
     @property
@@ -79,7 +79,7 @@ class Volume(object):
 
     @device_path.setter
     def device_path(self, device_path):
-        raise Exception('This is a read-only property')
+        raise linstor.LinstorReadOnlyAfterSetError('This is a read-only property')
 
     @property
     def minor(self):
@@ -94,7 +94,7 @@ class Volume(object):
         :rtype: int
         """
         if self._rsc_name is not None:
-            raise Exception('After a volume is deployed, this is a read-only property')
+            raise linstor.LinstorReadOnlyAfterSetError()
         self._minor = minor
 
     @property
@@ -316,7 +316,7 @@ class Resource(object):
     @name.setter
     def name(self, name):
         if self.defined:
-            raise Exception('After a resource is defined, this is a read-only property')
+            raise linstor.LinstorReadOnlyAfterSetError()
         self._name = name
 
     @property
@@ -332,7 +332,7 @@ class Resource(object):
     @port.setter
     def port(self, port_nr):
         if self.defined:
-            raise Exception('After a resource is defined, this is a read-only property')
+            raise linstor.LinstorReadOnlyAfterSetError()
         self._port = port_nr
 
     @update_volumes
