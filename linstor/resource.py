@@ -129,8 +129,8 @@ class Volume(object):
             size_kib = linstor.SizeCalc.convert_round_up(size, linstor.SizeCalc.UNIT_B,
                                                          linstor.SizeCalc.UNIT_KiB)
             with linstor.MultiLinstor(self._client_ref.uri_list,
-                                 self._client_ref.timeout,
-                                 self._client_ref.keep_alive) as lin:
+                                      self._client_ref.timeout,
+                                      self._client_ref.keep_alive) as lin:
                 rs = lin.volume_dfn_modify(r, v, size=size_kib)
                 if not rs[0].is_success():
                     raise linstor.LinstorError('Could not resize Resource/Volume {}/{}: {}'
@@ -144,8 +144,8 @@ class Volume(object):
         if self._rsc_name is None:  # this volume was created, but never deployed, no linstor action.
             return
         with linstor.MultiLinstor(self._client_ref.uri_list,
-                             self._client_ref.timeout,
-                             self._client_ref.keep_alive) as lin:
+                                  self._client_ref.timeout,
+                                  self._client_ref.keep_alive) as lin:
             r, v = self._rsc_name, self._volume_id
             rs = lin.volume_dfn_delete(r, v)
             if not rs[0].is_success():
