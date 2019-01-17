@@ -83,16 +83,16 @@ class Volume(object):
 
     @property
     def minor(self):
-        return self._minor
-
-    @minor.setter
-    def minor(self, minor):
         """
         Returns the minor number of a Volume (e.g., 1000).
 
         :return: The minor number of a Volume.
         :rtype: int
         """
+        return self._minor
+
+    @minor.setter
+    def minor(self, minor):
         if self._rsc_name is not None:
             raise linstor.LinstorReadOnlyAfterSetError()
         self._minor = minor
@@ -180,12 +180,14 @@ class Resource(object):
     def update_volumes(f):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
+            ret = None
             with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
                 self._lin = lin
                 self._maybe_create_rd()
-                f(self, *args, **kwargs)
+                ret = f(self, *args, **kwargs)
                 self._update_volumes()
             self._lin = None
+            return ret
         return wrapper
 
     def __init__(self, name, uri='linstor://localhost'):
@@ -244,7 +246,7 @@ class Resource(object):
         # update internal state
         rsc_dfn_list_replies = self._lin.resource_dfn_list()
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
-            return
+            return True
 
         rsc_dfn_list_reply = rsc_dfn_list_replies[0]
         for rsc_dfn in rsc_dfn_list_reply.proto_msg.rsc_dfns:
@@ -267,7 +269,7 @@ class Resource(object):
 
         rsc_list_replies = self._lin.resource_list(filter_by_nodes=None, filter_by_resources=[self._name])
         if not rsc_list_replies or not rsc_list_replies[0]:
-            return
+            return True
 
         self._assignments = {}
         rsc_list_reply = rsc_list_replies[0]
@@ -282,12 +284,14 @@ class Resource(object):
                 self.volumes[vlm_nr]._storage_pool_name = vlm.stor_pool_name
                 self.volumes[vlm_nr]._minor = vlm.vlm_minor_nr
 
+        return True
+
     @property
     def allow_two_primaries(self):
         """
         Returns the value of the DRBD net-option 'allow-two-primaries'.
 
-        :return: The value of the DRBD net-option 'allow-two-primaries'.
+        :return: The value of the DRBD net-option 'allow-two-primaries'. Raises LinstorError in case of error.
         :rtype: bool
         """
         return self._allow_two_primaries
@@ -344,6 +348,8 @@ class Resource(object):
         foo.placement.redundancy = 3
         foo.placement.storage_pool = 'drbdpool'
         foo.autoplace()
+
+        :return: True if success, else raises LinstorError
         """
         rs = self._lin.resource_auto_place(
             self._name,
@@ -358,6 +364,7 @@ class Resource(object):
         if not rs[0].is_success():
             raise linstor.LinstorError('Could not autoplace resource {}: {}'
                                        .format(self._name, rs[0]))
+        return True
 
     @update_volumes
     def activate(self, node_name):
@@ -366,6 +373,8 @@ class Resource(object):
 
         If the host already contains a diskful assignment, this is a NOOP. Otherwise a diskless assignment is
         created.
+
+        :return: True if success, else raises LinstorError
         """
         rsc_create_replies = self._lin.resource_create([
             linstor.ResourceData(
@@ -376,7 +385,7 @@ class Resource(object):
         ])
         rsc_create_reply = rsc_create_replies[0]
         if rsc_create_reply.is_success() or rsc_create_reply.is_error(code=FAIL_EXISTS_RSC):
-            return
+            return True
 
         raise linstor.LinstorError('Could not activate resource {} on node {}: {}'
                                    .format(self._name, node_name, rsc_create_reply))
@@ -388,9 +397,12 @@ class Resource(object):
 
         If the assignment is diskless, delete this assignment. If it is diskful and therefore part of the
         given redundany, this is a NOOP (i.e., the redundancy is not decreased).
+
+        :return: True if success, else raises LinstorError
         """
         if self.is_diskless(node_name):
-            self.delete(node_name)
+            return self.delete(node_name)
+        return True
 
     @update_volumes
     def _create_or_toggle(self, node_name, diskless):
@@ -417,6 +429,7 @@ class Resource(object):
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not toggle disk for resource {} on node {} to diskless={}: {}'
                                            .format(self._name, node_name, diskless, rs[0]))
+        return True
 
     def snapshot_create(self, name):
         """
@@ -508,8 +521,11 @@ class Resource(object):
 
         If the assignment does not exist, create it diskless. If the assignment is already diskless, this is a
         NOOP. If it exists diskful, convert it to diskless.
+
+        :param str node_name: Name of the node
+        :return: True if success, else raises LinstorError
         """
-        self._create_or_toggle(node_name, True)
+        return self._create_or_toggle(node_name, True)
 
     def diskful(self, node_name):
         """
@@ -517,13 +533,17 @@ class Resource(object):
 
         If the assignment does not exist, create it diskful. If the assignment is already diskful, this is a
         NOOP. If it exists diskless, convert it to diskful.
+
+        :param str node_name: Name of the node
+        :return: True if success, else raises LinstorError
         """
-        self._create_or_toggle(node_name, False)
+        return self._create_or_toggle(node_name, False)
 
     def is_diskless(self, node_name):
         """
         Returns True if the resource is assigned diskless on the given host.
 
+        :param str node_name: Name of the node
         :return: True if assigned diskless on given host.
         :rtype: bool
         """
@@ -533,6 +553,7 @@ class Resource(object):
         """
         Returns True if the resource is assigned diskful on the given host.
 
+        :param str node_name: Name of the node
         :return: True if assigned diskful on given host.
         :rtype: bool
         """
@@ -542,6 +563,7 @@ class Resource(object):
         """
         Returns True if the resource is assigned diskful or diskless on the given host.
 
+        :param str node_name: Name of the node
         :return: True if assigned (diskful or diskless) on given host.
         :rtype: bool
         """
@@ -587,7 +609,7 @@ class Resource(object):
             self.defined = False
         else:
             if not self.is_assigned(node_name):
-                return
+                return True
             rs = self._lin.resource_delete(node_name, self._name)
             if socket.gethostname() == node_name:  # deleted on myself
                 reinit = True
@@ -598,7 +620,7 @@ class Resource(object):
         if reinit:
             self._volumes = _VolumeDict()
 
-        self._update_volumes()
+        return self._update_volumes()
 
     # no decorator! (could recreate)
     def delete(self, node_name=None, snapshots=True):
@@ -609,6 +631,8 @@ class Resource(object):
 
         :param str node_name: Deletes resource only from the specified node.
         :param bool snapshots: If True deletes snapshots prior deleting the resource
+
+        :return: True if success, else raises LinstorError
         """
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
@@ -618,4 +642,4 @@ class Resource(object):
                 for snap in [x for x in snapshot_list.proto_msg.snapshot_dfns if x.rsc_name == self._name]:
                     lin.snapshot_delete(rsc_name=self._name, snapshot_name=snap.snapshot_name)
 
-            self._delete(node_name)
+            return self._delete(node_name)
