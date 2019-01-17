@@ -344,10 +344,12 @@ class Resource(object):
         """
         Automatically place the Resource according to values set in the placement policy.
 
-        To autoplace a Resource 'foo' 3 times redundant on the storage pool 'drbdpool' one would:
-        foo.placement.redundancy = 3
-        foo.placement.storage_pool = 'drbdpool'
-        foo.autoplace()
+        Example:
+            To autoplace a Resource 'foo' 3 times redundant on the storage pool 'drbdpool' one would::
+
+                $ foo.placement.redundancy = 3
+                $ foo.placement.storage_pool = 'drbdpool'
+                $ foo.autoplace()
 
         :return: True if success, else raises LinstorError
         """
@@ -374,6 +376,7 @@ class Resource(object):
         If the host already contains a diskful assignment, this is a NOOP. Otherwise a diskless assignment is
         created.
 
+        :param str node_name: Name of the node
         :return: True if success, else raises LinstorError
         """
         rsc_create_replies = self._lin.resource_create([
@@ -398,6 +401,7 @@ class Resource(object):
         If the assignment is diskless, delete this assignment. If it is diskful and therefore part of the
         given redundany, this is a NOOP (i.e., the redundancy is not decreased).
 
+        :param str node_name: Name of the node
         :return: True if success, else raises LinstorError
         """
         if self.is_diskless(node_name):
