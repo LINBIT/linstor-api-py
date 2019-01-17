@@ -82,6 +82,13 @@ check:
 	# currently none
 	# $(PYTHON) $(TESTS)
 
-.PHONY: doc
+.PHONY: doc upload-doc
 doc: gensrc
 	make -C doc html
+
+upload-doc: doc
+	tmpd=$$(mktemp -p $$PWD -d) && \
+	cp -r ./doc/_build/html/* $$tmpd && cd $$tmpd && touch .nojekyll && \
+	git init && git add . && git commit -m "gh-pages" && \
+	git push -f https://github.com/LINBIT/linstor-api-py.git master:gh-pages && \
+	rm -rf $$tmpd
