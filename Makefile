@@ -83,5 +83,5 @@ check:
 	# $(PYTHON) $(TESTS)
 
 .PHONY: doc
-doc:
+doc: gensrc
 	make -C doc html
