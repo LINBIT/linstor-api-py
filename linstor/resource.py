@@ -177,7 +177,7 @@ class Resource(object):
     :param str uri: A list of controller addresses.
      e.g: ``linstor://localhost,10.0.0.2``, ``linstor+ssl://localhost,linstor://192.168.0.1``
     """
-    def update_volumes(f):
+    def _update_volumes(f):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
             ret = None
@@ -185,7 +185,7 @@ class Resource(object):
                 self._lin = lin
                 self._maybe_create_rd()
                 ret = f(self, *args, **kwargs)
-                self._update_volumes()
+                self.__update_volumes()
             self._lin = None
             return ret
         return wrapper
@@ -203,12 +203,12 @@ class Resource(object):
         self._allow_two_primaries = False
 
         # internal
-        self._lin = None  # used to pass in an existing client (e.g,, update_volumes)
+        self._lin = None  # used to pass in an existing client (e.g,, _update_volumes)
         self._assignments = {}
 
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
-            self._update_volumes()
+            self.__update_volumes()
 
     def __str__(self):
         return self._name
@@ -230,7 +230,7 @@ class Resource(object):
             self.defined = True
             self._set_properties()
 
-    def _update_volumes(self):
+    def __update_volumes(self):
         # create fresh volume definitions
         for k, v in self.volumes.items():
             if v._rsc_name is None:
@@ -339,7 +339,7 @@ class Resource(object):
             raise linstor.LinstorReadOnlyAfterSetError()
         self._port = port_nr
 
-    @update_volumes
+    @_update_volumes
     def autoplace(self):
         """
         Automatically place the Resource according to values set in the placement policy.
@@ -366,7 +366,7 @@ class Resource(object):
                                        .format(self._name, rs[0]))
         return True
 
-    @update_volumes
+    @_update_volumes
     def activate(self, node_name):
         """
         Makes a resource available at a given host.
@@ -404,7 +404,7 @@ class Resource(object):
             return self.delete(node_name)
         return True
 
-    @update_volumes
+    @_update_volumes
     def _create_or_toggle(self, node_name, diskless):
         is_assigned = self.is_assigned(node_name)
         is_diskless = self.is_diskless(node_name)
@@ -620,7 +620,7 @@ class Resource(object):
         if reinit:
             self._volumes = _VolumeDict()
 
-        return self._update_volumes()
+        return self.__update_volumes()
 
     # no decorator! (could recreate)
     def delete(self, node_name=None, snapshots=True):
