@@ -82,5 +82,6 @@ check:
 	# currently none
 	# $(PYTHON) $(TESTS)
 
+.PHONY: doc
 doc:
 	make -C doc html
