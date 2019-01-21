@@ -16,6 +16,21 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+# Monkey-patch functools.wraps
+# See: https://github.com/sphinx-doc/sphinx/issues/1711
+import functools
+_orig_wraps = functools.wraps
+def _no_op_wraps(func):
+    """
+    Replaces functools.wraps in order to undo wrapping when generating Sphinx documentation
+    """
+    if func.__module__ is None or 'linstor.resource' not in func.__module__:
+        return _orig_wraps(func)
+
+    def wrapper(decorator):
+        return func
+    return wrapper
+functools.wraps = _no_op_wraps
 
 # -- Project information -----------------------------------------------------
 
