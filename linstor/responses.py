@@ -413,3 +413,18 @@ class StoragePoolListResponse(ProtoMessageResponse):
     @property
     def storage_pools(self):
         return [StoragePool(x) for x in self._proto_msg.stor_pools]
+
+
+class KeyValueStoreResponse(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(KeyValueStoreResponse, self).__init__(protobuf)
+
+    @property
+    def properties(self):
+        """
+        Returns the property dictionary.
+
+        :return: dict containing key values
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.props}

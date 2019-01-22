@@ -15,7 +15,7 @@ from google.protobuf.internal import encoder
 from google.protobuf.internal import decoder
 from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError
 from .responses import ProtoMessageResponse, ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
-from .responses import NodeListResponse
+from .responses import NodeListResponse, KeyValueStoreResponse
 
 try:
     from urlparse import urlparse
@@ -85,6 +85,9 @@ from linstor.proto.MsgEnableDrbdProxy_pb2 import MsgEnableDrbdProxy
 from linstor.proto.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
 from linstor.proto.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
 from linstor.proto.MsgNodeReconnect_pb2 import MsgNodeReconnect
+from linstor.proto.MsgLstKvsProps_pb2 import MsgLstKvsProps
+from linstor.proto.MsgModKvsProps_pb2 import MsgModKvsProps
+from linstor.proto.MsgRspKvsProps_pb2 import MsgRspKvsProps
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 3
@@ -156,7 +159,8 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.API_LST_RSC_CONN: (MsgLstRscConn, ProtoMessageResponse),
         apiconsts.API_HOSTNAME: (MsgHostname, ProtoMessageResponse),
         apiconsts.API_LST_ERROR_REPORTS: (MsgErrorReport, ErrorReport),
-        apiconsts.API_RSP_MAX_VLM_SIZE: (MsgRspMaxVlmSizes, ProtoMessageResponse)
+        apiconsts.API_RSP_MAX_VLM_SIZE: (MsgRspMaxVlmSizes, ProtoMessageResponse),
+        apiconsts.API_LST_KVS_PROPS: (MsgRspKvsProps, KeyValueStoreResponse)
     }
 
     EVENT_READER_TABLE = {
@@ -2192,6 +2196,41 @@ class Linstor(object):
         if ids:
             msg.ids.extend(ids)
         return self._send_and_wait(apiconsts.API_REQ_ERROR_REPORTS, msg, allow_no_reply=True)
+
+    def keyvaluestore_modify(self, instance_name, property_dict=None, delete_props=None):
+        """
+        Modify the properties of a given key value store instance.
+
+        :param str instance_name: Name of the node to modify.
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param list[str] delete_props: List of properties to delete
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgModKvsProps()
+        msg.instance_name = instance_name
+
+        self._modify_props(msg, property_dict, delete_props)
+
+        return self._send_and_wait(apiconsts.API_MOD_KVS_PROPS, msg)
+
+    def keyvaluestore_list(self, instance_name):
+        """
+        Request key values for the given instance_name.
+
+        :return: Node list response objects
+        :rtype: KeyValueStoreResponse
+        :raise LinstorError: if apicallerror or no response received
+        """
+        msg = MsgLstKvsProps()
+        msg.instance_name = instance_name
+        list_res = self._send_and_wait(apiconsts.API_LST_KVS_PROPS, msg)
+
+        if list_res:
+            if isinstance(list_res[0], KeyValueStoreResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
 
     def hostname(self):
         """
