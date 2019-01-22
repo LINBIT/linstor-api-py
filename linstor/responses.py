@@ -221,11 +221,18 @@ class NodeListResponse(ProtoMessageResponse):
 
     @property
     def nodes(self):
+        """
+        Returns a list with all nodes.
+
+        :return: The node list.
+        :rtype: list[Node]
+        """
         return [Node(x) for x in self._proto_msg.nodes]
 
     def node(self, node_name):
         """
-        Returns the specified node from the nodelist
+        Returns the specified node from the nodelist.
+
         :param str node_name: Node name
         :return: Node object of the node, or None
         :rtype: Node
