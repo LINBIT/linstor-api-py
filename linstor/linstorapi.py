@@ -2201,7 +2201,7 @@ class Linstor(object):
         """
         Modify the properties of a given key value store instance.
 
-        :param str instance_name: Name of the node to modify.
+        :param str instance_name: Name of the Key/Value store to modify.
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
         :return: A list containing ApiCallResponses from the controller.
@@ -2218,7 +2218,7 @@ class Linstor(object):
         """
         Request key values for the given instance_name.
 
-        :return: Node list response objects
+        :return: Key/Value store list response objects
         :rtype: KeyValueStoreResponse
         :raise LinstorError: if apicallerror or no response received
         """
