@@ -647,3 +647,19 @@ class Resource(object):
                     lin.snapshot_delete(rsc_name=self._name, snapshot_name=snap.snapshot_name)
 
             return self._delete(node_name)
+
+    def drbd_proxy_enable(self, node_name_a, node_name_b):
+        proxy_enable_replies = self._lin.drbd_proxy_enable(self._name, node_name_a, node_name_b)
+        proxy_enable_reply = proxy_enable_replies[0]
+        if not proxy_enable_reply.is_success():
+            raise linstor.LinstorError('Could not enable drbd-proxy for resource {} between {} and {}: {}'
+                                       .format(self._name, node_name_a, node_name_b, proxy_enable_reply))
+        return True
+
+    def drbd_proxy_disable(self, node_name_a, node_name_b):
+        proxy_disable_replies = self._lin.drbd_proxy_disable(self._name, node_name_a, node_name_b)
+        proxy_disable_reply = proxy_disable_replies[0]
+        if not proxy_disable_reply.is_success():
+            raise linstor.LinstorError('Could not disable drbd-proxy for resource {} between {} and {}: {}'
+                                       .format(self._name, node_name_a, node_name_b, proxy_disable_reply))
+        return True
