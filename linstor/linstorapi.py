@@ -2216,7 +2216,8 @@ class Linstor(object):
 
     def keyvaluestore_list(self, instance_name):
         """
-        Request key values for the given instance_name.
+        Request key values for the given instance_name. Note that for implementation and historic reasons keys
+        with a '/' as prefix are returned with out this '/'. linstor.KV() might be a better fit in general.
 
         :return: Key/Value store list response objects
         :rtype: KeyValueStoreResponse

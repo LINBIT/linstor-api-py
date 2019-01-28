@@ -93,8 +93,8 @@ for all attributes. Most important attributes are ``event_name`` and ``event_act
       Sent if an object was removed.
 
 
-Code Samples Using the High-Level API
--------------------------------------
+Code Samples Using the High-Level Resource API
+----------------------------------------------
 
 In this section we describe methods that are typically used by plugin developers.
 
@@ -186,6 +186,28 @@ Various query and list operations
   print(foo.is_assigned('bravo'))
   print(foo.volumes[0].backing_disk)
   print(foo.volumes[0].device_path)
+
+Code Samples Using the High-Level Key Value Store API
+-----------------------------------------------------
+
+In this section we describe methods that are typically used by plugin developers.
+
+Create a resource N-times redundant
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create or attach to the KV "foo" and manipulate keys in different name spaces.
+
+.. code-block:: python
+
+  import linstor
+  kv = linstor.KV('myKV', namespace='/foo/bar/')
+  kv['key'] = 'val'
+  list(kv.items()) -> [('key', 'val')]
+  kv.namespace = '/'
+  list(kv.items()) -> [('/foo/bar/key', 'val')]
+  kv['foo/baz/key'] = 'valbaz'
+  kv.namespace = '/foo/bar'
+  list(kv.items()) -> [('key', 'val')] # keys in /foo/baz not visible
 
 Code Samples using the Low-Level API
 ------------------------------------

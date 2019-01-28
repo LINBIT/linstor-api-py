@@ -19,6 +19,14 @@ linstor.resource module
     :undoc-members:
     :show-inheritance:
 
+linstor.kv module
+-------------------------
+
+.. automodule:: linstor.kv
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 linstor.linstorapi module
 -------------------------
 
