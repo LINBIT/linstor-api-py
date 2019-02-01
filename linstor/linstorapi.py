@@ -9,6 +9,7 @@ import socket
 import select
 import ssl
 import time
+import os
 from collections import deque
 from datetime import datetime
 from google.protobuf.internal import encoder
@@ -178,6 +179,7 @@ class _LinstorNetClient(threading.Thread):
     def __init__(self, timeout, keep_alive):
         super(_LinstorNetClient, self).__init__()
         self._socket = None  # type: socket.socket
+        self._notify_pipe = os.pipe()
         self._host = None  # type: str
         self._timeout = timeout
         self._slock = threading.RLock()
@@ -416,6 +418,7 @@ class _LinstorNetClient(threading.Thread):
                 self._logger.debug("disconnecting")
                 self._socket.close()
                 self._socket = None
+                os.write(self._notify_pipe[1], "\n".encode('utf8'))
                 ret = True
         self._run_disconnect_lock.acquire()
         return ret
@@ -457,7 +460,7 @@ class _LinstorNetClient(threading.Thread):
             wds = []
             eds = []
             try:
-                rds, wds, eds = select.select([self._socket], [], [self._socket], 2)
+                rds, wds, eds = select.select([self._socket, self._notify_pipe[0]], [], [self._socket], 2)
             except Exception as e:  # (IOError, TypeError):
                 if self._socket is None:  # disconnect closed it
                     break
