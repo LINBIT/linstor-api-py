@@ -80,6 +80,19 @@ class KV(dict):
                 raise linstor.LinstorError('Could not delete kv({}): {}'.format(k, rs[0]))
 
     @classmethod
+    def _valid_string(s):
+        if isinstance(s, str):
+            return True
+
+        # py2 unicode:
+        try:
+            return isinstance(s, unicode)
+        except Exception:
+            pass
+
+        return False
+
+    @classmethod
     def _normalize_ns(cls, ns):
         ns = ns.strip()
         while True:
@@ -131,17 +144,17 @@ class KV(dict):
         self._set_ns(ns)
 
     def __delitem__(self, k):
-        if not isinstance(k, str):
-            raise KeyError('key has to be a str')
+        if not KV._valid_string(k):
+            raise KeyError('key {} has to be a str/unicode, but is {}'.format(k, type(k)))
         k = self._key_ns_add(k)
         self._del_linstor_kv(k)
         super(KV, self).__delitem__(k)
 
     def __setitem__(self, k, v):
-        if not isinstance(k, str):
-            raise KeyError('key has to be a str')
-        if not isinstance(v, str):
-            raise ValueError('value has to be a str')
+        if not KV._valid_string(k):
+            raise KeyError('key {} has to be a str/unicode, but is {}'.format(k, type(k)))
+        if not KV._valid_string(v):
+            raise ValueError('value {} has to be a str/unicode, but is {}'.format(v, type(v)))
 
         k = self._key_ns_add(k)
         self._set_linstor_kv(k, v)
