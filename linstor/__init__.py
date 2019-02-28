@@ -3,6 +3,7 @@ from .linstorapi import ApiCallResponse, ErrorReport
 from .linstorapi import Linstor, MultiLinstor
 from .resource import Resource, Volume
 from .kv import KV
+from .config import Config
 from .responses import StoragePoolDriver
 from .linstorapi import ResourceData
 from .size_calc import SizeCalc
