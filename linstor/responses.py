@@ -118,6 +118,16 @@ class ApiCallResponse(ProtoMessageResponse):
         return self._proto_msg.message
 
     @property
+    def object_refs(self):
+        """
+        Returns a dict generator with the object_references.
+
+        :return: Dict with object references
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.obj_refs}
+
+    @property
     def error_report_ids(self):
         return self._proto_msg.error_report_ids
 
