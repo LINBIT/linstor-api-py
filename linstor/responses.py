@@ -6,8 +6,8 @@ Contains various classes of linstorapi responses wrappers.
 
 from datetime import datetime
 
-from linstor.proto.MsgApiCallResponse_pb2 import MsgApiCallResponse
-import linstor.proto.Node_pb2 as NodeProto
+from linstor.proto.common.ApiCallResponse_pb2 import ApiCallResponse as ApiCallResponseProto
+import linstor.proto.common.Node_pb2 as NodeProto
 
 import linstor.sharedconsts as apiconsts
 from .errors import LinstorError
@@ -58,7 +58,7 @@ class ApiCallResponse(ProtoMessageResponse):
         :param json_data: Parsed json data with "ret_code", "message" and "details" fields.
         :return: a new ApiCallResponse()
         """
-        apiresp = MsgApiCallResponse()
+        apiresp = ApiCallResponseProto()
         apiresp.ret_code = json_data["ret_code"]
         if "message" in json_data:
             apiresp.message = json_data["message"]
@@ -432,9 +432,35 @@ class StoragePoolListResponse(ProtoMessageResponse):
         return [StoragePool(x) for x in self._proto_msg.stor_pools]
 
 
-class KeyValueStoreResponse(ProtoMessageResponse):
+class KeyValueStoresResponse(ProtoMessageResponse):
     def __init__(self, protobuf):
-        super(KeyValueStoreResponse, self).__init__(protobuf)
+        super(KeyValueStoresResponse, self).__init__(protobuf)
+
+    def instances(self):
+        """
+        Returns a list of all known instances
+        :return: List with all names of instances
+        :rtype: list[str]
+        """
+        return [x.name for x in self._proto_msg.key_value_store]
+
+    def instance(self, name):
+        """
+        Returns a KeyValueStore object containing the specified KV instance.
+
+        :param str name: name of the instance wanted
+        :return: KeyValueStore object of the instance, if none found an empty is created
+        :rtype: KeyValueStore
+        """
+        kv = [x for x in self._proto_msg.key_value_store if x.name == name]
+        kv = kv[0] if kv else {}
+        return KeyValueStore(name, {x.key: x.value for x in kv.props})
+
+
+class KeyValueStore(object):
+    def __init__(self, instance_name, props):
+        self._instance_name = instance_name
+        self._props = props
 
     @property
     def properties(self):
@@ -444,4 +470,7 @@ class KeyValueStoreResponse(ProtoMessageResponse):
         :return: dict containing key values
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.props}
+        return self._props
+
+    def __str__(self):
+        return str({"name": self._instance_name, "properties": self._props})

@@ -15,8 +15,8 @@ doc/_build/
 # ignore generated protobuf messages and shared consts
 # these can be generated in the linstor-common with:
 # make python
-linstor/proto/*.py
-linstor/proto/eventdata/*.py
+linstor/proto/*_pb2.py
+linstor/proto/*/*_pb2.py
 linstor/sharedconsts.py
 linstor/properties.py
 linstor/consts_githash.py

@@ -16,7 +16,7 @@ from google.protobuf.internal import encoder
 from google.protobuf.internal import decoder
 from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError
 from .responses import ProtoMessageResponse, ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
-from .responses import NodeListResponse, KeyValueStoreResponse
+from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore
 
 try:
     from urlparse import urlparse
@@ -24,71 +24,66 @@ except ImportError:
     from urllib.parse import urlparse
 
 from linstor.proto.MsgHeader_pb2 import MsgHeader
-from linstor.proto.MsgApiVersion_pb2 import MsgApiVersion
-from linstor.proto.MsgApiCallResponse_pb2 import MsgApiCallResponse
-from linstor.proto.MsgEvent_pb2 import MsgEvent
-from linstor.proto.MsgCrtNode_pb2 import MsgCrtNode
-from linstor.proto.MsgModNode_pb2 import MsgModNode
-from linstor.proto.MsgDelNode_pb2 import MsgDelNode
-from linstor.proto.MsgCrtNetInterface_pb2 import MsgCrtNetInterface
-from linstor.proto.MsgModNetInterface_pb2 import MsgModNetInterface
-from linstor.proto.MsgDelNetInterface_pb2 import MsgDelNetInterface
-from linstor.proto.MsgLstNode_pb2 import MsgLstNode
-from linstor.proto.MsgCrtStorPoolDfn_pb2 import MsgCrtStorPoolDfn
-from linstor.proto.MsgModStorPoolDfn_pb2 import MsgModStorPoolDfn
-from linstor.proto.MsgDelStorPoolDfn_pb2 import MsgDelStorPoolDfn
-from linstor.proto.MsgLstStorPoolDfn_pb2 import MsgLstStorPoolDfn
-from linstor.proto.MsgCrtStorPool_pb2 import MsgCrtStorPool
-from linstor.proto.MsgModStorPool_pb2 import MsgModStorPool
-from linstor.proto.MsgDelStorPool_pb2 import MsgDelStorPool
-from linstor.proto.MsgLstStorPool_pb2 import MsgLstStorPool
-from linstor.proto.MsgCrtRscDfn_pb2 import MsgCrtRscDfn
-from linstor.proto.MsgModRscDfn_pb2 import MsgModRscDfn
-from linstor.proto.MsgDelRscDfn_pb2 import MsgDelRscDfn
-from linstor.proto.MsgLstRscDfn_pb2 import MsgLstRscDfn
-from linstor.proto.MsgCrtVlmDfn_pb2 import MsgCrtVlmDfn
-from linstor.proto.MsgAutoPlaceRsc_pb2 import MsgAutoPlaceRsc
-from linstor.proto.MsgModVlmDfn_pb2 import MsgModVlmDfn
-from linstor.proto.MsgDelVlmDfn_pb2 import MsgDelVlmDfn
-from linstor.proto.MsgCrtRsc_pb2 import MsgCrtRsc
-from linstor.proto.MsgModRsc_pb2 import MsgModRsc
-from linstor.proto.MsgDelRsc_pb2 import MsgDelRsc
-from linstor.proto.MsgToggleDisk_pb2 import MsgToggleDisk
-from linstor.proto.MsgLstRsc_pb2 import MsgLstRsc
-from linstor.proto.MsgLstSnapshotDfn_pb2 import MsgLstSnapshotDfn
-from linstor.proto.MsgSetCtrlCfgProp_pb2 import MsgSetCtrlCfgProp
-from linstor.proto.MsgLstCtrlCfgProps_pb2 import MsgLstCtrlCfgProps
-from linstor.proto.MsgDelCtrlCfgProp_pb2 import MsgDelCtrlCfgProp
-from linstor.proto.MsgControlCtrl_pb2 import MsgControlCtrl
-from linstor.proto.MsgCrtWatch_pb2 import MsgCrtWatch
-from linstor.proto.MsgDelWatch_pb2 import MsgDelWatch
-from linstor.proto.MsgEnterCryptPassphrase_pb2 import MsgEnterCryptPassphrase
-from linstor.proto.MsgCrtCryptPassphrase_pb2 import MsgCrtCryptPassphrase
-from linstor.proto.MsgModCryptPassphrase_pb2 import MsgModCryptPassphrase
-from linstor.proto.MsgModRscConn_pb2 import MsgModRscConn
-from linstor.proto.MsgReqErrorReport_pb2 import MsgReqErrorReport
-from linstor.proto.MsgErrorReport_pb2 import MsgErrorReport
-from linstor.proto.MsgHostname_pb2 import MsgHostname
-from linstor.proto.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
-from linstor.proto.MsgDelSnapshot_pb2 import MsgDelSnapshot
-from linstor.proto.MsgRollbackSnapshot_pb2 import MsgRollbackSnapshot
-from linstor.proto.MsgRestoreSnapshotVlmDfn_pb2 import MsgRestoreSnapshotVlmDfn
-from linstor.proto.MsgRestoreSnapshotRsc_pb2 import MsgRestoreSnapshotRsc
-from linstor.proto.Filter_pb2 import Filter
+from linstor.proto.responses.MsgApiVersion_pb2 import MsgApiVersion
+from linstor.proto.common.ApiCallResponse_pb2 import ApiCallResponse as ApiCallResponseProto
+from linstor.proto.responses.MsgEvent_pb2 import MsgEvent
+from linstor.proto.requests.MsgCrtNode_pb2 import MsgCrtNode
+from linstor.proto.requests.MsgModNode_pb2 import MsgModNode
+from linstor.proto.requests.MsgDelNode_pb2 import MsgDelNode
+from linstor.proto.requests.MsgCrtNetInterface_pb2 import MsgCrtNetInterface
+from linstor.proto.requests.MsgModNetInterface_pb2 import MsgModNetInterface
+from linstor.proto.requests.MsgDelNetInterface_pb2 import MsgDelNetInterface
+from linstor.proto.responses.MsgLstNode_pb2 import MsgLstNode
+from linstor.proto.requests.MsgCrtStorPoolDfn_pb2 import MsgCrtStorPoolDfn
+from linstor.proto.requests.MsgModStorPoolDfn_pb2 import MsgModStorPoolDfn
+from linstor.proto.requests.MsgDelStorPoolDfn_pb2 import MsgDelStorPoolDfn
+from linstor.proto.responses.MsgLstStorPoolDfn_pb2 import MsgLstStorPoolDfn
+from linstor.proto.requests.MsgCrtStorPool_pb2 import MsgCrtStorPool
+from linstor.proto.requests.MsgModStorPool_pb2 import MsgModStorPool
+from linstor.proto.requests.MsgDelStorPool_pb2 import MsgDelStorPool
+from linstor.proto.responses.MsgLstStorPool_pb2 import MsgLstStorPool
+from linstor.proto.requests.MsgCrtRscDfn_pb2 import MsgCrtRscDfn
+from linstor.proto.requests.MsgModRscDfn_pb2 import MsgModRscDfn
+from linstor.proto.requests.MsgDelRscDfn_pb2 import MsgDelRscDfn
+from linstor.proto.responses.MsgLstRscDfn_pb2 import MsgLstRscDfn
+from linstor.proto.requests.MsgCrtVlmDfn_pb2 import MsgCrtVlmDfn
+from linstor.proto.requests.MsgAutoPlaceRsc_pb2 import MsgAutoPlaceRsc
+from linstor.proto.requests.MsgModVlmDfn_pb2 import MsgModVlmDfn
+from linstor.proto.requests.MsgDelVlmDfn_pb2 import MsgDelVlmDfn
+from linstor.proto.requests.MsgCrtRsc_pb2 import MsgCrtRsc
+from linstor.proto.requests.MsgModRsc_pb2 import MsgModRsc
+from linstor.proto.requests.MsgDelRsc_pb2 import MsgDelRsc
+from linstor.proto.requests.MsgToggleDisk_pb2 import MsgToggleDisk
+from linstor.proto.responses.MsgLstRsc_pb2 import MsgLstRsc
+from linstor.proto.responses.MsgLstSnapshotDfn_pb2 import MsgLstSnapshotDfn
+from linstor.proto.requests.MsgModCtrl_pb2 import MsgModCtrl
+from linstor.proto.responses.MsgLstCtrlCfgProps_pb2 import MsgLstCtrlCfgProps
+from linstor.proto.requests.MsgEnterCryptPassphrase_pb2 import MsgEnterCryptPassphrase
+from linstor.proto.requests.MsgCrtCryptPassphrase_pb2 import MsgCrtCryptPassphrase
+from linstor.proto.requests.MsgModCryptPassphrase_pb2 import MsgModCryptPassphrase
+from linstor.proto.requests.MsgModRscConn_pb2 import MsgModRscConn
+from linstor.proto.requests.MsgReqErrorReport_pb2 import MsgReqErrorReport
+from linstor.proto.responses.MsgErrorReport_pb2 import MsgErrorReport
+from linstor.proto.responses.MsgHostname_pb2 import MsgHostname
+from linstor.proto.requests.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
+from linstor.proto.requests.MsgDelSnapshot_pb2 import MsgDelSnapshot
+from linstor.proto.requests.MsgRollbackSnapshot_pb2 import MsgRollbackSnapshot
+from linstor.proto.requests.MsgRestoreSnapshotVlmDfn_pb2 import MsgRestoreSnapshotVlmDfn
+from linstor.proto.requests.MsgRestoreSnapshotRsc_pb2 import MsgRestoreSnapshotRsc
+from linstor.proto.common.Filter_pb2 import Filter
 from linstor.proto.eventdata.EventVlmDiskState_pb2 import EventVlmDiskState
 from linstor.proto.eventdata.EventRscState_pb2 import EventRscState
-from linstor.proto.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
-from linstor.proto.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
-from linstor.proto.MsgCrtSfTargetNode_pb2 import MsgCrtSfTargetNode
-from linstor.proto.MsgReqRscConn_pb2 import MsgReqRscConn
-from linstor.proto.MsgLstRscConn_pb2 import MsgLstRscConn
-from linstor.proto.MsgEnableDrbdProxy_pb2 import MsgEnableDrbdProxy
-from linstor.proto.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
-from linstor.proto.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
-from linstor.proto.MsgNodeReconnect_pb2 import MsgNodeReconnect
-from linstor.proto.MsgLstKvsProps_pb2 import MsgLstKvsProps
-from linstor.proto.MsgModKvsProps_pb2 import MsgModKvsProps
-from linstor.proto.MsgRspKvsProps_pb2 import MsgRspKvsProps
+from linstor.proto.requests.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
+from linstor.proto.responses.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
+from linstor.proto.requests.MsgCrtSfTargetNode_pb2 import MsgCrtSfTargetNode
+from linstor.proto.requests.MsgReqRscConn_pb2 import MsgReqRscConn
+from linstor.proto.responses.MsgLstRscConn_pb2 import MsgLstRscConn
+from linstor.proto.requests.MsgEnableDrbdProxy_pb2 import MsgEnableDrbdProxy
+from linstor.proto.requests.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
+from linstor.proto.requests.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
+from linstor.proto.requests.MsgNodeReconnect_pb2 import MsgNodeReconnect
+from linstor.proto.requests.MsgModKvs_pb2 import MsgModKvs
+from linstor.proto.responses.MsgRspKvs_pb2 import MsgRspKvs
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 3
@@ -147,7 +142,7 @@ class _LinstorNetClient(threading.Thread):
 
     REPLY_MAP = {
         apiconsts.API_PONG: (None, None),
-        apiconsts.API_REPLY: (MsgApiCallResponse, ApiCallResponse),
+        apiconsts.API_REPLY: (ApiCallResponseProto, ApiCallResponse),
         apiconsts.API_END_OF_IMMEDIATE_ANSWERS: (None, None),
         apiconsts.API_LST_STOR_POOL_DFN: (MsgLstStorPoolDfn, ProtoMessageResponse),
         apiconsts.API_LST_STOR_POOL: (MsgLstStorPool, StoragePoolListResponse),
@@ -156,12 +151,12 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.API_LST_RSC: (MsgLstRsc, ProtoMessageResponse),
         apiconsts.API_LST_VLM: (MsgLstRsc, ProtoMessageResponse),
         apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, ProtoMessageResponse),
-        apiconsts.API_LST_CFG_VAL: (MsgLstCtrlCfgProps, ProtoMessageResponse),
+        apiconsts.API_LST_CTRL_PROPS: (MsgLstCtrlCfgProps, ProtoMessageResponse),
         apiconsts.API_LST_RSC_CONN: (MsgLstRscConn, ProtoMessageResponse),
         apiconsts.API_HOSTNAME: (MsgHostname, ProtoMessageResponse),
         apiconsts.API_LST_ERROR_REPORTS: (MsgErrorReport, ErrorReport),
         apiconsts.API_RSP_MAX_VLM_SIZE: (MsgRspMaxVlmSizes, ProtoMessageResponse),
-        apiconsts.API_LST_KVS_PROPS: (MsgRspKvsProps, KeyValueStoreResponse)
+        apiconsts.API_LST_KVS: (MsgRspKvs, KeyValueStoresResponse)
     }
 
     EVENT_READER_TABLE = {
@@ -1646,7 +1641,7 @@ class Linstor(object):
         It is quite usual that plugins have a "create" step where they auto-place a resource.
         Later, these plugins have an "open" call where they might create diskless assignments.
 
-        :param str name: Name of the new resource definition.
+        :param str rsc_name: Name of the new resource definition.
         :param int size: Size of the volume definition in kibibytes.
         :param int place_count: Number of placements, on how many different nodes
         :param str storage_pool: Storage pool to use
@@ -1711,7 +1706,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        apiresp = MsgApiCallResponse()
+        apiresp = ApiCallResponseProto()
         apiresp.ret_code = apiconsts.MASK_SUCCESS
 
         # maximum number of ressources is 1 when filtering per node and resource
@@ -1805,7 +1800,7 @@ class Linstor(object):
         :return: A MsgLstCtrlCfgProps proto message containing all controller props.
         :rtype: list
         """
-        return self._send_and_wait(apiconsts.API_LST_CFG_VAL)
+        return self._send_and_wait(apiconsts.API_LST_CTRL_PROPS)
 
     @classmethod
     def _split_prop_key(cls, fkey):
@@ -1827,14 +1822,12 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgSetCtrlCfgProp()
-        msg.value = value
-        split_key, ns = self._split_prop_key(key)
-        msg.key = split_key
-        if ns:
-            msg.namespace = ns
+        msg = MsgModCtrl()
+        prop = msg.override_props.add()
+        prop.key = key
+        prop.value = value
 
-        return self._send_and_wait(apiconsts.API_SET_CFG_VAL, msg)
+        return self._send_and_wait(apiconsts.API_SET_CTRL_PROP, msg)
 
     def controller_del_prop(self, key):
         """
@@ -1844,24 +1837,10 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelCtrlCfgProp()
-        split_key, ns = self._split_prop_key(key)
-        msg.key = split_key
-        if ns:
-            msg.namespace = ns
+        msg = MsgModCtrl()
+        msg.delete_prop_keys.extend([key])
 
-        return self._send_and_wait(apiconsts.API_DEL_CFG_VAL, msg)
-
-    def controller_shutdown(self):
-        """
-        Sends a shutdown command to the controller.
-
-        :return: A list containing ApiCallResponses from the controller.
-        :rtype: list[ApiCallResponse]
-        """
-        msg = MsgControlCtrl()
-        msg.command = apiconsts.API_CMD_SHUTDOWN
-        return self._send_and_wait(apiconsts.API_CONTROL_CTRL, msg)
+        return self._send_and_wait(apiconsts.API_SET_CTRL_PROP, msg)
 
     def controller_info(self):
         """
@@ -1880,54 +1859,6 @@ class Linstor(object):
         :rtype: str
         """
         return self._ctrl_host
-
-    def watch_create(self, watch_id, object_identifier):
-        """
-        Create watch for events from the controller.
-
-        :param int watch_id: ID for watch
-        :param ObjectIdentifier object_identifier: Object to subscribe for events
-        :return: A list containing ApiCallResponses from the controller.
-        :rtype: list[ApiCallResponse]
-        """
-        msg = MsgCrtWatch()
-        msg.watch_id = watch_id
-        object_identifier.write_to_create_watch_msg(msg)
-        self._linstor_client.register_watch(watch_id)
-        return self._send_and_wait(apiconsts.API_CRT_WATCH, msg)
-
-    def _watch_delete(self, watch_id):
-        """
-        Delete watch for events from the controller.
-
-        :param int watch_id: ID for watch
-        :return: A list containing ApiCallResponses from the controller.
-        :rtype: list[ApiCallResponse]
-        """
-        msg = MsgDelWatch()
-        msg.watch_id = watch_id
-        self._linstor_client.deregister_watch(watch_id)
-        return self._send_and_wait(apiconsts.API_DEL_WATCH, msg)
-
-    def watch_events(self, reply_handler, event_handler, object_identifier):
-        """
-        Create watch and process events from the controller.
-
-        :param Callable[[ApiCallResponse], None] reply_handler: function that is called on the watch creation reply.
-        :param Callable event_handler: function that is called if an event was received.
-        :param ObjectIdentifier object_identifier: Object to subscribe for events
-        :return: Return value of reply_handler or event_handler, when not None
-        """
-        watch_id = self._linstor_client.next_watch_id()
-        try:
-            replies = self.watch_create(watch_id, object_identifier)
-            reply_handler_result = reply_handler(replies)
-            if reply_handler_result is not None:
-                return reply_handler_result
-
-            return self._linstor_client.wait_for_events(watch_id, event_handler)
-        finally:
-            self._watch_delete(watch_id)
 
     def crypt_create_passphrase(self, passphrase):
         """
@@ -2210,12 +2141,28 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModKvsProps()
-        msg.instance_name = instance_name
+        msg = MsgModKvs()
+        msg.kvs_name = instance_name
 
         self._modify_props(msg, property_dict, delete_props)
 
-        return self._send_and_wait(apiconsts.API_MOD_KVS_PROPS, msg)
+        return self._send_and_wait(apiconsts.API_MOD_KVS, msg)
+
+    def keyvaluestores(self):
+        """
+        Requests all known KeyValue stores known to linstor and returns them in a KeyValueStoresResponse.
+
+        :return: Key/Value store list response objects
+        :rtype: KeyValueStoresResponse
+        :raise LinstorError: if apicallerror or no response received
+        """
+        list_res = self._send_and_wait(apiconsts.API_LST_KVS)
+
+        if list_res:
+            if isinstance(list_res[0], KeyValueStoresResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
 
     def keyvaluestore_list(self, instance_name):
         """
@@ -2223,18 +2170,11 @@ class Linstor(object):
         with a '/' as prefix are returned with out this '/'. linstor.KV() might be a better fit in general.
 
         :return: Key/Value store list response objects
-        :rtype: KeyValueStoreResponse
+        :rtype: KeyValueStore
         :raise LinstorError: if apicallerror or no response received
         """
-        msg = MsgLstKvsProps()
-        msg.instance_name = instance_name
-        list_res = self._send_and_wait(apiconsts.API_LST_KVS_PROPS, msg)
-
-        if list_res:
-            if isinstance(list_res[0], KeyValueStoreResponse):
-                return list_res[0]
-            raise LinstorApiCallError(list_res[0])
-        raise LinstorError("No list response received.")
+        kvs = self.keyvaluestores()
+        return kvs.instance(instance_name)
 
     def hostname(self):
         """
