@@ -1410,13 +1410,14 @@ class Linstor(object):
             'storage'
         }
 
-    def resource_dfn_create(self, name, port=None, layer_list=None):
+    def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None):
         """
         Creates a resource definition.
 
         :param str name: Name of the new resource definition.
         :param int port: Port the resource definition should use.
         :param list[str] layer_list: Set of layer names to use.
+        :param str external_name: User specified name.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1424,6 +1425,11 @@ class Linstor(object):
         msg.rsc_dfn.rsc_name = name
         if port is not None:
             msg.drbd_port = port
+        if external_name:
+            msg.rsc_dfn.external_name = external_name
+            msg.rsc_dfn.rsc_name = ""
+        else:
+            msg.rsc_dfn.rsc_name = name
         # if args.secret:
         #     p.secret = args.secret
         if layer_list:
@@ -1477,7 +1483,7 @@ class Linstor(object):
         Return a dictionary containing keys for a resource definition filtered by namespace.
 
         :param str rsc_name: Name of the resource definition it is linked to.
-        :param str filter_by_namespace: Retrun only keys starting with the given prefix.
+        :param str filter_by_namespace: Return only keys starting with the given prefix.
         :return: dict containing mathing keys
         :raises LinstorError: if resource can not be found
         """
