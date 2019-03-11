@@ -78,7 +78,15 @@ setup(
     maintainer_email="drbd-user@lists.linbit.com",
     license="GPLv3",
     install_requires=['protobuf'],
-    packages=['linstor', 'linstor/proto', 'linstor/proto/eventdata', 'linstor/protobuf_to_dict'],
+    packages=[
+        'linstor',
+        'linstor/proto',
+        'linstor/proto/eventdata',
+        'linstor/proto/common',
+        'linstor/proto/requests',
+        'linstor/proto/responses',
+        'linstor/protobuf_to_dict'
+    ],
     # package_data={},
     cmdclass={
         "versionup2date": CheckUpToDate
