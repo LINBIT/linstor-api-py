@@ -85,6 +85,7 @@ from linstor.proto.requests.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
 from linstor.proto.requests.MsgNodeReconnect_pb2 import MsgNodeReconnect
 from linstor.proto.requests.MsgModKvs_pb2 import MsgModKvs
 from linstor.proto.responses.MsgRspKvs_pb2 import MsgRspKvs
+from linstor.proto.common.Types_pb2 import Types
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 3
@@ -765,19 +766,21 @@ class _LinstorNetClient(threading.Thread):
 
 
 class ResourceData(object):
-    def __init__(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None):
+    def __init__(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, layer_list=None):
         """
         :param str node_name: The node on which to place the resource
         :param str rsc_name: The resource definition to place
         :param bool diskless: Should the resource be diskless
         :param str storage_pool: The storage pool to use
         :param int node_id: Use this DRBD node_id
+        :param list[str] layer_list: Set of layer names to use.
         """
         self._node_name = node_name
         self._rsc_name = rsc_name
         self._diskless = diskless
         self._storage_pool = storage_pool
         self._node_id = node_id
+        self._layer_list = layer_list
 
     @property
     def node_name(self):
@@ -798,6 +801,10 @@ class ResourceData(object):
     @property
     def node_id(self):
         return self._node_id
+
+    @property
+    def layer_list(self):
+        return self._layer_list
 
 
 class Linstor(object):
@@ -1387,21 +1394,40 @@ class Linstor(object):
             raise LinstorApiCallError(list_res[0])
         raise LinstorError("No list response received.")
 
-    def resource_dfn_create(self, name, port=None):
+    @classmethod
+    def layer_list(cls):
+        """
+        Gives a set of possible layer names.
+
+        :return: Set of layer names
+        :rtype: set[str]
+        """
+        return {
+            'drbd',
+            'luks',
+            'storage'
+        }
+
+    def resource_dfn_create(self, name, port=None, layer_list=None):
         """
         Creates a resource definition.
 
         :param str name: Name of the new resource definition.
         :param int port: Port the resource definition should use.
+        :param list[str] layer_list: Set of layer names to use.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         msg = MsgCrtRscDfn()
         msg.rsc_dfn.rsc_name = name
         if port is not None:
-            msg.rsc_dfn.rsc_dfn_port = port
+            msg.drbd_port = port
         # if args.secret:
         #     p.secret = args.secret
+        if layer_list:
+            for layer_name in layer_list:
+                layer_data = msg.rsc_dfn.layer_data.add()
+                layer_data.layer_type = Types.LayerType.Value(layer_name.upper())
         return self._send_and_wait(apiconsts.API_CRT_RSC_DFN, msg)
 
     def resource_dfn_modify(self, name, property_dict, delete_props=None):
@@ -1464,7 +1490,15 @@ class Linstor(object):
 
         return {}
 
-    def volume_dfn_create(self, rsc_name, size, volume_nr=None, minor_nr=None, encrypt=False, storage_pool=None):
+    def volume_dfn_create(
+            self,
+            rsc_name,
+            size,
+            volume_nr=None,
+            minor_nr=None,
+            encrypt=False,
+            storage_pool=None
+    ):
         """
         Create a new volume definition on the controller.
 
@@ -1481,18 +1515,18 @@ class Linstor(object):
         msg.rsc_name = rsc_name
 
         vlmdf = msg.vlm_dfns.add()
-        vlmdf.vlm_size = size
+        vlmdf.vlm_dfn.vlm_size = size
         if minor_nr is not None:
-            vlmdf.vlm_minor = minor_nr
+            vlmdf.drbd_minor_nr = minor_nr
 
         if volume_nr is not None:
-            vlmdf.vlm_nr = volume_nr
+            vlmdf.vlm_dfn.vlm_nr = volume_nr
 
         if encrypt:
-            vlmdf.vlm_flags.extend([apiconsts.FLAG_ENCRYPTED])
+            vlmdf.vlm_dfn.vlm_flags.extend([apiconsts.FLAG_ENCRYPTED])
 
         if storage_pool:
-            prop = vlmdf.vlm_props.add()
+            prop = vlmdf.vlm_dfn.vlm_props.add()
             prop.key = apiconsts.KEY_STOR_POOL_NAME
             prop.value = storage_pool
 
@@ -1565,27 +1599,31 @@ class Linstor(object):
 
         :param list[ResourceData] rscs: Resources to create
         :param bool async_msg: True to return without waiting for the action to complete on the satellites.
-        :return:
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
         """
         msg = MsgCrtRsc()
 
         for rsc in rscs:
-            proto_rsc = msg.rscs.add()
+            proto_rsc_payload = msg.rscs.add()
 
-            proto_rsc.name = rsc.rsc_name
-            proto_rsc.node_name = rsc.node_name
+            proto_rsc_payload.rsc.name = rsc.rsc_name
+            proto_rsc_payload.rsc.node_name = rsc.node_name
 
             if rsc.storage_pool:
-                prop = proto_rsc.props.add()
+                prop = proto_rsc_payload.rsc.props.add()
                 prop.key = apiconsts.KEY_STOR_POOL_NAME
                 prop.value = rsc.storage_pool
 
             if rsc.diskless:
-                proto_rsc.rsc_flags.append(apiconsts.FLAG_DISKLESS)
+                proto_rsc_payload.rsc.rsc_flags.append(apiconsts.FLAG_DISKLESS)
 
             if rsc.node_id is not None:
-                proto_rsc.override_node_id = True
-                proto_rsc.node_id = rsc.node_id
+                proto_rsc_payload.drbd_node_id = rsc.node_id
+
+            if rsc.layer_list:
+                for layer_name in rsc.layer_list:
+                    proto_rsc_payload.layer_stack.append(Types.LayerType.Value(layer_name.upper()))
 
         return self._send_and_wait(apiconsts.API_CRT_RSC, msg, async_msg=async_msg)
 
