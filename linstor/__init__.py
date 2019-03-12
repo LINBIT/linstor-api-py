@@ -8,6 +8,7 @@ from .responses import StoragePoolDriver
 from .linstorapi import ResourceData
 from .size_calc import SizeCalc
 from .errors import LinstorError, LinstorTimeoutError, LinstorNetworkError, LinstorApiCallError
+from .errors import LinstorReadOnlyAfterSetError
 from . import sharedconsts as consts
 
 VERSION = "0.7.3"
