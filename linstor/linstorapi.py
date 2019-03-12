@@ -1931,7 +1931,7 @@ class Linstor(object):
         msg.rsc_name = rsc_name
         return self._send_and_wait(apiconsts.API_REQ_RSC_CONN_LIST, msg)
 
-    def drbd_proxy_enable(self, rsc_name, node_a, node_b, port):
+    def drbd_proxy_enable(self, rsc_name, node_a, node_b, port=None):
         """
         Enables DRBD Proxy on a resource connection.
         Identified by the resource name, node1 and node2 arguments.
