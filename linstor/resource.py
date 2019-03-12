@@ -6,6 +6,7 @@ import linstor
 import socket
 from functools import wraps
 from linstor.sharedconsts import FAIL_EXISTS_RSC, FLAG_DISKLESS
+from linstor.responses import ResourceDefinitionResponse, ResourceResponse
 
 
 class _Client(object):
@@ -37,7 +38,6 @@ class Volume(object):
         # external properties
         self._size = self._size_to_bytes(size)
         self._minor = None
-        self._backing_disk = ''
         self._device_path = ''
         self._storage_pool_name = ''
 
@@ -50,22 +50,6 @@ class Volume(object):
     @property
     def storage_pool_name(self):
         return self._storage_pool_name
-
-    @property
-    def backing_disk(self):
-        """
-        Returns the backing disk (e.g., /dev/drbdpool/foo_0001) of a Volume.
-
-        :return: The backing disk of a Volume.
-        :rtype: str
-        """
-        return self._backing_disk
-
-    @backing_disk.setter
-    def backing_disk(self, backing_disk):
-        if self._rsc_name is not None:
-            raise linstor.LinstorReadOnlyAfterSetError()
-        self._backing_disk = backing_disk
 
     @property
     def device_path(self):
@@ -123,7 +107,7 @@ class Volume(object):
            and self._volume_id is not None:
             r, v = self._rsc_name, self._volume_id
             if self._size > size:
-                raise ValueError('shrinking Resource/Volume {}/{}i from {} to {} is not allowed'
+                raise ValueError('shrinking Resource/Volume {}/{} from {} to {} is not allowed'
                                  .format(r, v, self._size, size))
 
             size_kib = linstor.SizeCalc.convert_round_up(size, linstor.SizeCalc.UNIT_B,
@@ -136,7 +120,7 @@ class Volume(object):
                     raise linstor.LinstorError('Could not resize Resource/Volume {}/{}: {}'
                                                .format(r, v, rs[0]))
 
-        # if we are here everyting is fine
+        # if we are here everything is fine
         self._size = size
 
     # called from VolumeDict
@@ -248,41 +232,40 @@ class Resource(object):
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
             return True
 
-        rsc_dfn_list_reply = rsc_dfn_list_replies[0]
-        for rsc_dfn in rsc_dfn_list_reply.proto_msg.rsc_dfns:
-            if rsc_dfn.rsc_name == self._name:
+        rsc_dfn_list_reply = rsc_dfn_list_replies[0]  # type: ResourceDefinitionResponse
+        for rsc_dfn in rsc_dfn_list_reply.resource_definitions:
+            if rsc_dfn.name == self._name:
                 self.defined = True
-                for vlm_dfn in rsc_dfn.vlm_dfns:
-                    vlm_nr = vlm_dfn.vlm_nr
+                for vlm_dfn in rsc_dfn.volume_definitions:
+                    vlm_nr = vlm_dfn.number
                     if not self.volumes.get(vlm_nr):
                         self.volumes[vlm_nr] = Volume(None)
                     self.volumes[vlm_nr]._volume_id = vlm_nr
                     self.volumes[vlm_nr]._rsc_name = self._name
                     self.volumes[vlm_nr]._client_ref = self.client
-                    size_b = linstor.SizeCalc.convert_round_up(vlm_dfn.vlm_size, linstor.SizeCalc.UNIT_KiB,
+                    size_b = linstor.SizeCalc.convert_round_up(vlm_dfn.size, linstor.SizeCalc.UNIT_KiB,
                                                                linstor.SizeCalc.UNIT_B)
                     self.volumes[vlm_nr]._size = size_b
-                    self.volumes[vlm_nr]._minor = vlm_dfn.vlm_minor
-                for prop in rsc_dfn.rsc_dfn_props:
-                    if prop.key == 'DrbdOptions/Net/allow-two-primaries':
-                        self._allow_two_primaries = True if prop.value == 'yes' else False
+                    self.volumes[vlm_nr]._minor = vlm_dfn.drbd_data.minor
+                for key, value in rsc_dfn.properties.items():
+                    if key == 'DrbdOptions/Net/allow-two-primaries':
+                        self._allow_two_primaries = True if value == 'yes' else False
 
         rsc_list_replies = self._lin.resource_list(filter_by_nodes=None, filter_by_resources=[self._name])
         if not rsc_list_replies or not rsc_list_replies[0]:
             return True
 
         self._assignments = {}
-        rsc_list_reply = rsc_list_replies[0]
-        for rsc in rsc_list_reply.proto_msg.resources:
-            is_diskless = (FLAG_DISKLESS in rsc.rsc_flags)
+        rsc_list_reply = rsc_list_replies[0]  # type: ResourceResponse
+        for rsc in rsc_list_reply.resources:
+            is_diskless = (FLAG_DISKLESS in rsc.flags)
             node_name = rsc.node_name
             self._assignments[node_name] = is_diskless
-            for vlm in rsc.vlms:
-                vlm_nr = vlm.vlm_nr
-                self.volumes[vlm_nr]._backing_disk = vlm.backing_disk
+            for vlm in rsc.volumes:
+                vlm_nr = vlm.number
                 self.volumes[vlm_nr]._device_path = vlm.device_path
-                self.volumes[vlm_nr]._storage_pool_name = vlm.stor_pool_name
-                self.volumes[vlm_nr]._minor = vlm.vlm_minor_nr
+                self.volumes[vlm_nr]._storage_pool_name = vlm.storage_pool_name
+                self.volumes[vlm_nr]._minor = vlm.drbd_data.drbd_volume_definition.minor
 
         return True
 
@@ -604,7 +587,6 @@ class Resource(object):
 
     # no decorator! (could recreate)
     def _delete(self, node_name=None):
-        rs = None
         reinit = False
         if node_name is None:
             node_name = 'ALL'  # for error msg

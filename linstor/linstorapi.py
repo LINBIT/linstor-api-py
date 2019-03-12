@@ -14,9 +14,11 @@ from collections import deque
 from datetime import datetime
 from google.protobuf.internal import encoder
 from google.protobuf.internal import decoder
+
 from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError
 from .responses import ProtoMessageResponse, ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
-from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore
+from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
+from .responses import ResourceResponse
 
 try:
     from urlparse import urlparse
@@ -149,9 +151,9 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.API_LST_STOR_POOL_DFN: (MsgLstStorPoolDfn, ProtoMessageResponse),
         apiconsts.API_LST_STOR_POOL: (MsgLstStorPool, StoragePoolListResponse),
         apiconsts.API_LST_NODE: (MsgLstNode, NodeListResponse),
-        apiconsts.API_LST_RSC_DFN: (MsgLstRscDfn, ProtoMessageResponse),
-        apiconsts.API_LST_RSC: (MsgLstRsc, ProtoMessageResponse),
-        apiconsts.API_LST_VLM: (MsgLstRsc, ProtoMessageResponse),
+        apiconsts.API_LST_RSC_DFN: (MsgLstRscDfn, ResourceDefinitionResponse),
+        apiconsts.API_LST_RSC: (MsgLstRsc, ResourceResponse),
+        apiconsts.API_LST_VLM: (MsgLstRsc, ResourceResponse),
         apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, ProtoMessageResponse),
         apiconsts.API_LST_CTRL_PROPS: (MsgLstCtrlCfgProps, ProtoMessageResponse),
         apiconsts.API_LST_RSC_CONN: (MsgLstRscConn, ProtoMessageResponse),

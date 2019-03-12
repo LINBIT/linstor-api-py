@@ -8,6 +8,8 @@ from datetime import datetime
 
 from linstor.proto.common.ApiCallResponse_pb2 import ApiCallResponse as ApiCallResponseProto
 import linstor.proto.common.Node_pb2 as NodeProto
+from linstor.proto.common.Types_pb2 import Types
+from linstor.protobuf_to_dict import protobuf_to_dict
 
 import linstor.sharedconsts as apiconsts
 from .errors import LinstorError
@@ -24,10 +26,15 @@ class ProtoMessageResponse(object):
     def proto_msg(self):
         """
         Returns the stored protobuf message object.
+        Careful this object is not stable and may change.
 
         :return: A protobuf message object.
         """
         return self._proto_msg
+
+    @property
+    def data_v0(self):
+        return protobuf_to_dict(self.proto_msg)
 
     def __nonzero__(self):
         return self.__bool__()
@@ -474,3 +481,538 @@ class KeyValueStore(object):
 
     def __str__(self):
         return str({"name": self._instance_name, "properties": self._props})
+
+
+class DrbdVolumeDefinitionData(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(DrbdVolumeDefinitionData, self).__init__(protobuf)
+
+    @property
+    def resource_name_suffix(self):
+        return self._proto_msg.rsc_name_suffix
+
+    @property
+    def minor(self):
+        return self._proto_msg.minor
+
+    @property
+    def number(self):
+        return self._proto_msg.number
+
+
+class VolumeDefinition(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(VolumeDefinition, self).__init__(protobuf)
+
+    @property
+    def number(self):
+        """
+        Volume definition number
+
+        :return: Volume definition number
+        :rtype: int
+        """
+        return int(self._proto_msg.vlm_nr)
+
+    @property
+    def size(self):
+        """
+        Nett volume size in KiB.
+
+        :return: Nett volume size in KiB.
+        :rtype: int
+        """
+        return int(self._proto_msg.vlm_size)
+
+    @property
+    def flags(self):
+        """
+        Resource definition flags as string list.
+
+        :return: Resource definition flags as string list
+        :rtype: list[str]
+        """
+        return [x for x in self._proto_msg.vlm_flags]
+
+    @property
+    def properties(self):
+        """
+        Resource definition properties.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.vlm_props}
+
+    @property
+    def drbd_data(self):
+        for layer in self._proto_msg.layer_data:
+            data = layer.WhichOneof('data')
+            if data == 'drbd':
+                return DrbdVolumeDefinitionData(layer.drbd)
+        return None
+
+
+class ResourceDefinition(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(ResourceDefinition, self).__init__(protobuf)
+
+    @property
+    def name(self):
+        """
+        Resource definition name.
+
+        :return: Resource definition name
+        :rtype: str
+        """
+        return self._proto_msg.rsc_name
+
+    @property
+    def flags(self):
+        """
+        Resource definition flags as string list.
+
+        :return: Resource definition flags as string list
+        :rtype: list[str]
+        """
+        return [x for x in self._proto_msg.rsc_dfn_flags]
+
+    @property
+    def properties(self):
+        """
+        Resource definition properties.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.rsc_dfn_props}
+
+    def layer_data(self, layer_name):
+        for layer in self.proto_msg.layer_data:
+            data = layer.WhichOneof('data')
+            if data == layer_name:
+                return layer.drbd
+
+    @property
+    def volume_definitions(self):
+        """
+        List of all volume definitions
+
+        :return:
+        :rtype: list[VolumeDefinition]
+        """
+        return [VolumeDefinition(x) for x in self._proto_msg.vlm_dfns]
+
+
+class ResourceDefinitionResponse(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(ResourceDefinitionResponse, self).__init__(protobuf)
+
+    @property
+    def resource_definitions(self):
+        """
+        List of resource definitions
+        :return: List of resource definitions
+        :rtype: list[ResourceDefinition]
+        """
+        return list(ResourceDefinition(x) for x in self._proto_msg.rsc_dfns)
+
+    @property
+    def data_v0(self):
+        """
+        Returns compatibility output for the first machine readable format.
+
+        :return: Dictionary with old resource definition format
+        """
+        rsc_dfns = []
+        for rsc_dfn in self.resource_definitions:
+            vlm_dfns = []
+            for vlm_dfn in rsc_dfn.volume_definitions:
+                v0_vlm_dfn = {
+                    "vlm_dfn_uuid": vlm_dfn.proto_msg.vlm_dfn_uuid,
+                    "vlm_nr": vlm_dfn.number,
+                    "vlm_size": vlm_dfn.size
+                }
+
+                if vlm_dfn.flags:
+                    v0_vlm_dfn['vlm_flags'] = vlm_dfn.flags
+
+                if vlm_dfn.properties:
+                    v0_vlm_dfn['vlm_props'] = [{"key": x, "value": v} for x, v in vlm_dfn.properties.items()]
+
+                drbd_data = vlm_dfn.drbd_data
+                if drbd_data:
+                    v0_vlm_dfn['vlm_minor'] = drbd_data.minor
+
+                vlm_dfns.append(v0_vlm_dfn)
+
+            v0_rsc_dfn = {
+                "rsc_dfn_uuid": rsc_dfn.proto_msg.rsc_dfn_uuid,
+                "rsc_name": rsc_dfn.name,
+                "vlm_dfns": vlm_dfns
+            }
+
+            if rsc_dfn.flags:
+                v0_rsc_dfn['rsc_dfn_flags'] = rsc_dfn.flags
+            if rsc_dfn.properties:
+                v0_rsc_dfn["rsc_dfn_props"] = [{"key": x, "value": v} for x, v in rsc_dfn.properties.items()]
+
+            drbd_data = rsc_dfn.layer_data('drbd')
+            if drbd_data:
+                v0_rsc_dfn['rsc_dfn_port'] = drbd_data.port
+                v0_rsc_dfn['rsc_dfn_secret'] = drbd_data.secret
+
+            rsc_dfns.append(v0_rsc_dfn)
+        return {
+            "rsc_dfns": rsc_dfns
+        }
+
+
+class VolumeState(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(VolumeState, self).__init__(protobuf)
+
+    @property
+    def number(self):
+        """
+        Volume number index
+        :return: Volume number index
+        :rtype: int
+        """
+        return self._proto_msg.vlm_nr
+
+    @property
+    def disk_state(self):
+        """
+        :return: String describing the disk state
+        :rtype: str
+        """
+        return self._proto_msg.disk_state
+
+
+class ResourceState(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(ResourceState, self).__init__(protobuf)
+
+    @property
+    def name(self):
+        return self._proto_msg.rsc_name
+
+    @property
+    def node_name(self):
+        return self._proto_msg.node_name
+
+    @property
+    def in_use(self):
+        """
+        Indicates if a resource is in use, for a drbd resource this means primary.
+        Other types might be unknown/None
+        :return: bool or None
+        """
+        return self._proto_msg.in_use
+
+    @property
+    def volume_states(self):
+        """
+        Returns volume states
+        :return: volume states list
+        :rtype: list[VolumeState]
+        """
+        return [VolumeState(x) for x in self._proto_msg.vlm_states]
+
+
+class ResourceLayerData(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(ResourceLayerData, self).__init__(protobuf)
+
+    @property
+    def id(self):
+        return self.proto_msg.id
+
+    @property
+    def name_suffix(self):
+        return self.proto_msg.rsc_name_suffix
+
+    @property
+    def children(self):
+        """
+        Return resource layer list children.
+        :return: List of resource layer data children
+        :rtype: list[ResourceLayerData]
+        """
+        return [ResourceLayerData(x) for x in self.proto_msg.children]
+
+    # TODO payload
+
+
+class VolumeLayerData(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(VolumeLayerData, self).__init__(protobuf)
+
+    @property
+    def layer_type(self):
+        """
+        Returns the name of the layer type.
+        :return: Name of the layer type
+        :rtype: str
+        """
+        return Types.LayerType.Name(self.proto_msg.layer_type)
+
+
+class DrbdVolumeDefinition(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(DrbdVolumeDefinition, self).__init__(protobuf)
+
+    @property
+    def number(self):
+        return self.proto_msg.vlm_nr
+
+    @property
+    def minor(self):
+        return self.proto_msg.minor
+
+    @property
+    def resource_name_suffix(self):
+        return self.proto_msg.rsc_name_suffix
+
+
+class DrbdVolumeData(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(DrbdVolumeData, self).__init__(protobuf)
+
+    @property
+    def drbd_volume_definition(self):
+        return DrbdVolumeDefinition(self.proto_msg.drbd_vlm_dfn)
+
+    @property
+    def device_path(self):
+        return self.proto_msg.device_path
+
+    @property
+    def backing_device(self):
+        return self.proto_msg.backing_device
+
+    @property
+    def meta_disk(self):
+        return self.proto_msg.meta_disk
+
+    @property
+    def allocated_size(self):
+        return self.proto_msg.allocated_size
+
+    @property
+    def usable_size(self):
+        return self.proto_msg.usable_size
+
+
+class StorageVolumeData(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(StorageVolumeData, self).__init__(protobuf)
+
+
+class LUKSVolumeData(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(LUKSVolumeData, self).__init__(protobuf)
+
+
+class Volume(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(Volume, self).__init__(protobuf)
+
+    @property
+    def number(self):
+        return self.proto_msg.vlm_nr
+
+    @property
+    def storage_pool_name(self):
+        return self.proto_msg.stor_pool_name
+
+    @property
+    def storage_pool_driver_name(self):
+        return self.proto_msg.stor_pool_driver_name
+
+    @property
+    def device_path(self):
+        return self.proto_msg.device_path
+
+    @property
+    def allocated_size(self):
+        if self.proto_msg.HasField('allocated_size'):
+            return self.proto_msg.allocated_size
+        return None
+
+    @property
+    def usable_size(self):
+        if self.proto_msg.HasField('usable_size'):
+            return self.proto_msg.usable_size
+        return None
+
+    @property
+    def flags(self):
+        """
+        Volume flags as string list.
+
+        :return: Resource definition flags as string list
+        :rtype: list[str]
+        """
+        return [x for x in self._proto_msg.vlm_flags]
+
+    @property
+    def properties(self):
+        """
+        Volume properties.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.vlm_props}
+
+    @property
+    def layer_data(self):
+        return [VolumeLayerData(x) for x in self._proto_msg.layer_data]
+
+    @property
+    def drbd_data(self):
+        for layer in self.layer_data:
+            data = layer.proto_msg.WhichOneof('data')
+            if data == 'drbd':
+                return DrbdVolumeData(layer.proto_msg.drbd)
+        return None
+
+    @property
+    def storage_data(self):
+        for layer in self.layer_data:
+            data = layer.proto_msg.WhichOneof('data')
+            if data == 'storage':
+                return StorageVolumeData(layer.proto_msg.storage)
+        return None
+
+    @property
+    def luks_data(self):
+        for layer in self.layer_data:
+            data = layer.proto_msg.WhichOneof('data')
+            if data == 'crypt':
+                return LUKSVolumeData(layer.proto_msg.crypt)
+        return None
+
+    @property
+    def data_v0(self):
+        d = {
+            "vlm_uuid": self.proto_msg.vlm_uuid,
+            "vlm_dfn_uuid": self.proto_msg.vlm_uuid,
+            "stor_pool_name": self.storage_pool_name,
+            "stor_pool_uuid": self.proto_msg.stor_pool_uuid,
+            "vlm_nr": self.number,
+            "device_path": self.device_path
+        }
+
+        drbd_data = self.drbd_data
+        if drbd_data is not None:
+            d['vlm_minor_nr'] = drbd_data.drbd_volume_definition.minor
+            d['backing_disk'] = drbd_data.backing_device
+            d['meta_disk'] = drbd_data.meta_disk
+            if drbd_data.allocated_size:
+                d['allocated'] = drbd_data.allocated_size
+
+        return d
+
+
+class Resource(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(Resource, self).__init__(protobuf)
+
+    @property
+    def name(self):
+        return self._proto_msg.name
+
+    @property
+    def node_name(self):
+        return self._proto_msg.node_name
+
+    @property
+    def volumes(self):
+        """
+        Resource volumes.
+        :return: Resource volumes
+        :rtype: list[Volume]
+        """
+        return list([Volume(x) for x in self._proto_msg.vlms])
+
+    @property
+    def flags(self):
+        """
+        Resource flags as string list.
+
+        :return: Resource definition flags as string list
+        :rtype: list[str]
+        """
+        return [x for x in self._proto_msg.rsc_flags]
+
+    @property
+    def properties(self):
+        """
+        Resource properties.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.props}
+
+    @property
+    def layer_data(self):
+        """
+        Return resource layer object
+        :return:
+        :rtype: ResourceLayerData
+        """
+        if self.proto_msg.HasField('layer_object'):
+            return ResourceLayerData(self.proto_msg.layer_object)
+        return None
+
+    @property
+    def data_v0(self):
+        return {
+            "uuid": self.proto_msg.uuid,
+            "node_uuid": self.proto_msg.node_uuid,
+            "rsc_dfn_uuid": self.proto_msg.rsc_dfn_uuid,
+            "name": self.name,
+            "node_name": self.node_name,
+            "rsc_flags": self.flags,
+            "props": self.properties,
+            "vlms": [x.data_v0 for x in self.volumes]
+        }
+
+
+class ResourceResponse(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(ResourceResponse, self).__init__(protobuf)
+
+    @property
+    def resources(self):
+        """
+        Return resource list from controller.
+        :return: List of resources
+        :rtype: list[Resource]
+        """
+        return list(Resource(x) for x in self._proto_msg.resources)
+
+    @property
+    def resource_states(self):
+        """
+
+        :return:
+        :rtype: list[ResourceState]
+        """
+        return list(ResourceState(x) for x in self._proto_msg.resource_states)
+
+    @property
+    def data_v0(self):
+        """
+        Returns compatibility output for the first machine readable format.
+
+        :return: Dictionary with old resource definition format
+        """
+        return {
+            "resource_states": [x.data_v0 for x in self.resource_states],
+            "resources": [x.data_v0 for x in self.resources]
+        }
