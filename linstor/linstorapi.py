@@ -65,6 +65,7 @@ from linstor.proto.requests.MsgModRscConn_pb2 import MsgModRscConn
 from linstor.proto.requests.MsgReqErrorReport_pb2 import MsgReqErrorReport
 from linstor.proto.responses.MsgErrorReport_pb2 import MsgErrorReport
 from linstor.proto.responses.MsgHostname_pb2 import MsgHostname
+from linstor.proto.requests.MsgPrepareDisks_pb2 import MsgPrepareDisks
 from linstor.proto.requests.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
 from linstor.proto.requests.MsgDelSnapshot_pb2 import MsgDelSnapshot
 from linstor.proto.requests.MsgRollbackSnapshot_pb2 import MsgRollbackSnapshot
@@ -2185,6 +2186,23 @@ class Linstor(object):
         :rtype: list[ProtoMsgResponse]
         """
         return self._send_and_wait(apiconsts.API_HOSTNAME)
+
+    def prepare_disks(self, nvme_filter=None, detect_pmem=True):
+        """
+        A satellite only api for now, that will detect NVME and PMEM and prepare them
+        for use as a lvm volume group.
+
+        :param str nvme_filter: Regex filtering on NVME model number
+        :param bool detect_pmem: If pmem should be detected and setup
+        :return: List of ApiCallRcs with create information
+        :rtype: list[ApiCallResponse]
+        """
+        msg = MsgPrepareDisks()
+        if nvme_filter is not None:
+            msg.nvme_filter = nvme_filter
+        msg.detect_pmem = detect_pmem
+
+        return self._send_and_wait(apiconsts.API_PREPARE_DISKS, msg)
 
     def ping(self):
         """
