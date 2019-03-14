@@ -87,7 +87,7 @@ from linstor.proto.requests.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
 from linstor.proto.requests.MsgNodeReconnect_pb2 import MsgNodeReconnect
 from linstor.proto.requests.MsgModKvs_pb2 import MsgModKvs
 from linstor.proto.responses.MsgRspKvs_pb2 import MsgRspKvs
-from linstor.proto.common.Types_pb2 import Types
+import linstor.proto.common.LayerType_pb2 as LayerType
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 3
@@ -1313,7 +1313,7 @@ class Linstor(object):
         msg.stor_pool.node_name = node_name
         if storage_driver not in StoragePoolDriver.list():
             raise LinstorError("Unknown storage driver: " + storage_driver)
-        msg.stor_pool.driver = storage_driver
+        msg.stor_pool.provider_kind = storage_driver
         if shared_space:
             msg.stor_pool.free_space_mgr_name = shared_space
 
@@ -1429,7 +1429,7 @@ class Linstor(object):
         if layer_list:
             for layer_name in layer_list:
                 layer_data = msg.rsc_dfn.layer_data.add()
-                layer_data.layer_type = Types.LayerType.Value(layer_name.upper())
+                layer_data.layer_type = LayerType.LayerType.Value(layer_name.upper())
         return self._send_and_wait(apiconsts.API_CRT_RSC_DFN, msg)
 
     def resource_dfn_modify(self, name, property_dict, delete_props=None):
@@ -1468,7 +1468,7 @@ class Linstor(object):
         Request a list of all resource definitions known to the controller.
 
         :return: A MsgLstRscDfn proto message containing all information.
-        :rtype: list[ProtoMessageResponse]
+        :rtype: list[ResourceDefinitionResponse]
         """
         return self._send_and_wait(apiconsts.API_LST_RSC_DFN)
 
@@ -1625,7 +1625,7 @@ class Linstor(object):
 
             if rsc.layer_list:
                 for layer_name in rsc.layer_list:
-                    proto_rsc_payload.layer_stack.append(Types.LayerType.Value(layer_name.upper()))
+                    proto_rsc_payload.layer_stack.append(LayerType.LayerType.Value(layer_name.upper()))
 
         return self._send_and_wait(apiconsts.API_CRT_RSC, msg, async_msg=async_msg)
 
@@ -1677,7 +1677,7 @@ class Linstor(object):
 
         if layer_list:
             for layer_name in layer_list:
-                msg.layer_stack.append(Types.LayerType.Value(layer_name.upper()))
+                msg.layer_stack.append(LayerType.LayerType.Value(layer_name.upper()))
 
         return self._send_and_wait(apiconsts.API_AUTO_PLACE_RSC, msg, async_msg=async_msg)
 

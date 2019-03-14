@@ -8,7 +8,8 @@ from datetime import datetime
 
 from linstor.proto.common.ApiCallResponse_pb2 import ApiCallResponse as ApiCallResponseProto
 import linstor.proto.common.Node_pb2 as NodeProto
-from linstor.proto.common.Types_pb2 import Types
+import linstor.proto.common.LayerType_pb2 as LayerType
+import linstor.proto.common.ProviderType_pb2 as ProviderType
 from linstor.protobuf_to_dict import protobuf_to_dict
 
 import linstor.sharedconsts as apiconsts
@@ -260,30 +261,30 @@ class NodeListResponse(ProtoMessageResponse):
         return None
 
 
-class FreeSpace(object):
+class FreeSpace(ProtoMessageResponse):
     def __init__(self, freespace_proto):
-        self._freespace = freespace_proto
+        super(FreeSpace, self).__init__(freespace_proto)
         
     @property
     def free_capacity(self):
-        return self._freespace.free_capacity
+        return self._proto_msg.free_capacity
 
     @property
     def total_capacity(self):
-        return self._freespace.total_capacity
+        return self._proto_msg.total_capacity
 
     def __str__(self):
         return "{used}/{total} Kib used".format(used=self.total_capacity-self.free_capacity, total=self.total_capacity)
 
 
 class StoragePoolDriver(object):
-    LVM = "LvmDriver"
-    LVMThin = "LvmThinDriver"
-    ZFS = "ZfsDriver"
-    ZFSThin = "ZfsThinDriver"
-    Diskless = "DisklessDriver"
-    SwordfishTarget = "SwordfishTargetDriver"
-    SwordfishInitiator = "SwordfishInitiatorDriver"
+    LVM = ProviderType.LVM
+    LVMThin = ProviderType.LVM_THIN
+    ZFS = ProviderType.ZFS
+    ZFSThin = ProviderType.ZFS_THIN
+    Diskless = ProviderType.DISKLESS
+    SwordfishTarget = ProviderType.SWORDFISH_TARGET
+    SwordfishInitiator = ProviderType.SWORDFISH_INITIATOR
 
     @staticmethod
     def list():
@@ -303,13 +304,6 @@ class StoragePoolDriver(object):
             StoragePoolDriver.Diskless,
             StoragePoolDriver.SwordfishInitiator
         ]
-
-    @staticmethod
-    def _find_prop(props, search_key, default):
-        for entry in props:
-            if entry.key == search_key:
-                return entry.value
-        return default
 
     @staticmethod
     def storage_driver_pool_to_props(storage_driver, driver_pool_name):
@@ -356,48 +350,73 @@ class StoragePoolDriver(object):
         :return: If found the storage pool value, else ''
         :rtype: str
         """
-        if storage_driver == StoragePoolDriver.LVM:
-            return cls._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, ''
-            )
+        storage_driver_enum = ProviderType.ProviderType.Value(storage_driver)
+        if storage_driver_enum == StoragePoolDriver.LVM:
+            return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, '')
 
-        if storage_driver == StoragePoolDriver.LVMThin:
-            vg = cls._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, ''
-            )
-            lv = cls._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL, ''
-            )
+        if storage_driver_enum == StoragePoolDriver.LVMThin:
+            vg = props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, '')
+            lv = props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL, '')
             return "{vg}/{lv}".format(vg=vg, lv=lv)
 
-        if storage_driver == StoragePoolDriver.ZFS:
-            return cls._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, ''
-            )
+        if storage_driver_enum == StoragePoolDriver.ZFS:
+            return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, '')
 
-        if storage_driver == StoragePoolDriver.ZFSThin:
-            return cls._find_prop(
-                props, apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN, ''
-            )
+        if storage_driver_enum == StoragePoolDriver.ZFSThin:
+            return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN, '')
 
         return ''
 
 
-class StoragePool(object):
-    def __init__(self, stor_pool_proto):
-        self._stor_pool = stor_pool_proto
+class StoragePool(ProtoMessageResponse):
+    DRIVER_KIND_MAP = {
+        ProviderType.DISKLESS: "DisklessDriver",
+        ProviderType.LVM: "LvmDriver",
+        ProviderType.LVM_THIN: "LvmThinDriver",
+        ProviderType.ZFS: "ZfsDriver",
+        ProviderType.ZFS_THIN: "ZfsThinDriver",
+        ProviderType.SWORDFISH_TARGET: "SwordfishTargetDriver",
+        ProviderType.SWORDFISH_INITIATOR: "SwordfishInitiatorDriver"
+    }
+
+    def __init__(self, protobuf):
+        super(StoragePool, self).__init__(protobuf)
 
     @property
     def name(self):
-        return self._stor_pool.stor_pool_name
+        return self._proto_msg.stor_pool_name
 
     @property
     def node_name(self):
-        return self._stor_pool.node_name
+        return self._proto_msg.node_name
 
     @property
     def driver(self):
-        return self._stor_pool.driver
+        return self.provider_kind
+
+    @property
+    def provider_kind(self):
+        return ProviderType.ProviderType.Name(self._proto_msg.provider_kind)
+
+    @property
+    def properties(self):
+        """
+        Storage pool properties.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.props}
+
+    @property
+    def static_traits(self):
+        """
+        Static traits.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return {x.key: x.value for x in self._proto_msg.static_traits}
 
     @property
     def free_space(self):
@@ -406,28 +425,37 @@ class StoragePool(object):
         :return:
         :rtype: FreeSpace
         """
-        return FreeSpace(self._stor_pool.free_space)
+        if self._proto_msg.HasField('free_space'):
+            return FreeSpace(self._proto_msg.free_space)
+        return None
 
     def supports_snapshots(self):
-        snapshot_trait = [x for x in self._stor_pool.static_traits if x.key == "SupportsSnapshots"]
+        snapshot_trait = [x for x in self._proto_msg.static_traits if x.key == "SupportsSnapshots"]
         if snapshot_trait:
             return snapshot_trait[0].value == "true"
         return False
 
     def is_thin(self):
-        snapshot_trait = [x for x in self._stor_pool.static_traits if x.key == "Provisioning"]
+        snapshot_trait = [x for x in self._proto_msg.static_traits if x.key == "Provisioning"]
         if snapshot_trait:
             return snapshot_trait[0].value == "Thin"
         return False
 
     def is_fat(self):
-        snapshot_trait = [x for x in self._stor_pool.static_traits if x.key == "Provisioning"]
+        snapshot_trait = [x for x in self._proto_msg.static_traits if x.key == "Provisioning"]
         if snapshot_trait:
             return snapshot_trait[0].value == "Fat"
         return False
 
     def is_diskless(self):
         return self.driver in StoragePoolDriver.diskless_driver()
+
+    @property
+    def data_v0(self):
+        d = protobuf_to_dict(self._proto_msg)
+        del d['provider_kind']
+        d['driver'] = self.DRIVER_KIND_MAP.get(self._proto_msg.provider_kind, '')
+        return d
 
 
 class StoragePoolListResponse(ProtoMessageResponse):
@@ -436,7 +464,18 @@ class StoragePoolListResponse(ProtoMessageResponse):
 
     @property
     def storage_pools(self):
+        """
+        Returns list of storage pool objects.
+        :return: list of storage pools
+        :rtype: list[StoragePool]
+        """
         return [StoragePool(x) for x in self._proto_msg.stor_pools]
+
+    @property
+    def data_v0(self):
+        return {
+            "stor_pools": [x.data_v0 for x in self.storage_pools]
+        }
 
 
 class KeyValueStoresResponse(ProtoMessageResponse):
@@ -756,7 +795,7 @@ class VolumeLayerData(ProtoMessageResponse):
         :return: Name of the layer type
         :rtype: str
         """
-        return Types.LayerType.Name(self.proto_msg.layer_type)
+        return LayerType.LayerType.Name(self.proto_msg.layer_type)
 
 
 class DrbdVolumeDefinition(ProtoMessageResponse):
