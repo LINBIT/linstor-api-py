@@ -448,7 +448,7 @@ class StoragePool(ProtoMessageResponse):
         return False
 
     def is_diskless(self):
-        return self.driver in StoragePoolDriver.diskless_driver()
+        return self._proto_msg.provider_kind in StoragePoolDriver.diskless_driver()
 
     @property
     def data_v0(self):
