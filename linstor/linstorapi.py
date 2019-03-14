@@ -90,8 +90,8 @@ from linstor.proto.responses.MsgRspKvs_pb2 import MsgRspKvs
 import linstor.proto.common.LayerType_pb2 as LayerType
 import linstor.sharedconsts as apiconsts
 
-API_VERSION = 3
-API_VERSION_MIN = 3
+API_VERSION = 4
+API_VERSION_MIN = 4
 
 
 logging.basicConfig(level=logging.WARNING)
