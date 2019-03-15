@@ -586,8 +586,7 @@ class VolumeDefinition(ProtoMessageResponse):
     @property
     def drbd_data(self):
         for layer in self._proto_msg.layer_data:
-            data = layer.WhichOneof('data')
-            if data == 'drbd':
+            if layer.layer_type == LayerType.DRBD:
                 return DrbdVolumeDefinitionData(layer.drbd)
         return None
 
@@ -626,11 +625,12 @@ class ResourceDefinition(ProtoMessageResponse):
         """
         return {x.key: x.value for x in self._proto_msg.rsc_dfn_props}
 
-    def layer_data(self, layer_name):
+    @property
+    def drbd_data(self):
         for layer in self.proto_msg.layer_data:
-            data = layer.WhichOneof('data')
-            if data == layer_name:
+            if layer.layer_type == LayerType.DRBD:
                 return layer.drbd
+        return None
 
     @property
     def volume_definitions(self):
@@ -696,7 +696,7 @@ class ResourceDefinitionResponse(ProtoMessageResponse):
             if rsc_dfn.properties:
                 v0_rsc_dfn["rsc_dfn_props"] = [{"key": x, "value": v} for x, v in rsc_dfn.properties.items()]
 
-            drbd_data = rsc_dfn.layer_data('drbd')
+            drbd_data = rsc_dfn.drbd_data
             if drbd_data:
                 v0_rsc_dfn['rsc_dfn_port'] = drbd_data.port
                 v0_rsc_dfn['rsc_dfn_secret'] = drbd_data.secret
@@ -913,24 +913,21 @@ class Volume(ProtoMessageResponse):
     @property
     def drbd_data(self):
         for layer in self.layer_data:
-            data = layer.proto_msg.WhichOneof('data')
-            if data == 'drbd':
+            if layer.layer_type == LayerType.DRBD:
                 return DrbdVolumeData(layer.proto_msg.drbd)
         return None
 
     @property
     def storage_data(self):
         for layer in self.layer_data:
-            data = layer.proto_msg.WhichOneof('data')
-            if data == 'storage':
+            if layer.layer_type == LayerType.STORAGE:
                 return StorageVolumeData(layer.proto_msg.storage)
         return None
 
     @property
     def luks_data(self):
         for layer in self.layer_data:
-            data = layer.proto_msg.WhichOneof('data')
-            if data == 'crypt':
+            if layer.layer_type == LayerType.LUKS:
                 return LUKSVolumeData(layer.proto_msg.crypt)
         return None
 
