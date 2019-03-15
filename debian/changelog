@@ -1,3 +1,52 @@
+python-linstor (0.9.0-1) experimental; urgency=medium
+
+  [ Joel Colledge ]
+  * Protobuf volume allocated has been renamed to allocated_size
+
+  [ Rene Peinthor ]
+  * resource: delete snapshots prior deleting the resource
+  * depend on new connection path namespace
+  * keyvaluestore: implement methods to modify and list
+  * responses: improve docstrings
+  * linstorapi: wakeup the select call if disconnect() was called
+  * responses: add object_refs property to AipCallResponse
+  * proto: fix linstorapi after protobuf reorganization
+  * setup.py: add new proto packages
+  * linstorapi: drbd_proxy_enable port should be optional
+  * linstor: LinstorReadOnlyAfterSetError needs to be imported
+  * linstorapi: add prepareDisks satellite api call
+  * linstorapi: adapt layerstack changes
+  * linstorapi: add compatibility layer for linstor < 0.8
+  * linstorapi.auto_place: add layer_list argument
+  * storagepool.driver reworked to storagepool.provider_kind
+  * response/storpool: fix is_diskless
+  * linstorapi: raise min version to 4
+  * remove oneof as we have to support protobuf 2.5.0
+  * MANIFEST: add new proto directories
+
+  [ Gabor Hernadi ]
+  * Updated subgit
+
+  [ Roland Kammerer ]
+  * higher-level API: fix typo
+  * higher-level API: LinstorReadOnlyAfterSetError
+  * higher-level API: fix some [128]
+  * Makefile: make doc a PHONY target
+  * Makefile: add gensrc as dependency for doc
+  * Makefile: add upload-doc target
+  * higher-level API: better defined return types
+  * higher-level API: update_volume -> _update_volume
+  * higher-level API: improve doc
+  * doc: monkey patch functools.wraps
+  * keyvaluestore: fix doc strings
+  * build: add sles15 support
+  * high-level resource: add proxy support
+  * keyvaluestore: add high-level API
+  * keyvaluestore: allow py2 unicode strings
+  * config: add linstor.Config class
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Fri, 15 Mar 2019 13:26:48 +0100
+
 python-linstor (0.7.3-1) experimental; urgency=medium
 
   [ Joel Colledge ]
