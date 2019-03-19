@@ -1014,7 +1014,7 @@ class Resource(ProtoMessageResponse):
             "name": self.name,
             "node_name": self.node_name,
             "rsc_flags": self.flags,
-            "props": self.properties,
+            "props": [{"key": x, "value": v} for x, v in self.properties.items()],
             "vlms": [x.data_v0 for x in self.volumes]
         }
 
