@@ -628,7 +628,7 @@ class ResourceDefinition(ProtoMessageResponse):
     @property
     def drbd_data(self):
         for layer in self.proto_msg.layer_data:
-            if layer.layer_type == LayerType.DRBD:
+            if layer.proto_msg.layer_type == LayerType.DRBD:
                 return layer.drbd
         return None
 
@@ -913,22 +913,22 @@ class Volume(ProtoMessageResponse):
     @property
     def drbd_data(self):
         for layer in self.layer_data:
-            if layer.layer_type == LayerType.DRBD:
+            if layer.proto_msg.layer_type == LayerType.DRBD:
                 return DrbdVolumeData(layer.proto_msg.drbd)
         return None
 
     @property
     def storage_data(self):
         for layer in self.layer_data:
-            if layer.layer_type == LayerType.STORAGE:
+            if layer.proto_msg.layer_type == LayerType.STORAGE:
                 return StorageVolumeData(layer.proto_msg.storage)
         return None
 
     @property
     def luks_data(self):
         for layer in self.layer_data:
-            if layer.layer_type == LayerType.LUKS:
-                return LUKSVolumeData(layer.proto_msg.crypt)
+            if layer.proto_msg.layer_type == LayerType.LUKS:
+                return LUKSVolumeData(layer.proto_msg.luks)
         return None
 
     @property
