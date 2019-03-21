@@ -628,7 +628,7 @@ class ResourceDefinition(ProtoMessageResponse):
     @property
     def drbd_data(self):
         for layer in self.proto_msg.layer_data:
-            if layer.proto_msg.layer_type == LayerType.DRBD:
+            if layer.layer_type == LayerType.DRBD:
                 return layer.drbd
         return None
 
