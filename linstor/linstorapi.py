@@ -1417,16 +1417,15 @@ class Linstor(object):
         :param str name: Name of the new resource definition.
         :param int port: Port the resource definition should use.
         :param list[str] layer_list: Set of layer names to use.
-        :param str external_name: User specified name.
+        :param str external_name: Unicode string of the user specified name.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         msg = MsgCrtRscDfn()
-        msg.rsc_dfn.rsc_name = name
         if port is not None:
             msg.drbd_port = port
         if external_name:
-            msg.rsc_dfn.external_name = external_name
+            msg.rsc_dfn.external_name = external_name.encode('utf-8')
             msg.rsc_dfn.rsc_name = ""
         else:
             msg.rsc_dfn.rsc_name = name
