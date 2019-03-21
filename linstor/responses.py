@@ -3,6 +3,7 @@ Linstor response module
 
 Contains various classes of linstorapi responses wrappers.
 """
+import base64
 
 from datetime import datetime
 
@@ -35,6 +36,10 @@ class ProtoMessageResponse(object):
 
     @property
     def data_v0(self):
+        return protobuf_to_dict(self.proto_msg)
+
+    @property
+    def data_v1(self):
         return protobuf_to_dict(self.proto_msg)
 
     def __nonzero__(self):
@@ -705,6 +710,14 @@ class ResourceDefinitionResponse(ProtoMessageResponse):
         return {
             "rsc_dfns": rsc_dfns
         }
+
+    @property
+    def data_v1(self):
+        data = super(ResourceDefinitionResponse, self).data_v1
+        for rsc_dfn in data['rsc_dfns']:
+            if "external_name" in rsc_dfn:
+                rsc_dfn["external_name"] = base64.b64decode(rsc_dfn["external_name"]).decode('utf-8')
+        return data
 
 
 class VolumeState(ProtoMessageResponse):
