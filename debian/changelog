@@ -1,3 +1,21 @@
+python-linstor (0.9.1-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * output-v0: fix resource property formatting
+  * update common to latest properties
+  * responses: fix layer data access
+  * responses: fix resource definition drbd_data property
+  * responses: external_name in v1 data will not be a base64 string
+  * only set rsc_name once and document that external_name should be a uni [...]
+  * protobuf_to_dict: fix bytes to dict on py3
+  * resource: check if drbd_data is available before accessing
+  * resource: create volume definitions before actions
+
+  [ Rainer Laschober ]
+  * add field for external name in resource_dfn_create
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 25 Mar 2019 10:22:34 +0100
+
 python-linstor (0.9.0-1) experimental; urgency=medium
 
   [ Joel Colledge ]
