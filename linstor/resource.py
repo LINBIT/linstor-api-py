@@ -246,7 +246,8 @@ class Resource(object):
                     size_b = linstor.SizeCalc.convert_round_up(vlm_dfn.size, linstor.SizeCalc.UNIT_KiB,
                                                                linstor.SizeCalc.UNIT_B)
                     self.volumes[vlm_nr]._size = size_b
-                    self.volumes[vlm_nr]._minor = vlm_dfn.drbd_data.minor
+                    if vlm_dfn.drbd_data is not None:
+                        self.volumes[vlm_nr]._minor = vlm_dfn.drbd_data.minor
                 for key, value in rsc_dfn.properties.items():
                     if key == 'DrbdOptions/Net/allow-two-primaries':
                         self._allow_two_primaries = True if value == 'yes' else False
@@ -265,7 +266,8 @@ class Resource(object):
                 vlm_nr = vlm.number
                 self.volumes[vlm_nr]._device_path = vlm.device_path
                 self.volumes[vlm_nr]._storage_pool_name = vlm.storage_pool_name
-                self.volumes[vlm_nr]._minor = vlm.drbd_data.drbd_volume_definition.minor
+                if vlm.drbd_data is not None:
+                    self.volumes[vlm_nr]._minor = vlm.drbd_data.drbd_volume_definition.minor
 
         return True
 
