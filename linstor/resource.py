@@ -167,7 +167,7 @@ class Resource(object):
             ret = None
             with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
                 self._lin = lin
-                self._maybe_create_rd()
+                self._maybe_create_rd_and_vd()
                 ret = f(self, *args, **kwargs)
                 self.__update_volumes()
             self._lin = None
@@ -205,7 +205,8 @@ class Resource(object):
             raise linstor.LinstorError('Could not set DRBD properties for resource {}: {}'
                                        .format(self._name, rs[0]))
 
-    def _maybe_create_rd(self):
+    def _maybe_create_rd_and_vd(self):
+        # resource definition
         if not self.defined:
             rs = self._lin.resource_dfn_create(self._name, self._port)
             if not rs[0].is_success():
@@ -214,8 +215,10 @@ class Resource(object):
             self.defined = True
             self._set_properties()
 
-    def __update_volumes(self):
-        # create fresh volume definitions
+        # volume definitions
+        self._create_volume_definitions()
+
+    def _create_volume_definitions(self):
         for k, v in self.volumes.items():
             if v._rsc_name is None:
                 size_kib = linstor.SizeCalc.convert_round_up(v.size, linstor.SizeCalc.UNIT_B,
@@ -226,6 +229,10 @@ class Resource(object):
                     raise linstor.LinstorError('Could not create volume definition {}/{}: {}'
                                                .format(self._name, k, rs[0]))
                 self.volumes[k]._rsc_name = self._name
+
+    def __update_volumes(self):
+        # create fresh volume definitions
+        self._create_volume_definitions()
 
         # update internal state
         rsc_dfn_list_replies = self._lin.resource_dfn_list()
