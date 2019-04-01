@@ -1437,18 +1437,21 @@ class Linstor(object):
                 layer_data.layer_type = LayerType.LayerType.Value(layer_name.upper())
         return self._send_and_wait(apiconsts.API_CRT_RSC_DFN, msg)
 
-    def resource_dfn_modify(self, name, property_dict, delete_props=None):
+    def resource_dfn_modify(self, name, property_dict, delete_props=None, peer_slots=None):
         """
         Modify properties of the given resource definition.
 
         :param str name: Name of the resource definition to modify.
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
+        :param int peer_slots: peer slot count for new resources of this resource dfn
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         msg = MsgModRscDfn()
         msg.rsc_name = name
+        if peer_slots is not None:
+            msg.drbd_new_rsc_peer_slots = peer_slots
 
         msg = self._modify_props(msg, property_dict, delete_props)
 
