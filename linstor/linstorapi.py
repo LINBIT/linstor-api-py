@@ -88,6 +88,7 @@ from linstor.proto.requests.MsgNodeReconnect_pb2 import MsgNodeReconnect
 from linstor.proto.requests.MsgModKvs_pb2 import MsgModKvs
 from linstor.proto.responses.MsgRspKvs_pb2 import MsgRspKvs
 import linstor.proto.common.LayerType_pb2 as LayerType
+import linstor.proto.common.ProviderType_pb2 as ProviderType
 import linstor.sharedconsts as apiconsts
 
 API_VERSION = 4
@@ -1410,6 +1411,24 @@ class Linstor(object):
             'storage'
         }
 
+    @classmethod
+    def provider_list(cls):
+        """
+        Gives a set of possible provider names.
+
+        :return: Set of provider names
+        :rtype: set[str]
+        """
+        return {
+            'lvm',
+            'lvmthin',
+            'zfs',
+            'zfsthin',
+            'swordfishtarget',
+            'swordfishinitiator',
+            'diskless'
+        }
+
     def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None):
         """
         Creates a resource definition.
@@ -1648,7 +1667,8 @@ class Linstor(object):
             replicas_on_different=None,
             diskless_on_remaining=False,
             async_msg=False,
-            layer_list=None
+            layer_list=None,
+            provider_list=None
     ):
         """
         Auto places(deploys) a resource to the amount of place_count.
@@ -1685,7 +1705,13 @@ class Linstor(object):
 
         if layer_list:
             for layer_name in layer_list:
-                msg.layer_stack.append(LayerType.LayerType.Value(layer_name.upper()))
+                layer_name_upper = LayerType.LayerType.Value(layer_name.upper())
+                msg.layer_stack.append(layer_name_upper)
+                msg_filter.layer_stack.append(layer_name_upper)
+
+        if provider_list:
+            for provider_name in provider_list:
+                msg_filter.providers.append(ProviderType.ProviderType.Value(provider_name.upper()))
 
         return self._send_and_wait(apiconsts.API_AUTO_PLACE_RSC, msg, async_msg=async_msg)
 
