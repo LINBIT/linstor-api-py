@@ -1419,15 +1419,7 @@ class Linstor(object):
         :return: Set of provider names
         :rtype: set[str]
         """
-        return {
-            'lvm',
-            'lvmthin',
-            'zfs',
-            'zfsthin',
-            'swordfishtarget',
-            'swordfishinitiator',
-            'diskless'
-        }
+        return [ProviderType.ProviderType.Name(x).lower() for x in StoragePoolDriver.list()]
 
     def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None):
         """
@@ -1683,6 +1675,7 @@ class Linstor(object):
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
         :param bool async_msg: True to return without waiting for the action to complete on the satellites
         :param list[str] layer_list: Define layers for the resource
+        :param list[str] provider_list: Filter provider kinds
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
