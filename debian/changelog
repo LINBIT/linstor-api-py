@@ -1,3 +1,15 @@
+python-linstor (0.9.2-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * Added peer_slots parameter to resource_dfn_modify
+  * Populating AutoSelectFilter with layer_stack and providers
+
+  [ Rene Peinthor ]
+  * use protobuf enum for providerlist
+  * linstor-common: use drbd handerls options
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 08 Apr 2019 15:41:02 +0200
+
 python-linstor (0.9.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
