@@ -131,6 +131,18 @@ class ApiCallResponse(ProtoMessageResponse):
         return self._proto_msg.message
 
     @property
+    def cause(self):
+        return self._proto_msg.cause
+
+    @property
+    def correction(self):
+        return self._proto_msg.correction
+
+    @property
+    def details(self):
+        return self._proto_msg.details
+
+    @property
     def object_refs(self):
         """
         Returns a dict generator with the object_references.
