@@ -1408,6 +1408,7 @@ class Linstor(object):
         return {
             'drbd',
             'luks',
+            'nvme',
             'storage'
         }
 
