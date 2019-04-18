@@ -11,7 +11,7 @@ from .errors import LinstorError, LinstorTimeoutError, LinstorNetworkError, Lins
 from .errors import LinstorReadOnlyAfterSetError
 from . import sharedconsts as consts
 
-VERSION = "0.9.2"
+VERSION = "0.9.3"
 
 try:
     from linstor.consts_githash import GITHASH
