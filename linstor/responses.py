@@ -973,7 +973,7 @@ class Volume(ProtoMessageResponse):
             d['backing_disk'] = drbd_data.backing_device
             d['meta_disk'] = drbd_data.meta_disk
             if drbd_data.allocated_size:
-                d['allocated'] = drbd_data.allocated_size
+                d['allocated'] = self.proto_msg.allocated_size
 
         return d
 
