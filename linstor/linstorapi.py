@@ -2,770 +2,39 @@
 Linstorapi module
 """
 
-import struct
-import threading
 import logging
 import socket
-import select
-import ssl
 import time
-import os
-from collections import deque
+import json
 from datetime import datetime
-from google.protobuf.internal import encoder
-from google.protobuf.internal import decoder
+from distutils.version import StrictVersion
 
 from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError
-from .responses import ProtoMessageResponse, ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
+from .responses import ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
 from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
-from .responses import ResourceResponse, SnapshotsResponse
+from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
+from .responses import RESTMessageResponse, StoragePool, SnapshotResponse, ControllerProperties
+from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 
 try:
     from urlparse import urlparse
+    from urllib import urlencode
 except ImportError:
     from urllib.parse import urlparse
+    from urllib.parse import urlencode
 
-from linstor.proto.MsgHeader_pb2 import MsgHeader
-from linstor.proto.responses.MsgApiVersion_pb2 import MsgApiVersion
-from linstor.proto.common.ApiCallResponse_pb2 import ApiCallResponse as ApiCallResponseProto
-from linstor.proto.responses.MsgEvent_pb2 import MsgEvent
-from linstor.proto.requests.MsgCrtNode_pb2 import MsgCrtNode
-from linstor.proto.requests.MsgModNode_pb2 import MsgModNode
-from linstor.proto.requests.MsgDelNode_pb2 import MsgDelNode
-from linstor.proto.requests.MsgCrtNetInterface_pb2 import MsgCrtNetInterface
-from linstor.proto.requests.MsgModNetInterface_pb2 import MsgModNetInterface
-from linstor.proto.requests.MsgDelNetInterface_pb2 import MsgDelNetInterface
-from linstor.proto.responses.MsgLstNode_pb2 import MsgLstNode
-from linstor.proto.requests.MsgCrtStorPoolDfn_pb2 import MsgCrtStorPoolDfn
-from linstor.proto.requests.MsgModStorPoolDfn_pb2 import MsgModStorPoolDfn
-from linstor.proto.requests.MsgDelStorPoolDfn_pb2 import MsgDelStorPoolDfn
-from linstor.proto.responses.MsgLstStorPoolDfn_pb2 import MsgLstStorPoolDfn
-from linstor.proto.requests.MsgCrtStorPool_pb2 import MsgCrtStorPool
-from linstor.proto.requests.MsgModStorPool_pb2 import MsgModStorPool
-from linstor.proto.requests.MsgDelStorPool_pb2 import MsgDelStorPool
-from linstor.proto.responses.MsgLstStorPool_pb2 import MsgLstStorPool
-from linstor.proto.requests.MsgCrtRscDfn_pb2 import MsgCrtRscDfn
-from linstor.proto.requests.MsgModRscDfn_pb2 import MsgModRscDfn
-from linstor.proto.requests.MsgDelRscDfn_pb2 import MsgDelRscDfn
-from linstor.proto.responses.MsgLstRscDfn_pb2 import MsgLstRscDfn
-from linstor.proto.requests.MsgCrtVlmDfn_pb2 import MsgCrtVlmDfn
-from linstor.proto.requests.MsgAutoPlaceRsc_pb2 import MsgAutoPlaceRsc
-from linstor.proto.requests.MsgModVlmDfn_pb2 import MsgModVlmDfn
-from linstor.proto.requests.MsgDelVlmDfn_pb2 import MsgDelVlmDfn
-from linstor.proto.requests.MsgCrtRsc_pb2 import MsgCrtRsc
-from linstor.proto.requests.MsgModRsc_pb2 import MsgModRsc
-from linstor.proto.requests.MsgDelRsc_pb2 import MsgDelRsc
-from linstor.proto.requests.MsgToggleDisk_pb2 import MsgToggleDisk
-from linstor.proto.responses.MsgLstRsc_pb2 import MsgLstRsc
-from linstor.proto.responses.MsgLstSnapshotDfn_pb2 import MsgLstSnapshotDfn
-from linstor.proto.requests.MsgModCtrl_pb2 import MsgModCtrl
-from linstor.proto.responses.MsgLstCtrlCfgProps_pb2 import MsgLstCtrlCfgProps
-from linstor.proto.requests.MsgEnterCryptPassphrase_pb2 import MsgEnterCryptPassphrase
-from linstor.proto.requests.MsgCrtCryptPassphrase_pb2 import MsgCrtCryptPassphrase
-from linstor.proto.requests.MsgModCryptPassphrase_pb2 import MsgModCryptPassphrase
-from linstor.proto.requests.MsgModRscConn_pb2 import MsgModRscConn
-from linstor.proto.requests.MsgReqErrorReport_pb2 import MsgReqErrorReport
-from linstor.proto.responses.MsgErrorReport_pb2 import MsgErrorReport
-from linstor.proto.responses.MsgHostname_pb2 import MsgHostname
-from linstor.proto.requests.MsgPrepareDisks_pb2 import MsgPrepareDisks
-from linstor.proto.requests.MsgCrtSnapshot_pb2 import MsgCrtSnapshot
-from linstor.proto.requests.MsgDelSnapshot_pb2 import MsgDelSnapshot
-from linstor.proto.requests.MsgRollbackSnapshot_pb2 import MsgRollbackSnapshot
-from linstor.proto.requests.MsgRestoreSnapshotVlmDfn_pb2 import MsgRestoreSnapshotVlmDfn
-from linstor.proto.requests.MsgRestoreSnapshotRsc_pb2 import MsgRestoreSnapshotRsc
-from linstor.proto.common.Filter_pb2 import Filter
-from linstor.proto.eventdata.EventVlmDiskState_pb2 import EventVlmDiskState
-from linstor.proto.eventdata.EventRscState_pb2 import EventRscState
-from linstor.proto.requests.MsgQryMaxVlmSizes_pb2 import MsgQryMaxVlmSizes
-from linstor.proto.responses.MsgRspMaxVlmSizes_pb2 import MsgRspMaxVlmSizes
-from linstor.proto.requests.MsgCrtSfTargetNode_pb2 import MsgCrtSfTargetNode
-from linstor.proto.requests.MsgReqRscConn_pb2 import MsgReqRscConn
-from linstor.proto.responses.MsgLstRscConn_pb2 import MsgLstRscConn
-from linstor.proto.requests.MsgEnableDrbdProxy_pb2 import MsgEnableDrbdProxy
-from linstor.proto.requests.MsgDisableDrbdProxy_pb2 import MsgDisableDrbdProxy
-from linstor.proto.requests.MsgModDrbdProxy_pb2 import MsgModDrbdProxy
-from linstor.proto.requests.MsgNodeReconnect_pb2 import MsgNodeReconnect
-from linstor.proto.requests.MsgModKvs_pb2 import MsgModKvs
-from linstor.proto.responses.MsgRspKvs_pb2 import MsgRspKvs
-import linstor.proto.common.LayerType_pb2 as LayerType
-import linstor.proto.common.ProviderType_pb2 as ProviderType
+try:
+    from httplib import HTTPConnection
+except ImportError:
+    from http.client import HTTPConnection
+
 import linstor.sharedconsts as apiconsts
 
-API_VERSION = 4
-API_VERSION_MIN = 4
+API_VERSION = "1.0.3"
+API_VERSION_MIN = "1.0.3"
 
 
 logging.basicConfig(level=logging.WARNING)
-
-
-class AtomicInt(object):
-    """
-    This is a thread-safe integer type for incrementing, mostly reassembling modern atomic types,
-    but with the overhead of a lock.
-    """
-    def __init__(self, init=0):
-        self.val = init
-        self.lock = threading.RLock()
-
-    def get_and_inc(self):
-        with self.lock:
-            val = self.val
-            self.val += 1
-        return val
-
-
-class ObjectIdentifier(object):
-    def __init__(
-            self,
-            node_name=None,
-            resource_name=None,
-            volume_number=None,
-            snapshot_name=None):
-        self._node_name = node_name
-        self._resource_name = resource_name
-        self._volume_number = volume_number
-        self._snapshot_name = snapshot_name
-
-    def write_to_create_watch_msg(self, msg):
-        if self._node_name is not None:
-            msg.node_name = self._node_name
-        if self._resource_name is not None:
-            msg.resource_name = self._resource_name
-        if self._volume_number is not None:
-            msg.filter_by_volume_number = True
-            msg.volume_number = self._volume_number
-        if self._snapshot_name is not None:
-            msg.snapshot_name = self._snapshot_name
-
-
-class _LinstorNetClient(threading.Thread):
-    IO_SIZE = 4096
-    HDR_LEN = 16
-
-    COMPLETE_ANSWERS = object()
-    END_OF_IMMEDIATE_ANSWERS = object()
-
-    REPLY_MAP = {
-        apiconsts.API_PONG: (None, None),
-        apiconsts.API_REPLY: (ApiCallResponseProto, ApiCallResponse),
-        apiconsts.API_END_OF_IMMEDIATE_ANSWERS: (None, None),
-        apiconsts.API_LST_STOR_POOL_DFN: (MsgLstStorPoolDfn, ProtoMessageResponse),
-        apiconsts.API_LST_STOR_POOL: (MsgLstStorPool, StoragePoolListResponse),
-        apiconsts.API_LST_NODE: (MsgLstNode, NodeListResponse),
-        apiconsts.API_LST_RSC_DFN: (MsgLstRscDfn, ResourceDefinitionResponse),
-        apiconsts.API_LST_RSC: (MsgLstRsc, ResourceResponse),
-        apiconsts.API_LST_VLM: (MsgLstRsc, ResourceResponse),
-        apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, SnapshotsResponse),
-        apiconsts.API_LST_CTRL_PROPS: (MsgLstCtrlCfgProps, ProtoMessageResponse),
-        apiconsts.API_LST_RSC_CONN: (MsgLstRscConn, ProtoMessageResponse),
-        apiconsts.API_HOSTNAME: (MsgHostname, ProtoMessageResponse),
-        apiconsts.API_LST_ERROR_REPORTS: (MsgErrorReport, ErrorReport),
-        apiconsts.API_RSP_MAX_VLM_SIZE: (MsgRspMaxVlmSizes, ProtoMessageResponse),
-        apiconsts.API_LST_KVS: (MsgRspKvs, KeyValueStoresResponse)
-    }
-
-    EVENT_READER_TABLE = {
-        apiconsts.EVENT_VOLUME_DISK_STATE: EventVlmDiskState,
-        apiconsts.EVENT_RESOURCE_STATE: EventRscState
-    }
-
-    URL_SCHEMA_MAP = {
-        'linstor': apiconsts.DFLT_CTRL_PORT_PLAIN,
-        'linstor+ssl': apiconsts.DFLT_CTRL_PORT_SSL,
-        'linstorstlt': apiconsts.DFLT_STLT_PORT_PLAIN,
-        'linstorstlt+ssl': apiconsts.DFLT_STLT_PORT_SSL
-    }
-
-    def __init__(self, timeout, keep_alive):
-        super(_LinstorNetClient, self).__init__()
-        self._socket = None  # type: socket.socket
-        self._notify_pipe = os.pipe()
-        self._host = None  # type: str
-        self._timeout = timeout
-        self._slock = threading.RLock()
-        self._cv_sock = threading.Condition(self._slock)
-        self._logger = logging.getLogger('LinstorNetClient')
-        self._replies = {}
-        self._ignore_replies = set()
-        self._events = {}
-        self._errors = []  # list of errors that happened in the select thread
-        self._api_version = None
-        self._cur_api_call_id = AtomicInt(1)
-        self._cur_watch_id = AtomicInt(1)
-        self._stats_received = 0
-        self._controller_info = None  # type: str
-        self._keep_alive = keep_alive  # type: bool
-        self._run_disconnect_lock = threading.RLock()
-
-    def __del__(self):
-        self.disconnect()
-
-    @classmethod
-    def parse_host(cls, host_str):
-        """
-        Tries to parse an ipv4, ipv6 or host address.
-
-        Args:
-            host_str (str): host/ip string
-        Returns:
-          Tuple(str, str): a tuple with the ip/host and port
-        """
-        if not host_str:
-            return host_str, None
-
-        if host_str[0] == '[':
-            # ipv6 with port
-            brace_close_pos = host_str.rfind(']')
-            if brace_close_pos == -1:
-                raise ValueError("No closing brace found in '{s}'".format(s=host_str))
-
-            host_ipv6 = host_str[:brace_close_pos + 1].strip('[]')
-            port_ipv6 = host_str[brace_close_pos + 2:]
-            return host_ipv6, port_ipv6 if port_ipv6 else None
-
-        if host_str.count(':') == 1:
-            return host_str.split(':')
-
-        return host_str, None
-
-    @classmethod
-    def _split_proto_msgs(cls, payload):
-        """
-        Splits a linstor payload into each raw proto buf message
-        :param bytes payload: payload data
-        :return: list of raw proto buf messages
-        :rtype: list
-        """
-        # split payload, just a list of pbs, the receiver has to deal with them
-        pb_msgs = []
-        n = 0
-        while n < len(payload):
-            msg_len, new_pos = decoder._DecodeVarint32(payload, n)
-            n = new_pos
-            msg_buf = payload[n:n + msg_len]
-            n += msg_len
-            pb_msgs.append(msg_buf)
-        return pb_msgs
-
-    @classmethod
-    def _parse_event(cls, event_name, event_data_bytes):
-        """
-        Parses the given byte data according to the event header name.
-
-        :param event_name: Event header name
-        :param event_data_bytes: Data bytes for protobuf message
-        :return: parsed protobuf message
-        """
-        event_reader = cls.EVENT_READER_TABLE.get(event_name)
-
-        if event_reader is None:
-            return None
-
-        event_data = event_reader()
-        event_data.ParseFromString(event_data_bytes)
-        return event_data
-
-    @classmethod
-    def _parse_proto_msgs(cls, type_tuple, data):
-        """
-        Parses a list of proto buf messages into their protobuf and/or wrapper classes,
-        defined in the type_tuple.
-        :param type_tuple: first item specifies the protobuf message, second item is a wrapper class or None
-        :param list data: a list of raw protobuf message data
-        :return: A list with protobuf or wrapper classes from the data
-        """
-        msg_resps = []
-        msg_type = type_tuple[0]
-        wrapper_type = type_tuple[1]
-
-        if msg_type is None:
-            return msg_resps
-
-        for msg in data:
-            resp = msg_type()
-            resp.ParseFromString(msg)
-            if wrapper_type:
-                msg_resps.append(wrapper_type(resp))
-            else:
-                msg_resps.append(resp)
-        return msg_resps
-
-    @classmethod
-    def _parse_proto_msg(cls, msg_type, data):
-        msg = msg_type()
-        msg.ParseFromString(data)
-        return msg
-
-    def _parse_api_version(self, data):
-        """
-        Parses data as a MsgApiVersion and checks if we support the api version.
-
-        :param bytes data: byte data containing the MsgApiVersion message
-        :return: True if parsed correctly and version supported
-        :raises LinstorError: if the parsed api version is not supported
-        """
-        msg = self._parse_proto_msg(MsgApiVersion, data)
-        if self._api_version is None:
-            self._controller_info = msg.controller_info
-            self._api_version = msg.version
-            if API_VERSION_MIN > msg.version or msg.version > API_VERSION:
-                raise LinstorError(
-                    "Client API version '{v}' is incompatible with controller version '{r}', please update your client."
-                    .format(
-                        v=API_VERSION,
-                        r=msg.version)
-                )
-        else:
-            self._logger.warning("API version message already received.")
-        return True
-
-    @classmethod
-    def _parse_payload_length(cls, header):
-        """
-        Parses the payload length from a linstor header.
-
-        :param bytes header: 16 bytes header data
-        :return: Length of the payload
-        """
-        struct_format = "!xxxxIxxxxxxxx"
-        assert struct.calcsize(struct_format) == len(header), "Header has unexpected size"
-        exp_pkg_len, = struct.unpack(struct_format, header)
-        return exp_pkg_len
-
-    def _read_api_version_blocking(self):
-        """
-        Receives a api version message with blocking reads from the _socket and parses/checks it.
-
-        :return: True
-        """
-        api_msg_data = self._socket.recv(self.IO_SIZE)
-        while len(api_msg_data) < 16:
-            api_msg_data += self._socket.recv(self.IO_SIZE)
-
-        pkg_len = self._parse_payload_length(api_msg_data[:16])
-
-        while len(api_msg_data) < pkg_len + 16:
-            api_msg_data += self._socket.recv(self.IO_SIZE)
-
-        msgs = self._split_proto_msgs(api_msg_data[16:])
-        assert len(msgs) > 0, "Api version header message missing"
-        hdr = self._parse_proto_msg(MsgHeader, msgs[0])
-
-        assert hdr.msg_content == apiconsts.API_VERSION, "Unexpected message for API_VERSION"
-        self._parse_api_version(msgs[1])
-        return True
-
-    def fetch_errors(self):
-        """
-        Get all errors that are currently on this object, list will be cleared.
-        This error list will contain all errors that happened within the select thread.
-        Usually you want this list after your socket was closed unexpected.
-
-        :return: A list of LinstorErrors
-        :rtype: list[LinstorError]
-        """
-        errors = self._errors
-        self._errors = []
-        return errors
-
-    def connect(self, server):
-        """
-        Connects to the given server.
-        The url has to be given in the linstor uri scheme. either linstor:// or linstor+ssl://
-
-        :param str server: uri to the server
-        :return: True if connected, else raises an LinstorError
-        :raise LinstorError: if connection fails.
-        """
-        self._logger.debug("connecting to " + server)
-        try:
-            url = urlparse(server)
-
-            if url.scheme not in _LinstorNetClient.URL_SCHEMA_MAP:
-                raise LinstorError("Unknown uri scheme '{sc}' in '{uri}'.".format(sc=url.scheme, uri=server))
-
-            host, port = self.parse_host(url.netloc)
-            if not port:
-                port = _LinstorNetClient.URL_SCHEMA_MAP[url.scheme]
-            self._socket = socket.create_connection((host, port), timeout=self._timeout)
-
-            # check if ssl
-            if url.scheme.endswith('+ssl'):
-                self._socket = ssl.wrap_socket(self._socket)
-            self._socket.settimeout(self._timeout)
-
-            # read api version
-            if not url.scheme.startswith('linstorstlt'):
-                self._read_api_version_blocking()
-
-            self._socket.setblocking(0)
-            self._logger.debug("connected to " + server)
-            self._host = server
-            return True
-        except socket.error as err:
-            self._socket = None
-            raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=server, err=err))
-
-    def disconnect(self):
-        """
-        Disconnects your current connection.
-
-        :return: True if socket was connected, else False
-        """
-        ret = False
-        with self._slock:
-            if self._socket:
-                self._logger.debug("disconnecting")
-                self._socket.close()
-                self._socket = None
-                os.write(self._notify_pipe[1], "\n".encode('utf8'))
-                ret = True
-        self._run_disconnect_lock.acquire()
-        return ret
-
-    def controller_info(self):
-        """
-        Returns the controller info string parsed from the MsgApiVersion after connecting
-
-        :return: String the controller sent as info
-        :rtype: str
-        """
-        return self._controller_info
-
-    @classmethod
-    def _current_milli_time(cls):
-        return int(round(time.time() * 1000))
-
-    def run(self):
-        with self._run_disconnect_lock:
-            self._run()
-
-    def _run(self):
-        """
-        Runs the main select loop that handles incoming messages, parses them and
-        puts them on the self._replies map.
-        Errors that happen within this thread will be collected on the self._errors list
-        and can be fetched with the fetch_errors() methods.
-
-        :return:
-        """
-        self._errors = []
-        package = bytes()  # current package data
-        exp_pkg_len = 0  # expected package length
-
-        last_read_time = self._current_milli_time()
-        last_ping_time = self._current_milli_time()
-        while self._socket:
-            rds = []
-            wds = []
-            eds = []
-            try:
-                rds, wds, eds = select.select([self._socket, self._notify_pipe[0]], [], [self._socket], 2)
-            except Exception as e:  # (IOError, TypeError):
-                if self._socket is None:  # disconnect closed it
-                    break
-                if not (e is IOError or e is TypeError):
-                    raise e
-
-            self._logger.debug("select exit with:" + ",".join([str(rds), str(wds), str(eds)]))
-
-            if eds:
-                self._logger.debug("Socket exception on {hp}".format(hp=self._adrtuple2str(self._socket.getpeername())))
-                self._errors.append(LinstorNetworkError(
-                    "Socket exception on {hp}".format(hp=self._adrtuple2str(self._socket.getpeername()))))
-
-            if last_read_time + (self._timeout * 1000) < self._current_milli_time():
-                self._socket.close()
-                self._socket = None
-                self._errors.append(LinstorTimeoutError(
-                    "Socket timeout, no data received since {t}ms.".format(
-                        t=(self._current_milli_time()-last_read_time)
-                    )
-                ))
-
-            if self._keep_alive and last_ping_time + 5000 < self._current_milli_time():
-                self.send_msg(apiconsts.API_PING)
-                last_ping_time = self._current_milli_time()
-
-            for sock in rds:
-                with self._slock:
-                    if self._socket is None:  # socket was closed
-                        break
-
-                    read = self._socket.recv(_LinstorNetClient.IO_SIZE)
-
-                    if len(read) == 0:
-                        self._logger.debug(
-                            "No data from {hp}, closing connection".format(
-                                hp=self._adrtuple2str(self._socket.getpeername())))
-                        self._socket.close()
-                        self._socket = None
-                        self._errors.append(
-                            LinstorNetworkError("Remote '{hp}' closed connection dropped.".format(hp=self._host)))
-
-                    last_read_time = self._current_milli_time()
-
-                    package += read
-                    pkg_len = len(package)
-                    self._stats_received += pkg_len
-                    self._logger.debug("pkg_len: " + str(pkg_len))
-
-                    def has_hdr():  # used as macro
-                        return pkg_len > _LinstorNetClient.HDR_LEN - 1 and exp_pkg_len == 0
-
-                    def has_more_data():  # used as macro
-                        return pkg_len >= (exp_pkg_len + _LinstorNetClient.HDR_LEN) and exp_pkg_len
-
-                    while has_hdr() or has_more_data():
-                        if has_hdr():  # header is 16 bytes
-                            exp_pkg_len = self._parse_payload_length(package[:_LinstorNetClient.HDR_LEN])
-
-                        self._logger.debug("exp_pkg_len: " + str(exp_pkg_len))
-
-                        if has_more_data():
-                            # cut out the parsing package
-                            parse_buf = package[_LinstorNetClient.HDR_LEN:exp_pkg_len + _LinstorNetClient.HDR_LEN]
-                            msgs = self._split_proto_msgs(parse_buf)
-                            assert len(msgs) > 0, "we should have at least a header message"
-
-                            # update buffer and length variables
-                            package = package[exp_pkg_len + _LinstorNetClient.HDR_LEN:]  # put data into next parse run
-                            pkg_len = len(package)  # update package length
-                            self._logger.debug("pkg_len upd: " + str(len(package)))
-                            exp_pkg_len = 0
-
-                            self._process_msgs(msgs)
-
-    def _process_msgs(self, msgs):
-        hdr = self._parse_proto_msg(MsgHeader, msgs[0])  # parse header
-        self._logger.debug(str(hdr))
-
-        if hdr.msg_type == MsgHeader.MsgType.Value('API_CALL'):
-            self._header_parsing_error(hdr)
-
-        elif hdr.msg_type == MsgHeader.MsgType.Value('ONEWAY'):
-            if hdr.msg_content == apiconsts.API_EVENT:
-                event_header = MsgEvent()
-                event_header.ParseFromString(msgs[1])
-                self._logger.debug(
-                    "Event '" + event_header.event_name + "', action " + event_header.event_action + " received")
-                if event_header.event_action == apiconsts.EVENT_STREAM_VALUE:
-                    event_data = self._parse_event(event_header.event_name, msgs[2]) \
-                        if len(msgs) > 2 else None
-                else:
-                    event_data = None
-                with self._cv_sock:
-                    if event_header.watch_id in self._events:
-                        self._events[event_header.watch_id].append((event_header, event_data))
-                        self._cv_sock.notifyAll()
-            else:
-                self._header_parsing_error(hdr)
-
-        elif hdr.msg_type == MsgHeader.MsgType.Value('ANSWER'):
-            if hdr.msg_content in self.REPLY_MAP:
-                # parse other message according to the reply_map and add them to the self._replies
-                replies = self._parse_proto_msgs(self.REPLY_MAP[hdr.msg_content], msgs[1:])
-                with self._cv_sock:
-                    if hdr.api_call_id not in self._ignore_replies:
-                        reply_deque = self._replies.get(hdr.api_call_id)
-                        if reply_deque is None:
-                            self._logger.warning(
-                                "Unexpected answer received for API call ID " + str(hdr.api_call_id))
-                        else:
-                            if hdr.msg_content == apiconsts.API_END_OF_IMMEDIATE_ANSWERS:
-                                reply_deque.append(self.END_OF_IMMEDIATE_ANSWERS)
-                            else:
-                                reply_deque.extend(replies)
-                            self._cv_sock.notifyAll()
-            else:
-                self._header_parsing_error(hdr)
-
-        elif hdr.msg_type == MsgHeader.MsgType.Value('COMPLETE'):
-            with self._cv_sock:
-                if hdr.api_call_id in self._ignore_replies:
-                    self._ignore_replies.remove(hdr.api_call_id)
-                else:
-                    reply_deque = self._replies.get(hdr.api_call_id)
-                    if reply_deque is None:
-                        self._logger.warning(
-                            "Unexpected completion received for API call ID " + str(hdr.api_call_id))
-                    else:
-                        reply_deque.append(self.COMPLETE_ANSWERS)
-                        self._cv_sock.notifyAll()
-
-        else:
-            self._header_parsing_error(hdr)
-
-    def _header_parsing_error(self, hdr):
-        self._logger.error(
-            "Unknown message of type " + MsgHeader.MsgType.Name(hdr.msg_type) +
-            ("" if hdr.msg_content == "" else " and content " + hdr.msg_content) + " received ")
-        self.disconnect()
-        with self._cv_sock:
-            self._cv_sock.notifyAll()
-
-    @property
-    def connected(self):
-        """Check if the socket is currently connected."""
-        return self._socket is not None
-
-    def send_msg(self, api_call_type, msg=None):
-        """
-        Sends a single or just a header message.
-
-        :param str api_call_type: api call type that is set in the header message.
-        :param msg: Message to be sent, if None only the header will be sent.
-        :return: Message id of the message for wait_for_result()
-        :rtype: int
-        """
-        return self.send_msgs(api_call_type, [msg] if msg else None)
-
-    def send_msgs(self, api_call_type, msgs=None):
-        """
-        Sends a list of message or just a header.
-
-        :param str api_call_type: api call type that is set in the header message.
-        :param list msgs: List of message to be sent, if None only the header will be sent.
-        :return: Message id of the message for wait_for_result()
-        :rtype: int
-        """
-        hdr_msg = MsgHeader()
-        hdr_msg.msg_content = api_call_type
-
-        api_call_id = self._cur_api_call_id.get_and_inc()
-        with self._cv_sock:
-            self._replies[api_call_id] = deque()
-
-        hdr_msg.msg_type = MsgHeader.MsgType.Value('API_CALL')
-        hdr_msg.api_call_id = api_call_id
-
-        h_type = struct.pack("!I", 0)  # currently always 0, 32 bit
-        h_reserved = struct.pack("!Q", 0)  # reserved, 64 bit
-
-        msg_serialized = bytes()
-
-        header_serialized = hdr_msg.SerializeToString()
-        delim = encoder._VarintBytes(len(header_serialized))
-        msg_serialized += delim + header_serialized
-
-        if msgs:
-            for msg in msgs:
-                payload_serialized = msg.SerializeToString()
-                delim = encoder._VarintBytes(len(payload_serialized))
-                msg_serialized += delim + payload_serialized
-
-        h_payload_length = len(msg_serialized)
-        h_payload_length = struct.pack("!I", h_payload_length)  # 32 bit
-
-        full_msg = h_type + h_payload_length + h_reserved + msg_serialized
-
-        with self._slock:
-            if not self.connected:
-                raise LinstorNetworkError("Not connected to controller.", self.fetch_errors())
-
-            msg_len = len(full_msg)
-            self._logger.debug("sending " + str(msg_len))
-            sent = 0
-            while sent < msg_len:
-                sent += self._socket.send(full_msg)
-            self._logger.debug("sent " + str(sent))
-        return hdr_msg.api_call_id
-
-    def wait_for_result(self, api_call_id, answer_handler):
-        """
-        This method blocks and waits for all answers to the given api_call_id.
-
-        :param int api_call_id: identifies the answers to wait for
-        :param Callable answer_handler: function that is called for each answer that is received and returns whether
-            to continue waiting
-        """
-        with self._cv_sock:
-            try:
-                while api_call_id in self._replies:
-                    if not self.connected:
-                        return
-
-                    self._cv_sock.wait(1)
-
-                    if api_call_id in self._replies:
-                        reply_deque = self._replies[api_call_id]
-                        while len(reply_deque) > 0:
-                            reply = reply_deque.popleft()
-                            if reply == self.COMPLETE_ANSWERS:
-                                return
-                            else:
-                                continue_wait = answer_handler(reply)
-                                if not continue_wait:
-                                    self._ignore_replies.add(api_call_id)
-                                    return
-            finally:
-                self._replies.pop(api_call_id)
-
-    def wait_for_events(self, watch_id, event_handler):
-        """
-        This method blocks and waits for any events.
-        The handler function is called for each event.
-        When the value returned by the handler is not None, this method returns that value.
-
-        :param int watch_id: watch id to watch for
-        :param Callable event_handler: function that is called if an event was received.
-        :return: The result of the handler function if it returns not None
-        """
-        local_queue = deque()
-        while True:
-            with self._cv_sock:
-                if not self.connected:
-                    return None
-
-                self._cv_sock.wait(0.2)
-
-                while watch_id in self._events and self._events[watch_id]:
-                    # copy events to local queue to allow to run event_handler without lock
-                    local_queue.append(self._events[watch_id].popleft())
-
-            while local_queue:
-                event_handler_result = event_handler(*local_queue.popleft())
-                if event_handler_result is not None:
-                    return event_handler_result
-
-    def register_watch(self, watch_id):
-        """
-        Add a queue entry into the events map.
-
-        :param watch_id: watch id to add
-        :return: None
-        """
-        with self._slock:
-            self._events[watch_id] = deque()
-
-    def deregister_watch(self, watch_id):
-        """
-        Remove a queue entry from the events map.
-        :param watch_id: watch id to remove
-        :return: None
-        """
-        with self._slock:
-            del self._events[watch_id]
-
-    def next_watch_id(self):
-        return self._cur_watch_id.get_and_inc()
-
-    def stats(self):
-        """
-        Returns network statistics as printable string.
-
-        :return: Returns network statistics as printable string.
-        :rtype: str
-        """
-        return "Received bytes: {b}".format(b=self._stats_received)
-
-    @staticmethod
-    def _adrtuple2str(tuple):
-        ip = tuple[0]
-        port = tuple[1]
-        s = "[{ip}]".format(ip=ip) if ':' in ip else ip
-        s += ":" + str(port)
-        return s
 
 
 class ResourceData(object):
@@ -819,7 +88,7 @@ class Linstor(object):
     e.g: ``linstor://localhost``, ``linstor+ssl://localhost``
 
     :param str ctrl_host: Linstor uri to the controller e.g. ``linstor://192.168.0.1``
-    :param bool keep_alive: Sends PING messages to the controller
+    :param bool keep_alive: Tries to keep the connection alive
     """
     _node_types = [
         apiconsts.VAL_NODE_TYPE_CTRL,
@@ -828,12 +97,33 @@ class Linstor(object):
         apiconsts.VAL_NODE_TYPE_STLT
     ]
 
+    APICALL2RESPONSE = {
+        apiconsts.API_LST_NODE: NodeListResponse,
+        apiconsts.API_LST_STOR_POOL: StoragePool,
+        apiconsts.API_LST_RSC_DFN: ResourceDefinitionResponse,
+        apiconsts.API_LST_VLM_DFN: VolumeDefinitionResponse,
+        apiconsts.API_LST_RSC: ResourceResponse,
+        apiconsts.API_LST_VLM: VolumeResponse,
+        apiconsts.API_LST_SNAPSHOT_DFN: SnapshotResponse,
+        apiconsts.API_REQ_ERROR_REPORTS: ErrorReport,
+        apiconsts.API_LST_CTRL_PROPS: ControllerProperties,
+        apiconsts.API_REQ_RSC_CONN_LIST: ResourceConnectionsResponse,
+        apiconsts.API_LST_STOR_POOL_DFN: StoragePoolDefinitionResponse,
+        apiconsts.API_QRY_MAX_VLM_SIZE: MaxVolumeSizeResponse,
+        apiconsts.API_LST_KVS: KeyValueStoresResponse,
+        apiconsts.API_VERSION: ControllerVersion
+    }
+
+    REST_PORT = 3370
+
     def __init__(self, ctrl_host, timeout=300, keep_alive=False):
         self._ctrl_host = ctrl_host
         self._linstor_client = None  # type: _LinstorNetClient
         self._logger = logging.getLogger('Linstor')
         self._timeout = timeout
         self._keep_alive = keep_alive
+        self._rest_conn = None  # type: HTTPConnection
+        self._connected = False
 
     def __del__(self):
         self.disconnect()
@@ -844,6 +134,68 @@ class Linstor(object):
 
     def __exit__(self, type, value, traceback):
         self.disconnect()
+
+    def __output_curl_command(self, method, path, body):
+        url = urlparse(self._ctrl_host)
+        cmd = ["curl", "-X", method]
+        if body is not None:
+            cmd += ['-H "Content-Type: application/json"']
+            cmd += ["-d '" + json.dumps(body) + "'"]
+        cmd += ["http://" + url.hostname + ":" + str(url.port) + path]
+        print(" ".join(cmd))
+
+    @classmethod
+    def _current_milli_time(cls):
+        return int(round(time.time() * 1000))
+
+    def _rest_request(self, apicall, method, path, body=None):
+        """
+
+        :param str apicall: linstor apicall strid
+        :param str method: One of GET, POST, PUT, DELETE, OPTIONS
+        :param str path: object path on the server
+        :param Union[dict[str,Any], list[Any] body: body data
+        :return:
+        :rtype: list[Union[ApiCallRESTResponse, ResourceResponse]]
+        """
+        try:
+            self._rest_conn.request(method, path, json.dumps(body) if body is not None else None)
+        except socket.error as err:
+            raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=self._ctrl_host, err=err))
+
+        response = self._rest_conn.getresponse()
+
+        if response.status < 400:
+            return self.__convert_rest_response(apicall, response, path)
+        else:
+            error_data_raw = response.read()
+            if error_data_raw:
+                error_data = json.loads(error_data_raw)
+                return [ApiCallResponse(x) for x in error_data]
+            raise LinstorError("REST api call method '{m}' to resoure '{p}' returned status {s} with no data."
+                               .format(m=method, p=path, s=response.status))
+
+    def __convert_rest_response(self, apicall, response, path):
+        resp_data = response.read()
+        try:
+            data = json.loads(resp_data)
+        except ValueError as ve:
+            raise LinstorError(
+                "Unable to parse REST json data: " + str(ve) + "\n"
+                "Request-Uri: " + path + "\n" + resp_data
+            )
+
+        response_list = []
+        response_class = self.APICALL2RESPONSE.get(apicall, ApiCallResponse)
+        if response_class in [ApiCallResponse, ErrorReport]:
+            response_list = [response_class(x) for x in data]
+        else:
+            if "ret_code" in data:
+                response_list += [ApiCallResponse(x) for x in data]
+            else:
+                response_list += [response_class(data)]
+
+        return response_list
 
     @classmethod
     def all_api_responses_no_error(cls, replies):
@@ -876,7 +228,7 @@ class Linstor(object):
         :return: Returns all only ApiCallResponses from replies or empty list.
         :rtype: [ApiCallResponse]
         """
-        return [reply for reply in replies if isinstance(reply, ApiCallResponse)]
+        return [reply for reply in replies if isinstance(reply, ApiCallResponse) or isinstance(reply, ApiCallResponse)]
 
     @classmethod
     def return_if_failure(cls, replies_):
@@ -914,48 +266,28 @@ class Linstor(object):
             msg.delete_prop_keys.extend(delete_props)
         return msg
 
-    def _send_and_wait(self, api_call, msg=None, allow_no_reply=False, async_msg=False):
-        """
-        Helper function that sends a api call[+msg] and waits for the answer from the controller
-
-        :param str api_call: API call identifier
-        :param msg: Proto message to send
-        :param bool allow_no_reply: Do not raise an error if there are no replies.
-        :param bool async_msg: Terminate as soon as immediate replies have been received
-        :return: A list containing ApiCallResponses from the controller.
-        :rtype: list[ApiCallResponse]
-        """
-        api_call_id = self._linstor_client.send_msg(api_call, msg)
-        replies = []
-
-        def answer_handler(answer):
-            if answer != _LinstorNetClient.END_OF_IMMEDIATE_ANSWERS:
-                replies.append(answer)
-            elif async_msg:
-                return False
-            return True
-
-        self._linstor_client.wait_for_result(api_call_id, answer_handler)
-
-        errors = self._linstor_client.fetch_errors()
-        if errors:
-            raise errors[0]  # for now only send the first error
-
-        if not allow_no_reply and len(replies) == 0:
-            raise LinstorNetworkError("No answer received for api_call '{id}:{c}'".format(id=api_call_id, c=api_call))
-
-        return replies
-
     def connect(self):
         """
         Connects the internal linstor network client.
 
         :return: True
         """
-        self._linstor_client = _LinstorNetClient(timeout=self._timeout, keep_alive=self._keep_alive)
-        self._linstor_client.connect(self._ctrl_host)
-        self._linstor_client.daemon = True
-        self._linstor_client.start()
+        url = urlparse(self._ctrl_host)
+        port = url.port if url.port else Linstor.REST_PORT
+        self._rest_conn = HTTPConnection(host=url.hostname, port=port, timeout=self._timeout)
+        try:
+            self._rest_conn.connect()
+            ctrl_version = self.controller_version()
+            if not ctrl_version.rest_api_version.startswith("1") or \
+                    StrictVersion(API_VERSION_MIN) > StrictVersion(ctrl_version.rest_api_version):
+                self._rest_conn.close()
+                raise LinstorApiCallError(
+                    "Client doesn't support Controller rest api version: " + ctrl_version.rest_api_version +
+                    "; Minimal version needed: " + API_VERSION_MIN
+                )
+            self._connected = True
+        except socket.error as err:
+            raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=self._ctrl_host, err=err))
         return True
 
     @property
@@ -965,7 +297,7 @@ class Linstor(object):
 
         :return: True if connected, else False.
         """
-        return self._linstor_client.connected
+        return self._connected
 
     def disconnect(self):
         """
@@ -973,7 +305,9 @@ class Linstor(object):
 
         :return: True if the object was connected else False.
         """
-        return self._linstor_client.disconnect()
+        self._connected = False
+        if self._rest_conn:
+            self._rest_conn.close()
 
     def node_create(
             self,
@@ -996,44 +330,40 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtNode()
-
-        msg.node.name = node_name
         if node_type not in self._node_types:
             raise LinstorError(
                 "Unknown node type '{nt}'. Known types are: {kt}".format(nt=node_type, kt=", ".join(self._node_types))
             )
-        msg.node.type = node_type
-        netif = msg.node.net_interfaces.add()
-        netif.name = netif_name
-        netif.address = ip
 
         if port is None:
             if com_type == apiconsts.VAL_NETCOM_TYPE_PLAIN:
                 port = apiconsts.DFLT_CTRL_PORT_PLAIN \
-                    if msg.node.type == apiconsts.VAL_NODE_TYPE_CTRL else apiconsts.DFLT_STLT_PORT_PLAIN
+                    if node_type == apiconsts.VAL_NODE_TYPE_CTRL else apiconsts.DFLT_STLT_PORT_PLAIN
             elif com_type == apiconsts.VAL_NETCOM_TYPE_SSL:
-                if msg.node.type == apiconsts.VAL_NODE_TYPE_STLT:
+                if node_type == apiconsts.VAL_NODE_TYPE_STLT:
                     port = apiconsts.DFLT_STLT_PORT_SSL
                 else:
                     port = apiconsts.DFLT_CTRL_PORT_SSL
             else:
                 raise LinstorError("Communication type %s has no default port" % com_type)
 
-        netif.stlt_port = port
-        netif.stlt_encryption_type = com_type
+        body = {
+            "name": node_name,
+            "type": node_type,
+            "net_interfaces": [
+                {
+                    "name": netif_name,
+                    "address": ip,
+                    "satellite_port": port,
+                    "satellite_encryption_type": com_type
+                }
+            ]
+        }
 
-        return self._send_and_wait(apiconsts.API_CRT_NODE, msg)
+        return self._rest_request(apiconsts.API_CRT_NODE, "POST", "/v1/nodes", body)
 
     def node_create_swordfish_target(self, node_name, storage_service):
-        msg = MsgCrtSfTargetNode()
-        msg.name = node_name
-
-        prop = msg.props.add()
-        prop.key = apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_SF_STOR_SVC
-        prop.value = storage_service
-
-        return self._send_and_wait(apiconsts.API_CRT_SF_TARGET_NODE, msg)
+        raise NotImplementedError()
 
     def node_modify(self, node_name, node_type=None, property_dict=None, delete_props=None):
         """
@@ -1046,15 +376,17 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModNode()
-        msg.node_name = node_name
-
+        body = {}
         if node_type is not None:
-            msg.node_type = node_type
+            body["node_type"] = node_type
 
-        self._modify_props(msg, property_dict, delete_props)
+        if property_dict:
+            body["override_props"] = property_dict
 
-        return self._send_and_wait(apiconsts.API_MOD_NODE, msg)
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(apiconsts.API_MOD_NODE, "PUT", "/v1/nodes/" + node_name, body)
 
     def node_delete(self, node_name, async_msg=False):
         """
@@ -1065,10 +397,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelNode()
-        msg.node_name = node_name
-
-        return self._send_and_wait(apiconsts.API_DEL_NODE, msg, async_msg=async_msg)
+        return self._rest_request(apiconsts.API_DEL_NODE, "DELETE", "/v1/nodes/" + node_name)
 
     def node_lost(self, node_name, async_msg=False):
         """
@@ -1079,10 +408,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelNode()
-        msg.node_name = node_name
-
-        return self._send_and_wait(apiconsts.API_LOST_NODE, msg, async_msg=async_msg)
+        return self._rest_request(apiconsts.API_LOST_NODE, "DELETE", "/v1/nodes/" + node_name + "/lost")
 
     def node_reconnect(self, node_names):
         """
@@ -1092,10 +418,10 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgNodeReconnect()
-        msg.nodes.extend(node_names)
-
-        return self._send_and_wait(apiconsts.API_NODE_RECONNECT, msg)
+        replies = []
+        for node_name in node_names:
+            replies += self._rest_request(apiconsts.API_NODE_RECONNECT, "PUT", "/v1/nodes/" + node_name + "/reconnect")
+        return replies
 
     def netinterface_create(self, node_name, interface_name, ip, port=None, com_type=None):
         """
@@ -1109,17 +435,16 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtNetInterface()
-        msg.node_name = node_name
-
-        msg.net_if.name = interface_name
-        msg.net_if.address = ip
+        body = {
+            "name": interface_name,
+            "address": ip,
+        }
 
         if port:
-            msg.net_if.stlt_port = port
-            msg.net_if.stlt_encryption_type = com_type
+            body["satellite_port"] = port
+            body["satellite_encryption_type"] = com_type
 
-        return self._send_and_wait(apiconsts.API_CRT_NET_IF, msg)
+        return self._rest_request(apiconsts.API_CRT_NET_IF, "POST", "/v1/nodes/" + node_name + "/net-interfaces", body)
 
     def netinterface_modify(self, node_name, interface_name, ip, port=None, com_type=None):
         """
@@ -1133,17 +458,20 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModNetInterface()
-
-        msg.node_name = node_name
-        msg.net_if.name = interface_name
-        msg.net_if.address = ip
+        body = {
+            "name": interface_name,
+            "address": ip,
+        }
 
         if port:
-            msg.net_if.stlt_port = port
-            msg.net_if.stlt_encryption_type = com_type
+            body["satellite_port"] = port
+            body["satellite_encryption_type"] = com_type
 
-        return self._send_and_wait(apiconsts.API_MOD_NET_IF, msg)
+        return self._rest_request(
+            apiconsts.API_CRT_NET_IF,
+            "PUT", "/v1/nodes/" + node_name + "/net-interfaces/" + interface_name,
+            body
+        )
 
     def netinterface_delete(self, node_name, interface_name):
         """
@@ -1154,20 +482,20 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelNetInterface()
-        msg.node_name = node_name
-        msg.net_if_name = interface_name
-
-        return self._send_and_wait(apiconsts.API_DEL_NET_IF, msg)
+        return self._rest_request(
+            apiconsts.API_DEL_NET_IF,
+            "DELETE",
+            "/v1/nodes/" + node_name + "/net-interfaces/" + interface_name
+        )
 
     def node_list(self):
         """
         Request a list of all nodes known to the controller.
 
         :return: A MsgLstNode proto message containing all information.
-        :rtype: list[ProtoMessageResponse]
+        :rtype: list[RESTMessageResponse]
         """
-        return self._send_and_wait(apiconsts.API_LST_NODE)
+        return self._rest_request(apiconsts.API_LST_NODE, "GET", "/v1/nodes")
 
     def node_list_raise(self):
         """
@@ -1201,10 +529,15 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtStorPoolDfn()
-        msg.stor_pool_dfn.stor_pool_name = name
+        body = {
+            "storage_pool_name": name
+        }
 
-        return self._send_and_wait(apiconsts.API_CRT_STOR_POOL_DFN, msg)
+        return self._rest_request(
+            apiconsts.API_CRT_STOR_POOL_DFN,
+            "POST", "/v1/storage-pool-definitions",
+            body
+        )
 
     def storage_pool_dfn_modify(self, name, property_dict, delete_props=None):
         """
@@ -1216,12 +549,18 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModStorPoolDfn()
-        msg.stor_pool_name = name
+        body = {}
+        if property_dict:
+            body["override_props"] = property_dict
 
-        msg = self._modify_props(msg, property_dict, delete_props)
+        if delete_props:
+            body["delete_props"] = delete_props
 
-        return self._send_and_wait(apiconsts.API_MOD_STOR_POOL_DFN, msg)
+        return self._rest_request(
+            apiconsts.API_MOD_STOR_POOL_DFN,
+            "PUT", "/v1/storage-pool-definitions/" + name,
+            body
+        )
 
     def storage_pool_dfn_delete(self, name):
         """
@@ -1231,19 +570,16 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelStorPoolDfn()
-        msg.stor_pool_name = name
-
-        return self._send_and_wait(apiconsts.API_DEL_STOR_POOL_DFN, msg)
+        return self._rest_request(apiconsts.API_DEL_STOR_POOL_DFN, "DELETE", "/v1/storage-pool-definitions/" + name)
 
     def storage_pool_dfn_list(self):
         """
         Request a list of all storage pool definitions known to the controller.
 
         :return: A MsgLstStorPoolDfn proto message containing all information.
-        :rtype: list[ProtoMessageResponse]
+        :rtype: list[StoragePoolDefinitionResponse]
         """
-        return self._send_and_wait(apiconsts.API_LST_STOR_POOL_DFN)
+        return self._rest_request(apiconsts.API_LST_STOR_POOL_DFN, "GET", "/v1/storage-pool-definitions")
 
     def storage_pool_dfn_max_vlm_sizes(
             self,
@@ -1264,28 +600,33 @@ class Linstor(object):
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
         :return: A list containing ApiCallResponses or ProtoMessageResponse (with MsgRspMaxVlmSizes)
-        :rtype: Union[list[ApiCallResponse], list[ProtoMessageResponse]]
+        :rtype: Union[list[ApiCallResponse], list[RESTMessageResponse]]
         """
-        msg = MsgQryMaxVlmSizes()
-        msg_filter = msg.select_filter
-        msg_filter.place_count = place_count
+        body = {
+            "place_count": place_count
+        }
 
         if storage_pool_name:
-            msg_filter.storage_pool = storage_pool_name
+            body["storage_pool"] = storage_pool_name
         if do_not_place_with:
-            msg_filter.not_place_with_rsc.extend(do_not_place_with)
+            body["not_place_with_rsc"] = do_not_place_with
         if do_not_place_with_regex:
-            msg_filter.not_place_with_rsc_regex = do_not_place_with_regex
+            body["not_place_with_rsc_regex"] = do_not_place_with_regex
         if replicas_on_same:
-            msg_filter.replicas_on_same.extend(replicas_on_same)
+            body["replicas_on_same"] = replicas_on_same
         if replicas_on_different:
-            msg_filter.replicas_on_different.extend(replicas_on_different)
+            body["replicas_on_different"] = replicas_on_different
 
-        return self._send_and_wait(apiconsts.API_QRY_MAX_VLM_SIZE, msg)
+        return self._rest_request(
+            apiconsts.API_QRY_MAX_VLM_SIZE,
+            "OPTIONS",
+            "/v1/query-max-volume-size",
+            body
+        )
 
     @staticmethod
     def _filter_props(props, namespace=''):
-        return {prop.key: prop.value for prop in props if prop.key.startswith(namespace)}
+        return {prop: props[prop] for prop in props if prop.startswith(namespace)}
 
     def storage_pool_create(
             self,
@@ -1309,28 +650,29 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtStorPool()
-        msg.stor_pool.stor_pool_name = storage_pool_name
-        msg.stor_pool.node_name = node_name
         if storage_driver not in StoragePoolDriver.list():
             raise LinstorError("Unknown storage driver: " + storage_driver)
-        msg.stor_pool.provider_kind = storage_driver
+
+        body = {
+            "storage_pool_name": storage_pool_name,
+            "provider_kind": storage_driver
+        }
+
         if shared_space:
-            msg.stor_pool.free_space_mgr_name = shared_space
+            body["free_space_mgr_name"] = shared_space
 
         # set driver device pool properties
-        for key, value in StoragePoolDriver.storage_driver_pool_to_props(storage_driver, driver_pool_name):
-            prop = msg.stor_pool.props.add()
-            prop.key = key
-            prop.value = value
+        body["props"] = StoragePoolDriver.storage_driver_pool_to_props(storage_driver, driver_pool_name)
 
         if property_dict:
-            for key, value in property_dict.items():
-                prop = msg.stor_pool.props.add()
-                prop.key = key
-                prop.value = value
+            body["props"].update(property_dict)
 
-        return self._send_and_wait(apiconsts.API_CRT_STOR_POOL, msg)
+        return self._rest_request(
+            apiconsts.API_CRT_STOR_POOL,
+            "POST",
+            "/v1/nodes/" + node_name + "/storage-pools",
+            body
+        )
 
     def storage_pool_modify(self, node_name, storage_pool_name, property_dict, delete_props=None):
         """
@@ -1343,13 +685,20 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModStorPool()
-        msg.node_name = node_name
-        msg.stor_pool_name = storage_pool_name
+        body = {}
 
-        msg = self._modify_props(msg, property_dict, delete_props)
+        if property_dict:
+            body["override_props"] = property_dict
 
-        return self._send_and_wait(apiconsts.API_MOD_STOR_POOL, msg)
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_STOR_POOL,
+            "PUT",
+            "/v1/nodes/" + node_name + "/storage-pools/" + storage_pool_name,
+            body
+        )
 
     def storage_pool_delete(self, node_name, storage_pool_name):
         """
@@ -1360,11 +709,11 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelStorPool()
-        msg.node_name = node_name
-        msg.stor_pool_name = storage_pool_name
-
-        return self._send_and_wait(apiconsts.API_DEL_STOR_POOL, msg)
+        return self._rest_request(
+            apiconsts.API_DEL_STOR_POOL,
+            "DELETE",
+            "/v1/nodes/" + node_name + "/storage-pools/" + storage_pool_name
+        )
 
     def storage_pool_list(self, filter_by_nodes=None, filter_by_stor_pools=None):
         """
@@ -1373,14 +722,33 @@ class Linstor(object):
         :param list[str] filter_by_nodes: Filter storage pools by nodes.
         :param list[str] filter_by_stor_pools: Filter storage pools by storage pool names.
         :return: A MsgLstStorPool proto message containing all information.
-        :rtype: list[ProtoMessageResponse]
+        :rtype: list[RESTMessageResponse]
         """
-        f = Filter()
+        nodes = None
         if filter_by_nodes:
-            f.node_names.extend(filter_by_nodes)
+            nodes = filter_by_nodes
+        else:
+            nodes = [x.name for x in self.node_list_raise().nodes]
+
+        lower_filter = []
         if filter_by_stor_pools:
-            f.stor_pool_names.extend(filter_by_stor_pools)
-        return self._send_and_wait(apiconsts.API_LST_STOR_POOL, f)
+            lower_filter = [x.lower() for x in filter_by_stor_pools]
+
+        stor_pool_list = []
+        errs = []
+        for node in nodes:
+            stor_pool = self._rest_request(
+                apiconsts.API_LST_STOR_POOL,
+                "GET", "/v1/nodes/" + node + "/storage-pools"
+            )
+            if stor_pool:
+                node_stor_pools = [x for x in stor_pool[0]._rest_data if 'ret_code' not in x]
+                if filter_by_stor_pools:
+                    node_stor_pools = [x for x in node_stor_pools
+                                       if x["storage_pool_name"].lower() in lower_filter]
+                stor_pool_list += node_stor_pools
+                errs += [ApiCallResponse(x) for x in stor_pool[0]._rest_data if 'ret_code' in x]
+        return [StoragePoolListResponse(stor_pool_list)] + errs
 
     def storage_pool_list_raise(self, filter_by_nodes=None, filter_by_stor_pools=None):
         """
@@ -1420,7 +788,7 @@ class Linstor(object):
         :return: Set of provider names
         :rtype: set[str]
         """
-        return [ProviderType.ProviderType.Name(x).lower() for x in StoragePoolDriver.list()]
+        return StoragePoolDriver.list()
 
     def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None):
         """
@@ -1433,21 +801,27 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtRscDfn()
+        body = {
+            "resource_definition": {"name": name}
+        }
         if port is not None:
-            msg.drbd_port = port
+            body["drbd_port"] = port
         if external_name:
-            msg.rsc_dfn.external_name = external_name.encode('utf-8')
-            msg.rsc_dfn.rsc_name = ""
-        else:
-            msg.rsc_dfn.rsc_name = name
+            body["resource_definition"]["external_name"] = external_name
+            del body["resource_definition"]["name"]
+
         # if args.secret:
         #     p.secret = args.secret
         if layer_list:
-            for layer_name in layer_list:
-                layer_data = msg.rsc_dfn.layer_data.add()
-                layer_data.layer_type = LayerType.LayerType.Value(layer_name.upper())
-        return self._send_and_wait(apiconsts.API_CRT_RSC_DFN, msg)
+            body["resource_definition"]["layer_data"] = []
+            for layer in layer_list:
+                body["resource_definition"]["layer_data"].append({"type": layer})
+
+        return self._rest_request(
+            apiconsts.API_CRT_RSC_DFN,
+            "POST", "/v1/resource-definitions",
+            body
+        )
 
     def resource_dfn_modify(self, name, property_dict, delete_props=None, peer_slots=None):
         """
@@ -1460,14 +834,22 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModRscDfn()
-        msg.rsc_name = name
+        body = {}
+
         if peer_slots is not None:
-            msg.drbd_new_rsc_peer_slots = peer_slots
+            body["drbd_peer_slots"] = peer_slots
 
-        msg = self._modify_props(msg, property_dict, delete_props)
+        if property_dict:
+            body["override_props"] = property_dict
 
-        return self._send_and_wait(apiconsts.API_MOD_RSC_DFN, msg)
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_RSC_DFN,
+            "PUT", "/v1/resource-definitions/" + name,
+            body
+        )
 
     def resource_dfn_delete(self, name, async_msg=False):
         """
@@ -1478,19 +860,27 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelRscDfn()
-        msg.rsc_name = name
+        return self._rest_request(apiconsts.API_DEL_RSC_DFN, "DELETE", "/v1/resource-definitions/" + name)
 
-        return self._send_and_wait(apiconsts.API_DEL_RSC_DFN, msg, async_msg=async_msg)
-
-    def resource_dfn_list(self):
+    def resource_dfn_list(self, query_volume_definitions=True):
         """
         Request a list of all resource definitions known to the controller.
 
         :return: A MsgLstRscDfn proto message containing all information.
         :rtype: list[ResourceDefinitionResponse]
         """
-        return self._send_and_wait(apiconsts.API_LST_RSC_DFN)
+        rsc_dfns_resp = self._rest_request(apiconsts.API_LST_RSC_DFN, "GET", "/v1/resource-definitions")
+
+        for rsc_dfn in rsc_dfns_resp[0].resource_definitions:
+            if query_volume_definitions:
+                vlm_dfn = self._rest_request(
+                    apiconsts.API_LST_VLM_DFN,
+                    "GET",
+                    "/v1/resource-definitions/" + rsc_dfn.name + "/volume-definitions"
+                )
+                rsc_dfns_resp[0].set_volume_definition_data(rsc_dfn.name, vlm_dfn[0].rest_data)
+
+        return rsc_dfns_resp
 
     def resource_dfn_props_list(self, rsc_name, filter_by_namespace=''):
         """
@@ -1498,17 +888,17 @@ class Linstor(object):
 
         :param str rsc_name: Name of the resource definition it is linked to.
         :param str filter_by_namespace: Return only keys starting with the given prefix.
-        :return: dict containing mathing keys
+        :return: dict containing matching keys
         :raises LinstorError: if resource can not be found
         """
         rsc_dfn_list_replies = self.resource_dfn_list()
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
             raise LinstorError('Could not list resource definitions, or they are empty')
 
-        rsc_dfn_list_reply = rsc_dfn_list_replies[0]
-        for rsc_dfn in rsc_dfn_list_reply.proto_msg.rsc_dfns:
-            if rsc_dfn.rsc_name.lower() == rsc_name.lower():
-                return Linstor._filter_props(rsc_dfn.rsc_dfn_props, filter_by_namespace)
+        rsc_dfn_list_reply = rsc_dfn_list_replies[0]  # type: ResourceDefinitionResponse
+        for rsc_dfn in rsc_dfn_list_reply.resource_definitions:
+            if rsc_dfn.name.lower() == rsc_name.lower():
+                return Linstor._filter_props(rsc_dfn.properties, filter_by_namespace)
 
         return {}
 
@@ -1533,26 +923,25 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtVlmDfn()
-        msg.rsc_name = rsc_name
+        body = {"volume_definition": {"size_kib": size}}
 
-        vlmdf = msg.vlm_dfns.add()
-        vlmdf.vlm_dfn.vlm_size = size
         if minor_nr is not None:
-            vlmdf.drbd_minor_nr = minor_nr
+            body["drbd_minor_number"] = minor_nr
 
         if volume_nr is not None:
-            vlmdf.vlm_dfn.vlm_nr = volume_nr
+            body["volume_definition"]["volume_number"] = volume_nr
 
         if encrypt:
-            vlmdf.vlm_dfn.vlm_flags.extend([apiconsts.FLAG_ENCRYPTED])
+            body["volume_definition"]["flags"] = [apiconsts.FLAG_ENCRYPTED]
 
         if storage_pool:
-            prop = vlmdf.vlm_dfn.vlm_props.add()
-            prop.key = apiconsts.KEY_STOR_POOL_NAME
-            prop.value = storage_pool
+            body["volume_definition"]["props"] = {apiconsts.KEY_STOR_POOL_NAME: storage_pool}
 
-        return self._send_and_wait(apiconsts.API_CRT_VLM_DFN, msg)
+        return self._rest_request(
+            apiconsts.API_CRT_VLM_DFN,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/volume-definitions",
+            body
+        )
 
     def volume_dfn_modify(self, rsc_name, volume_nr, set_properties=None, delete_properties=None, size=None):
         """
@@ -1566,16 +955,21 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModVlmDfn()
-        msg.rsc_name = rsc_name
-        msg.vlm_nr = volume_nr
-
+        body = {}
         if size:
-            msg.vlm_size = size
+            body["size_kib"] = size
 
-        msg = self._modify_props(msg, set_properties, delete_properties)
+        if set_properties:
+            body["override_props"] = set_properties
 
-        return self._send_and_wait(apiconsts.API_MOD_VLM_DFN, msg)
+        if delete_properties:
+            body["delete_props"] = delete_properties
+
+        return self._rest_request(
+            apiconsts.API_MOD_VLM_DFN,
+            "PUT", "/v1/resource-definitions/" + rsc_name + "/volume-definitions/" + str(volume_nr),
+            body
+        )
 
     def volume_dfn_delete(self, rsc_name, volume_nr, async_msg=False):
         """
@@ -1587,11 +981,10 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelVlmDfn()
-        msg.rsc_name = rsc_name
-        msg.vlm_nr = volume_nr
-
-        return self._send_and_wait(apiconsts.API_DEL_VLM_DFN, msg, async_msg=async_msg)
+        return self._rest_request(
+            apiconsts.API_DEL_VLM_DFN,
+            "DELETE", "/v1/resource-definitions/" + rsc_name + "/volume-definitions/" + str(volume_nr)
+        )
 
     def _volume_dfn_size(self, rsc_name, volume_nr):
         """
@@ -1602,16 +995,16 @@ class Linstor(object):
         :return: Size of the volume definition in kibibytes. IMPORTANT: This will change to a tuple/dict type
         :raises LinstorError: if resource or volume_nr can not be found
         """
-        rsc_dfn_list_replies = self.resource_dfn_list()
+        rsc_dfn_list_replies = self.resource_dfn_list(query_volume_definitions=True)
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
             raise LinstorError('Could not list resource definitions, or they are empty')
 
-        rsc_dfn_list_reply = rsc_dfn_list_replies[0]
-        for rsc_dfn in rsc_dfn_list_reply.proto_msg.rsc_dfns:
-            if rsc_dfn.rsc_name == rsc_name:
-                for vlm_dfn in rsc_dfn.vlm_dfns:
-                    if vlm_dfn.vlm_nr == volume_nr:
-                        return vlm_dfn.vlm_size
+        rsc_dfn_list_reply = rsc_dfn_list_replies[0]  # type: ResourceDefinitionResponse
+        for rsc_dfn in rsc_dfn_list_reply.resource_definitions:
+            if rsc_dfn.name.lower() == rsc_name.lower():
+                for vlm_dfn in rsc_dfn.volume_definitions:
+                    if vlm_dfn.number == volume_nr:
+                        return vlm_dfn.size
 
         raise LinstorError('Could not find volume number {} in resource {}'.format(volume_nr, rsc_name))
 
@@ -1624,30 +1017,35 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtRsc()
+        body = []
+        rsc_name = rscs[0].rsc_name
 
         for rsc in rscs:
-            proto_rsc_payload = msg.rscs.add()
-
-            proto_rsc_payload.rsc.name = rsc.rsc_name
-            proto_rsc_payload.rsc.node_name = rsc.node_name
+            rsc_data = {
+                "resource": {
+                    "node_name": rsc.node_name
+                }
+            }
 
             if rsc.storage_pool:
-                prop = proto_rsc_payload.rsc.props.add()
-                prop.key = apiconsts.KEY_STOR_POOL_NAME
-                prop.value = rsc.storage_pool
+                rsc_data["resource"]["props"] = {apiconsts.KEY_STOR_POOL_NAME: rsc.storage_pool}
 
             if rsc.diskless:
-                proto_rsc_payload.rsc.rsc_flags.append(apiconsts.FLAG_DISKLESS)
+                rsc_data["resource"]["flags"] = [apiconsts.FLAG_DISKLESS]
 
             if rsc.node_id is not None:
-                proto_rsc_payload.drbd_node_id = rsc.node_id
+                rsc_data["drbd_node_id"] = rsc.node_id
 
             if rsc.layer_list:
-                for layer_name in rsc.layer_list:
-                    proto_rsc_payload.layer_stack.append(LayerType.LayerType.Value(layer_name.upper()))
+                rsc_data["layer_list"] = rsc.layer_list
 
-        return self._send_and_wait(apiconsts.API_CRT_RSC, msg, async_msg=async_msg)
+            body.append(rsc_data)
+
+        return self._rest_request(
+            apiconsts.API_CRT_RSC,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/resources",
+            body
+        )
 
     def resource_auto_place(
             self,
@@ -1680,34 +1078,36 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgAutoPlaceRsc()
-        msg.rsc_name = rsc_name
-        msg.diskless_on_remaining = diskless_on_remaining
-        msg_filter = msg.select_filter
-        msg_filter.place_count = place_count
+        body = {
+            "select_filter": {
+                "place_count": place_count
+            },
+            "diskless_on_remaining": diskless_on_remaining
+        }
 
         if storage_pool:
-            msg_filter.storage_pool = storage_pool
+            body["select_filter"]["storage_pool"] = storage_pool
         if do_not_place_with:
-            msg_filter.not_place_with_rsc.extend(do_not_place_with)
+            body["select_filter"]["not_place_with_rsc"] = do_not_place_with
         if do_not_place_with_regex:
-            msg_filter.not_place_with_rsc_regex = do_not_place_with_regex
+            body["select_filter"]["not_place_with_rsc_regex"] = do_not_place_with_regex
         if replicas_on_same:
-            msg_filter.replicas_on_same.extend(replicas_on_same)
+            body["select_filter"]["replicas_on_same"] = replicas_on_same
         if replicas_on_different:
-            msg_filter.replicas_on_different.extend(replicas_on_different)
+            body["select_filter"]["replicas_on_different"] = replicas_on_different
 
         if layer_list:
-            for layer_name in layer_list:
-                layer_name_upper = LayerType.LayerType.Value(layer_name.upper())
-                msg.layer_stack.append(layer_name_upper)
-                msg_filter.layer_stack.append(layer_name_upper)
+            body["layer_list"] = layer_list
+            body["select_filter"]["layer_stack"] = layer_list
 
         if provider_list:
-            for provider_name in provider_list:
-                msg_filter.providers.append(ProviderType.ProviderType.Value(provider_name.upper()))
+            body["select_filter"]["provider_list"] = provider_list
 
-        return self._send_and_wait(apiconsts.API_AUTO_PLACE_RSC, msg, async_msg=async_msg)
+        return self._rest_request(
+            apiconsts.API_AUTO_PLACE_RSC,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/autoplace",
+            body
+        )
 
     def resource_create_and_auto_place(self, rsc_name, size, place_count, storage_pool=None,
                                        diskless_on_remaining=False):
@@ -1746,13 +1146,19 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModRsc()
-        msg.node_name = node_name
-        msg.rsc_name = rsc_name
+        body = {}
 
-        msg = self._modify_props(msg, property_dict, delete_props)
+        if property_dict:
+            body["override_props"] = property_dict
 
-        return self._send_and_wait(apiconsts.API_MOD_RSC, msg)
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_RSC,
+            "PUT", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name,
+            body
+        )
 
     def resource_delete(self, node_name, rsc_name, async_msg=False):
         """
@@ -1764,11 +1170,10 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelRsc()
-        msg.node_name = node_name
-        msg.rsc_name = rsc_name
-
-        return self._send_and_wait(apiconsts.API_DEL_RSC, msg, async_msg=async_msg)
+        return self._rest_request(
+            apiconsts.API_DEL_RSC,
+            "DELETE", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name
+        )
 
     def resource_delete_if_diskless(self, node_name, rsc_name):
         """
@@ -1781,25 +1186,26 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        apiresp = ApiCallResponseProto()
-        apiresp.ret_code = apiconsts.MASK_SUCCESS
+        apiresp_json = {
+            "ret_code": apiconsts.MASK_SUCCESS
+        }
 
         # maximum number of ressources is 1 when filtering per node and resource
         rsc_list_replies = self.resource_list(filter_by_nodes=[node_name], filter_by_resources=[rsc_name])
         if not rsc_list_replies or not rsc_list_replies[0]:
-            apiresp.message = 'Resource {} did not exist on node {}'.format(rsc_name, node_name)
-            return [ApiCallResponse(apiresp)]
+            apiresp_json["message"] = 'Resource {} did not exist on node {}'.format(rsc_name, node_name)
+            return [ApiCallResponse(apiresp_json)]
 
         # did something else went wrong?
-        rsc_list_reply = rsc_list_replies[0]
+        rsc_list_reply = rsc_list_replies[0]  # type: ResourceResponse
         if isinstance(rsc_list_reply, ApiCallResponse):
             return rsc_list_replies
 
-        if apiconsts.FLAG_DISKLESS in rsc_list_reply.proto_msg.resources[0].rsc_flags:
+        if apiconsts.FLAG_DISKLESS in rsc_list_reply.resources[0].flags:
             return self.resource_delete(rsc_name=rsc_name, node_name=node_name)
         else:
-            apiresp.message = 'Resource {} not diskless on node {}, not deleted'.format(rsc_name, node_name)
-            return [ApiCallResponse(apiresp)]
+            apiresp_json["message"] = 'Resource {} not diskless on node {}, not deleted'.format(rsc_name, node_name)
+            return [ApiCallResponse(apiresp_json)]
 
     def resource_list(self, filter_by_nodes=None, filter_by_resources=None):
         """
@@ -1808,14 +1214,9 @@ class Linstor(object):
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_resources: filter resources by resource names
         :return: A MsgLstRsc proto message containing all information.
-        :rtype: list[ProtoMessageResponse]
+        :rtype: list[RESTMessageResponse]
         """
-        f = Filter()
-        if filter_by_nodes:
-            f.node_names.extend(filter_by_nodes)
-        if filter_by_resources:
-            f.resource_names.extend(filter_by_resources)
-        return self._send_and_wait(apiconsts.API_LST_RSC, f)
+        return self.volume_list(filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources)
 
     def volume_list(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_resources=None):
         """
@@ -1825,16 +1226,31 @@ class Linstor(object):
         :param list[str] filter_by_stor_pools: filter resources by storage pool names
         :param list[str] filter_by_resources: filter resources by resource names
         :return: A MsgLstRsc proto message containing all information.
-        :rtype: list[ProtoMessageResponse]
+        :rtype: list[RESTMessageResponse]
         """
-        f = Filter()
+        result = []
+        errors = []
+        query_params = ""
         if filter_by_nodes:
-            f.node_names.extend(filter_by_nodes)
+            query_params += "&".join(["nodes=" + x for x in filter_by_nodes])
         if filter_by_stor_pools:
-            f.stor_pool_names.extend(filter_by_stor_pools)
+            query_params += "&".join(["storage_pools=" + x for x in filter_by_stor_pools])
         if filter_by_resources:
-            f.resource_names.extend(filter_by_resources)
-        return self._send_and_wait(apiconsts.API_LST_VLM, f)
+            query_params += "&".join(["resources=" + x for x in filter_by_resources])
+        path = "/v1/view/resources"
+        if query_params:
+            path += "?" + query_params
+        resource_resp = self._rest_request(
+            apiconsts.API_LST_RSC,
+            "GET",
+            path
+        )  # type: list[ResourceResponse]
+        if resource_resp and isinstance(resource_resp[0], ResourceResponse):
+            result += resource_resp
+        else:
+            errors += resource_resp
+
+        return result + errors
 
     def resource_toggle_disk(
             self,
@@ -1854,19 +1270,21 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgToggleDisk()
-        msg.node_name = node_name
-        msg.rsc_name = rsc_name
-
-        if storage_pool:
-            msg.stor_pool_name = storage_pool
+        path = "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name
 
         if migrate_from:
-            msg.migrate_from = migrate_from
+            path += "/migrate-disk/" + migrate_from
+        else:
+            path += "/toggle-disk/"
+            path += "diskless" if diskless else "diskful"
 
-        msg.diskless = diskless
+        if storage_pool:
+            path += "/" + storage_pool
 
-        return self._send_and_wait(apiconsts.API_TOGGLE_DISK, msg, async_msg=async_msg)
+        return self._rest_request(
+            apiconsts.API_TOGGLE_DISK,
+            "PUT", path
+        )
 
     def controller_props(self):
         """
@@ -1875,7 +1293,7 @@ class Linstor(object):
         :return: A MsgLstCtrlCfgProps proto message containing all controller props.
         :rtype: list
         """
-        return self._send_and_wait(apiconsts.API_LST_CTRL_PROPS)
+        return self._rest_request(apiconsts.API_LST_CTRL_PROPS, "GET", "/v1/controller/properties")
 
     @classmethod
     def _split_prop_key(cls, fkey):
@@ -1897,12 +1315,16 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModCtrl()
-        prop = msg.override_props.add()
-        prop.key = key
-        prop.value = value
-
-        return self._send_and_wait(apiconsts.API_SET_CTRL_PROP, msg)
+        body = {
+            "override_props": {
+                key: value
+            }
+        }
+        return self._rest_request(
+            apiconsts.API_SET_CTRL_PROP,
+            "POST", "/v1/controller/properties",
+            body
+        )
 
     def controller_del_prop(self, key):
         """
@@ -1912,10 +1334,15 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModCtrl()
-        msg.delete_prop_keys.extend([key])
+        body = {
+            "delete_props": [key]
+        }
 
-        return self._send_and_wait(apiconsts.API_SET_CTRL_PROP, msg)
+        return self._rest_request(
+            apiconsts.API_SET_CTRL_PROP,
+            "POST", "/v1/controller/properties",
+            body
+        )
 
     def controller_info(self):
         """
@@ -1924,7 +1351,24 @@ class Linstor(object):
         :return: Controller info string or None if not connected.
         :rtype: str
         """
-        return self._linstor_client.controller_info()
+        cversion = self._rest_request(
+            apiconsts.API_VERSION,
+            "GET", "/v1/controller/version"
+        )[0]  # type: ControllerVersion
+
+        return "LINSTOR,Controller," + cversion.version + "," + cversion.git_hash + "," + cversion.build_time
+
+    def controller_version(self):
+        """
+        If connected this method returns the controller version object.
+
+        :return: Controller info string or None if not connected.
+        :rtype: ControllerVersion
+        """
+        return self._rest_request(
+            apiconsts.API_VERSION,
+            "GET", "/v1/controller/version"
+        )[0]
 
     def controller_host(self):
         """
@@ -1943,9 +1387,13 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtCryptPassphrase()
-        msg.passphrase = passphrase
-        return self._send_and_wait(apiconsts.API_CRT_CRYPT_PASS, msg)
+        body = {"new_passphrase": passphrase}
+
+        return self._rest_request(
+            apiconsts.API_CRT_CRYPT_PASS,
+            "POST", "/v1/encryption/passphrase",
+            body
+        )
 
     def crypt_enter_passphrase(self, passphrase):
         """
@@ -1955,9 +1403,11 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgEnterCryptPassphrase()
-        msg.passphrase = passphrase
-        return self._send_and_wait(apiconsts.API_ENTER_CRYPT_PASS, msg)
+        return self._rest_request(
+            apiconsts.API_ENTER_CRYPT_PASS,
+            "PATCH", "/v1/encryption/passphrase",
+            passphrase
+        )
 
     def crypt_modify_passphrase(self, old_passphrase, new_passphrase):
         """
@@ -1968,10 +1418,16 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModCryptPassphrase()
-        msg.old_passphrase = old_passphrase
-        msg.new_passphrase = new_passphrase
-        return self._send_and_wait(apiconsts.API_MOD_CRYPT_PASS, msg)
+        body = {
+            "new_passphrase": new_passphrase,
+            "old_passphrase": old_passphrase
+        }
+
+        return self._rest_request(
+            apiconsts.API_MOD_CRYPT_PASS,
+            "POST", "/v1/encryption/passphrase",
+            body
+        )
 
     def resource_conn_modify(self, rsc_name, node_a, node_b, property_dict, delete_props):
         """
@@ -1986,13 +1442,18 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModRscConn()
+        body = {}
+        if property_dict:
+            body["override_props"] = property_dict
 
-        msg.rsc_name = rsc_name
-        msg.node_1_name = node_a
-        msg.node_2_name = node_b
-        msg = self._modify_props(msg, property_dict, delete_props)
-        return self._send_and_wait(apiconsts.API_MOD_RSC_CONN, msg)
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_RSC_CONN,
+            "PUT", "/v1/resource-definitions/" + rsc_name + "/resource-connections/" + node_a + "/" + node_b,
+            body
+        )
 
     def resource_conn_list(self, rsc_name):
         """
@@ -2002,9 +1463,11 @@ class Linstor(object):
         :return: MsgLstRscConn
         :rtype: list[ProtoMessageResponse]
         """
-        msg = MsgReqRscConn()
-        msg.rsc_name = rsc_name
-        return self._send_and_wait(apiconsts.API_REQ_RSC_CONN_LIST, msg)
+        return self._rest_request(
+            apiconsts.API_REQ_RSC_CONN_LIST,
+            "GET",
+            "/v1/resource-definitions/" + rsc_name + "/resource-connections"
+        )
 
     def drbd_proxy_enable(self, rsc_name, node_a, node_b, port=None):
         """
@@ -2018,14 +1481,15 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgEnableDrbdProxy()
-
-        msg.rsc_name = rsc_name
-        msg.node_1_name = node_a
-        msg.node_2_name = node_b
+        body = {}
         if port is not None:
-            msg.port = port
-        return self._send_and_wait(apiconsts.API_ENABLE_DRBD_PROXY, msg)
+            body["port"] = port
+
+        return self._rest_request(
+            apiconsts.API_ENABLE_DRBD_PROXY,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/drbd-proxy/enable/" + node_a + "/" + node_b,
+            body
+        )
 
     def drbd_proxy_disable(self, rsc_name, node_a, node_b):
         """
@@ -2038,12 +1502,10 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDisableDrbdProxy()
-
-        msg.rsc_name = rsc_name
-        msg.node_1_name = node_a
-        msg.node_2_name = node_b
-        return self._send_and_wait(apiconsts.API_DISABLE_DRBD_PROXY, msg)
+        return self._rest_request(
+            apiconsts.API_ENABLE_DRBD_PROXY,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/drbd-proxy/disable/" + node_a + "/" + node_b
+        )
 
     def drbd_proxy_modify(
             self,
@@ -2064,21 +1526,25 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModDrbdProxy()
-        msg.rsc_name = rsc_name
+        body = {}
 
-        msg = self._modify_props(msg, property_dict, delete_props)
+        if property_dict:
+            body["override_props"] = property_dict
+
+        if delete_props:
+            body["delete_props"] = delete_props
 
         if compression_type:
-            msg.compression_type = compression_type
+            body["compression_type"] = compression_type
 
             if compression_property_dict:
-                for key, val in compression_property_dict.items():
-                    lin_kv = msg.compression_props.add()
-                    lin_kv.key = key
-                    lin_kv.value = val
+                body["compression_props"] = compression_property_dict
 
-        return self._send_and_wait(apiconsts.API_MOD_DRBD_PROXY, msg)
+        return self._rest_request(
+            apiconsts.API_MOD_DRBD_PROXY,
+            "PUT", "/v1/resource-definitions/" + rsc_name + "/drbd-proxy",
+            body
+        )
 
     def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg):
         """
@@ -2091,18 +1557,17 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgCrtSnapshot()
+        body = {
+            "name": snapshot_name
+        }
 
-        for node_name in node_names:
-            snapshot = msg.snapshot_dfn.snapshots.add()
-            snapshot.node_name = node_name
+        if node_names:
+            body["nodes"] = node_names
 
-        msg.snapshot_dfn.rsc_name = rsc_name
-        msg.snapshot_dfn.snapshot_name = snapshot_name
-        return self._send_and_wait(
+        return self._rest_request(
             apiconsts.API_CRT_SNAPSHOT,
-            msg,
-            async_msg=async_msg
+            "POST", "/v1/resource-definitions/" + rsc_name + "/snapshots",
+            body
         )
 
     def snapshot_volume_definition_restore(self, from_resource, from_snapshot, to_resource):
@@ -2115,11 +1580,16 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgRestoreSnapshotVlmDfn()
-        msg.from_resource_name = from_resource
-        msg.from_snapshot_name = from_snapshot
-        msg.to_resource_name = to_resource
-        return self._send_and_wait(apiconsts.API_RESTORE_VLM_DFN, msg)
+        body = {
+            "to_resource": to_resource
+        }
+
+        return self._rest_request(
+            apiconsts.API_RESTORE_VLM_DFN,
+            "POST",
+            "/v1/resource-definitions/" + from_resource + "/snapshot-restore-volume-definition/" + from_snapshot,
+            body
+        )
 
     def snapshot_resource_restore(self, node_names, from_resource, from_snapshot, to_resource):
         """
@@ -2132,16 +1602,19 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgRestoreSnapshotRsc()
+        body = {
+            "to_resource": to_resource
+        }
 
-        for node_name in node_names:
-            node = msg.nodes.add()
-            node.name = node_name
+        if node_names:
+            body["nodes"] = node_names
 
-        msg.from_resource_name = from_resource
-        msg.from_snapshot_name = from_snapshot
-        msg.to_resource_name = to_resource
-        return self._send_and_wait(apiconsts.API_RESTORE_SNAPSHOT, msg)
+        return self._rest_request(
+            apiconsts.API_RESTORE_SNAPSHOT,
+            "POST",
+            "/v1/resource-definitions/" + from_resource + "/snapshot-restore-resource/" + from_snapshot,
+            body
+        )
 
     def snapshot_delete(self, rsc_name, snapshot_name):
         """
@@ -2152,11 +1625,11 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgDelSnapshot()
-
-        msg.rsc_name = rsc_name
-        msg.snapshot_name = snapshot_name
-        return self._send_and_wait(apiconsts.API_DEL_SNAPSHOT, msg)
+        return self._rest_request(
+            apiconsts.API_DEL_SNAPSHOT,
+            "DELETE",
+            "/v1/resource-definitions/" + rsc_name + "/snapshots/" + snapshot_name
+        )
 
     def snapshot_rollback(self, rsc_name, snapshot_name):
         """
@@ -2167,11 +1640,11 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgRollbackSnapshot()
-
-        msg.rsc_name = rsc_name
-        msg.snapshot_name = snapshot_name
-        return self._send_and_wait(apiconsts.API_ROLLBACK_SNAPSHOT, msg)
+        return self._rest_request(
+            apiconsts.API_ROLLBACK_SNAPSHOT,
+            "POST",
+            "/v1/resource-definitions/" + rsc_name + "/snapshot-rollback/" + snapshot_name
+        )
 
     def snapshot_dfn_list(self):
         """
@@ -2180,7 +1653,17 @@ class Linstor(object):
         :return: A MsgLstSnapshotDfn proto message containing all information.
         :rtype: list[SnapshotsResponse]
         """
-        return self._send_and_wait(apiconsts.API_LST_SNAPSHOT_DFN)
+        rsc_dfns = self.resource_dfn_list()[0]
+
+        result = []
+        for rsc_dfn in rsc_dfns.resource_definitions:
+            snapshots = self._rest_request(
+                apiconsts.API_LST_SNAPSHOT_DFN,
+                "GET", "/v1/resource-definitions/" + rsc_dfn.name + "/snapshots"
+            )
+            if snapshots:
+                result += snapshots[0]._rest_data
+        return [SnapshotResponse(result)]
 
     def error_report_list(self, nodes=None, with_content=False, since=None, to=None, ids=None):
         """
@@ -2194,17 +1677,39 @@ class Linstor(object):
         :return: A list containing ErrorReport from the controller.
         :rtype: list[ErrorReport]
         """
-        msg = MsgReqErrorReport()
-        for node in nodes if nodes else []:
-            msg.node_names.extend([node])
-        msg.with_content = with_content
+        query_params = {
+            "withContent": with_content
+        }
+
         if since:
-            msg.since = int(time.mktime(since.timetuple()) * 1000)
+            query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
         if to:
-            msg.to = int(time.mktime(to.timetuple()) * 1000)
+            query_params["to"] = int(time.mktime(to.timetuple()) * 1000)
+
+        result = []
+        query_str = urlencode(query_params)
         if ids:
-            msg.ids.extend(ids)
-        return self._send_and_wait(apiconsts.API_REQ_ERROR_REPORTS, msg, allow_no_reply=True)
+            for id in ids:
+                err = self._rest_request(
+                    apiconsts.API_REQ_ERROR_REPORTS,
+                    "GET", "/v1/error-reports/" + id + "?" + query_str
+                )
+                if err:
+                    result.append(err[0])
+        else:
+            if nodes:
+                for node in nodes:
+                    query_params["node"] = node
+                    query_str = urlencode(query_params)
+                    result += self._rest_request(
+                        apiconsts.API_REQ_ERROR_REPORTS,
+                        "GET",
+                        "/v1/error-reports?" + query_str
+                    )
+            else:
+                result = self._rest_request(apiconsts.API_REQ_ERROR_REPORTS, "GET", "/v1/error-reports?" + query_str)
+
+        return result
 
     def keyvaluestore_modify(self, instance_name, property_dict=None, delete_props=None):
         """
@@ -2216,12 +1721,18 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        msg = MsgModKvs()
-        msg.kvs_name = instance_name
+        body = {}
+        if property_dict:
+            body["override_props"] = property_dict
 
-        self._modify_props(msg, property_dict, delete_props)
+        if delete_props:
+            body["delete_props"] = delete_props
 
-        return self._send_and_wait(apiconsts.API_MOD_KVS, msg)
+        return self._rest_request(
+            apiconsts.API_MOD_KVS,
+            "PUT", "/v1/key-value-store/" + instance_name,
+            body
+        )
 
     def keyvaluestores(self):
         """
@@ -2231,7 +1742,10 @@ class Linstor(object):
         :rtype: KeyValueStoresResponse
         :raise LinstorError: if apicallerror or no response received
         """
-        list_res = self._send_and_wait(apiconsts.API_LST_KVS)
+        list_res = self._rest_request(
+            apiconsts.API_LST_KVS,
+            "GET", "/v1/key-value-store"
+        )
 
         if list_res:
             if isinstance(list_res[0], KeyValueStoresResponse):
@@ -2251,54 +1765,6 @@ class Linstor(object):
         kvs = self.keyvaluestores()
         return kvs.instance(instance_name)
 
-    def hostname(self):
-        """
-        Sends an hostname request and should return the `uname -n` output.
-        This is a call that is actually used if connected to a satellite.
-
-        :return: List containing 1 MsgHostname proto
-        :rtype: list[ProtoMsgResponse]
-        """
-        return self._send_and_wait(apiconsts.API_HOSTNAME)
-
-    def prepare_disks(self, nvme_filter=None, detect_pmem=True):
-        """
-        A satellite only api for now, that will detect NVME and PMEM and prepare them
-        for use as a lvm volume group.
-
-        :param str nvme_filter: Regex filtering on NVME model number
-        :param bool detect_pmem: If pmem should be detected and setup
-        :return: List of ApiCallRcs with create information
-        :rtype: list[ApiCallResponse]
-        """
-        msg = MsgPrepareDisks()
-        if nvme_filter is not None:
-            msg.nvme_filter = nvme_filter
-        msg.detect_pmem = detect_pmem
-
-        return self._send_and_wait(apiconsts.API_PREPARE_DISKS, msg)
-
-    def ping(self):
-        """
-        Sends a ping message to the controller.
-
-        :return: Message id used for this message
-        :rtype: int
-        """
-        return self._linstor_client.send_msg(apiconsts.API_PING)
-
-    def wait_for_message(self, api_call_id):
-        """
-        Wait for a message from the controller.
-
-        :param int api_call_id: Message id to wait for.
-        :return: A list containing ApiCallResponses from the controller.
-        :rtype: list[ApiCallResponse]
-        """
-        def answer_handler(answer):
-            return answer
-        return self._linstor_client.wait_for_result(api_call_id, answer_handler)
-
     def stats(self):
         """
         Returns a printable string containing network statistics.
@@ -2306,7 +1772,7 @@ class Linstor(object):
         :return: A string containing network stats.s
         :rtype: str
         """
-        return self._linstor_client.stats()
+        return ""
 
 
 class MultiLinstor(Linstor):
@@ -2355,9 +1821,6 @@ if __name__ == "__main__":
     lin = MultiLinstor(["linstor://localhost"])
     lin.connect()
     print(lin.controller_host())
-    id_ = lin.ping()
-    print(id_)
-    lin.wait_for_message(id_)
 
     node_list = lin.node_list_raise()
     for node in node_list.nodes:

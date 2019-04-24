@@ -3,65 +3,57 @@ Linstor response module
 
 Contains various classes of linstorapi responses wrappers.
 """
-import base64
-
 from datetime import datetime
-
-from linstor.proto.common.ApiCallResponse_pb2 import ApiCallResponse as ApiCallResponseProto
-import linstor.proto.common.Node_pb2 as NodeProto
-import linstor.proto.common.LayerType_pb2 as LayerType
-import linstor.proto.common.ProviderType_pb2 as ProviderType
-from linstor.protobuf_to_dict import protobuf_to_dict
 
 import linstor.sharedconsts as apiconsts
 from .errors import LinstorError
 
 
-class ProtoMessageResponse(object):
+class RESTMessageResponse(object):
     """
     A base protobuf wrapper class, all api response use.
     """
-    def __init__(self, proto_response):
-        self._proto_msg = proto_response
+    def __init__(self, rest_data):
+        self._rest_data = rest_data
 
-    @property
-    def proto_msg(self):
+    def data(self, version):
         """
-        Returns the stored protobuf message object.
-        Careful this object is not stable and may change.
-
-        :return: A protobuf message object.
+        Returns a specific version data format.
+        :param str version:
+        :return:
         """
-        return self._proto_msg
+        if version == "v0":
+            return self.data_v0
+        return self.data_v1
 
     @property
     def data_v0(self):
-        return protobuf_to_dict(self.proto_msg)
+        return self._rest_data
 
     @property
     def data_v1(self):
-        return protobuf_to_dict(self.proto_msg)
+        return self._rest_data
 
     def __nonzero__(self):
         return self.__bool__()
 
     def __bool__(self):
-        return self._proto_msg.ByteSize() > 0
+        return True
 
     def __str__(self):
-        return str(self._proto_msg)
+        return str(self._rest_data)
 
     def __repr__(self):
-        return "ProtoMessageResponse(" + repr(self._proto_msg) + ")"
+        return "RESTMessageResponse(" + repr(self._rest_data) + ")"
 
 
-class ApiCallResponse(ProtoMessageResponse):
+class ApiCallResponse(RESTMessageResponse):
     """
     This is a wrapper class for a proto MsgApiCallResponse.
     It provides some additional methods for easier state checking of the ApiCallResponse.
     """
-    def __init__(self, proto_response):
-        super(ApiCallResponse, self).__init__(proto_response)
+    def __init__(self, rest_data):
+        super(ApiCallResponse, self).__init__(rest_data)
 
     @classmethod
     def from_json(cls, json_data):
@@ -71,14 +63,7 @@ class ApiCallResponse(ProtoMessageResponse):
         :param json_data: Parsed json data with "ret_code", "message" and "details" fields.
         :return: a new ApiCallResponse()
         """
-        apiresp = ApiCallResponseProto()
-        apiresp.ret_code = json_data["ret_code"]
-        if "message" in json_data:
-            apiresp.message = json_data["message"]
-        if "details" in json_data:
-            apiresp.details = json_data["details"]
-
-        return ApiCallResponse(apiresp)
+        return ApiCallResponse(json_data)
 
     def is_error(self, code=None):
         """
@@ -124,23 +109,23 @@ class ApiCallResponse(ProtoMessageResponse):
 
         :return: Return code mask value
         """
-        return self._proto_msg.ret_code
+        return self._rest_data["ret_code"]
 
     @property
     def message(self):
-        return self._proto_msg.message
+        return self._rest_data["message"]
 
     @property
     def cause(self):
-        return self._proto_msg.cause
+        return self._rest_data.get("cause")
 
     @property
     def correction(self):
-        return self._proto_msg.correction
+        return self._rest_data.get("correction")
 
     @property
     def details(self):
-        return self._proto_msg.details
+        return self._rest_data.get("details")
 
     @property
     def object_refs(self):
@@ -150,60 +135,44 @@ class ApiCallResponse(ProtoMessageResponse):
         :return: Dict with object references
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.obj_refs}
+        return self._rest_data.get("obj_refs", {})
 
     @property
     def error_report_ids(self):
-        return self._proto_msg.error_report_ids
-
-    def __str__(self):
-        return self._proto_msg.message
-
-    def __repr__(self):
-        return "ApiCallResponse({retcode}, {msg})".format(retcode=self.ret_code, msg=self.proto_msg.message)
+        return self._rest_data.get("error_report_ids", [])
 
 
-class ErrorReport(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(ErrorReport, self).__init__(protobuf)
+class ErrorReport(RESTMessageResponse):
+    def __init__(self, data):
+        super(ErrorReport, self).__init__(data)
 
     @property
     def datetime(self):
-        dt = datetime.fromtimestamp(self._proto_msg.error_time / 1000)
-        return dt.replace(microsecond=(self._proto_msg.error_time % 1000) * 1000)
+        dt = datetime.fromtimestamp(self._rest_data["error_time"] / 1000)
+        return dt.replace(microsecond=(self._rest_data["error_time"] % 1000) * 1000)
 
     @property
     def id(self):
-        return self._proto_msg.filename[len("ErrorReport-"):-len(".log")]
+        return self._rest_data['filename'][len("ErrorReport-"):-len(".log")]
 
     @property
     def text(self):
-        return self._proto_msg.text
+        return self._rest_data.get("text")
+
+    @property
+    def node_name(self):
+        return self._rest_data.get("node_name")
 
     @property
     def node_names(self):
-        return self._proto_msg.node_names
-
-
-class NodeInterface(object):
-    def __init__(self, netif_proto):
-        self._netif_proto = netif_proto
+        return self._rest_data.get("node_name")
 
     @property
-    def name(self):
-        return self._netif_proto.name
-
-    @property
-    def address(self):
-        return self._netif_proto.address
-
-    @property
-    def stlt_port(self):
-        return self._netif_proto.stlt_port
-
-    @property
-    def stlt_encryption_type(self):
-        return self._netif_proto.stlt_encryption_type
+    def data_v0(self):
+        d = self._rest_data
+        d["node_names"] = d["node_name"]
+        del d["node_name"]
+        return d
 
 
 class NodeType(object):
@@ -214,45 +183,87 @@ class NodeType(object):
     SWORDFISH_TARGET = apiconsts.VAL_NODE_TYPE_SWFISH_TARGET
 
 
-class ConnectionStatus(object):
-    def __init__(self, status):
-        self._status = status
-
-    @property
-    def status(self):
-        return self._status
-
-    def __str__(self):
-        return NodeProto.Node.ConnectionStatus.Name(self._status)
-
-
-class Node(object):
-    def __init__(self, node_proto):
-        self._node_proto = node_proto
+class NetInterface(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(NetInterface, self).__init__(rest_data)
 
     @property
     def name(self):
-        return self._node_proto.name
+        return self._rest_data["name"]
+
+    @property
+    def address(self):
+        return self._rest_data["address"]
+
+    @property
+    def stlt_port(self):
+        return self._rest_data.get("satellite_port")
+
+    @property
+    def stlt_encryption_type(self):
+        return self._rest_data.get("satellite_encryption_type")
+
+    @property
+    def data_v0(self):
+        return {
+            "address": self.address,
+            "name": self.name,
+            "stlt_port": self.stlt_port,
+            "stlt_encryption_type": self.stlt_encryption_type
+        }
+
+
+class Node(RESTMessageResponse):
+    CONNECTION_STATUS_MAP = {
+        "OFFLINE": 0,
+        "CONNECTED": 1,
+        "ONLINE": 2,
+        "VERSION_MISMATCH": 3,
+        "FULL_SYNC_FAILED": 4,
+        "AUTHENTICATION_ERROR": 5,
+        "UNKNOWN": 6,
+        "HOSTNAME_MISMATCH": 7,
+        "OTHER_CONTROLLER": 8
+    }
+
+    def __init__(self, rest_data):
+        super(Node, self).__init__(rest_data)
+
+    @property
+    def name(self):
+        return self._rest_data["name"]
 
     @property
     def type(self):
-        return self._node_proto.type
+        return self._rest_data["type"]
 
     @property
     def connection_status(self):
-        return ConnectionStatus(self._node_proto.connection_status)
+        return self._rest_data.get("connection_status", "Unknown")
 
     @property
     def net_interfaces(self):
-        return [NodeInterface(x) for x in self._node_proto.net_interfaces]
+        return [NetInterface(x) for x in self._rest_data.get("net_interfaces", [])]
+
+    @property
+    def props(self):
+        return self._rest_data.get("props", {})
+
+    @property
+    def data_v0(self):
+        d = dict(self._rest_data)
+        d["props"] = [{"key": x, "value": self.props[x]} for x in self.props]
+        d["connection_status"] = self.CONNECTION_STATUS_MAP.get(self._rest_data["connection_status"], 6)
+        d["net_interfaces"] = [x.data_v0 for x in self.net_interfaces]
+        return d
 
     def __str__(self):
         return "Node({n}, {t}, {con})".format(n=self.name, t=self.type, con=self.connection_status)
 
 
-class NodeListResponse(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(NodeListResponse, self).__init__(protobuf)
+class NodeListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(NodeListResponse, self).__init__(rest_data)
 
     @property
     def nodes(self):
@@ -262,7 +273,7 @@ class NodeListResponse(ProtoMessageResponse):
         :return: The node list.
         :rtype: list[Node]
         """
-        return [Node(x) for x in self._proto_msg.nodes]
+        return [Node(x) for x in self._rest_data]
 
     def node(self, node_name):
         """
@@ -277,31 +288,45 @@ class NodeListResponse(ProtoMessageResponse):
                 return n
         return None
 
+    @property
+    def data_v0(self):
+        return {
+            "nodes": [n.data_v0 for n in self.nodes]
+        }
 
-class FreeSpace(ProtoMessageResponse):
-    def __init__(self, freespace_proto):
-        super(FreeSpace, self).__init__(freespace_proto)
+
+class FreeSpace(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(FreeSpace, self).__init__(rest_data)
         
     @property
     def free_capacity(self):
-        return self._proto_msg.free_capacity
+        return self._rest_data.get("free_capacity")
 
     @property
     def total_capacity(self):
-        return self._proto_msg.total_capacity
+        return self._rest_data.get("total_capacity")
 
     def __str__(self):
         return "{used}/{total} Kib used".format(used=self.total_capacity-self.free_capacity, total=self.total_capacity)
 
+    @property
+    def data_v0(self):
+        return {
+            "stor_pool_name": self._rest_data["storage_pool_name"],
+            "free_capacity": self.free_capacity,
+            "total_capacity": self.total_capacity
+        }
+
 
 class StoragePoolDriver(object):
-    LVM = ProviderType.LVM
-    LVMThin = ProviderType.LVM_THIN
-    ZFS = ProviderType.ZFS
-    ZFSThin = ProviderType.ZFS_THIN
-    Diskless = ProviderType.DISKLESS
-    SwordfishTarget = ProviderType.SWORDFISH_TARGET
-    SwordfishInitiator = ProviderType.SWORDFISH_INITIATOR
+    LVM = "LVM"
+    LVMThin = "LVM_THIN"
+    ZFS = "ZFS"
+    ZFSThin = "ZFS_THIN"
+    Diskless = "DISKLESS"
+    SwordfishTarget = "SWORDFISH_TARGET"
+    SwordfishInitiator = "SWORDFISH_INITIATOR"
 
     @staticmethod
     def list():
@@ -328,7 +353,7 @@ class StoragePoolDriver(object):
                 StoragePoolDriver.Diskless,
                 StoragePoolDriver.SwordfishTarget,
                 StoragePoolDriver.SwordfishInitiator]:
-            return []
+            return {}
 
         if not driver_pool_name:
             raise LinstorError(
@@ -336,21 +361,22 @@ class StoragePoolDriver(object):
             )
 
         if storage_driver == StoragePoolDriver.LVM:
-            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, driver_pool_name)]
+            return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP: driver_pool_name}
 
         if storage_driver == StoragePoolDriver.LVMThin:
             driver_pool_parts = driver_pool_name.split('/')
             if not len(driver_pool_parts) == 2:
                 raise LinstorError("Pool name '{dp}' does not have format VG/LV".format(dp=driver_pool_name))
-            return \
-                [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, driver_pool_parts[0]),
-                 (apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL, driver_pool_parts[1])]
+            return {
+                apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP: driver_pool_parts[0],
+                apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_THIN_POOL: driver_pool_parts[1]
+            }
 
         if storage_driver == StoragePoolDriver.ZFS:
-            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL, driver_pool_name)]
+            return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOL: driver_pool_name}
 
         if storage_driver == StoragePoolDriver.ZFSThin:
-            return [(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN, driver_pool_name)]
+            return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN: driver_pool_name}
 
         raise LinstorError(
             "Unknown storage driver '{drv}', known drivers: "
@@ -367,7 +393,7 @@ class StoragePoolDriver(object):
         :return: If found the storage pool value, else ''
         :rtype: str
         """
-        storage_driver_enum = ProviderType.ProviderType.Value(storage_driver)
+        storage_driver_enum = storage_driver
         if storage_driver_enum == StoragePoolDriver.LVM:
             return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, '')
 
@@ -385,27 +411,27 @@ class StoragePoolDriver(object):
         return ''
 
 
-class StoragePool(ProtoMessageResponse):
+class StoragePool(RESTMessageResponse):
     DRIVER_KIND_MAP = {
-        ProviderType.DISKLESS: "DisklessDriver",
-        ProviderType.LVM: "LvmDriver",
-        ProviderType.LVM_THIN: "LvmThinDriver",
-        ProviderType.ZFS: "ZfsDriver",
-        ProviderType.ZFS_THIN: "ZfsThinDriver",
-        ProviderType.SWORDFISH_TARGET: "SwordfishTargetDriver",
-        ProviderType.SWORDFISH_INITIATOR: "SwordfishInitiatorDriver"
+        "DISKLESS": "DisklessDriver",
+        "LVM": "LvmDriver",
+        "LVM_THIN": "LvmThinDriver",
+        "ZFS": "ZfsDriver",
+        "ZFS_THIN": "ZfsThinDriver",
+        "SWORDFISH_TARGET": "SwordfishTargetDriver",
+        "SWORDFISH_INITIATOR": "SwordfishInitiatorDriver"
     }
 
-    def __init__(self, protobuf):
-        super(StoragePool, self).__init__(protobuf)
+    def __init__(self, rest_data):
+        super(StoragePool, self).__init__(rest_data)
 
     @property
     def name(self):
-        return self._proto_msg.stor_pool_name
+        return self._rest_data["storage_pool_name"]
 
     @property
     def node_name(self):
-        return self._proto_msg.node_name
+        return self._rest_data["node_name"]
 
     @property
     def driver(self):
@@ -413,7 +439,7 @@ class StoragePool(ProtoMessageResponse):
 
     @property
     def provider_kind(self):
-        return ProviderType.ProviderType.Name(self._proto_msg.provider_kind)
+        return self._rest_data.get("provider_kind")
 
     @property
     def properties(self):
@@ -423,7 +449,7 @@ class StoragePool(ProtoMessageResponse):
         :return: Property map
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.props}
+        return self._rest_data.get("props", {})
 
     @property
     def static_traits(self):
@@ -433,7 +459,7 @@ class StoragePool(ProtoMessageResponse):
         :return: Property map
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.static_traits}
+        return self._rest_data.get("static_traits", {})
 
     @property
     def free_space(self):
@@ -442,42 +468,44 @@ class StoragePool(ProtoMessageResponse):
         :return:
         :rtype: FreeSpace
         """
-        if self._proto_msg.HasField('free_space'):
-            return FreeSpace(self._proto_msg.free_space)
+        if "free_capacity" in self._rest_data:
+            return FreeSpace(self._rest_data)
         return None
 
+    @property
+    def free_space_mgr_name(self):
+        return self._rest_data.get("free_space_mgr_name")
+
     def supports_snapshots(self):
-        snapshot_trait = [x for x in self._proto_msg.static_traits if x.key == "SupportsSnapshots"]
-        if snapshot_trait:
-            return snapshot_trait[0].value == "true"
-        return False
+        return self.static_traits.get("SupportsSnapshots", "false") == "true"
 
     def is_thin(self):
-        snapshot_trait = [x for x in self._proto_msg.static_traits if x.key == "Provisioning"]
-        if snapshot_trait:
-            return snapshot_trait[0].value == "Thin"
-        return False
+        return self.static_traits.get("Provisioning", "") == "Thin"
 
     def is_fat(self):
-        snapshot_trait = [x for x in self._proto_msg.static_traits if x.key == "Provisioning"]
-        if snapshot_trait:
-            return snapshot_trait[0].value == "Fat"
-        return False
+        return self.static_traits.get("Provisioning", "") == "Fat"
 
     def is_diskless(self):
-        return self._proto_msg.provider_kind in StoragePoolDriver.diskless_driver()
+        return self.provider_kind in StoragePoolDriver.diskless_driver()
 
     @property
     def data_v0(self):
-        d = protobuf_to_dict(self._proto_msg)
-        del d['provider_kind']
-        d['driver'] = self.DRIVER_KIND_MAP.get(self._proto_msg.provider_kind, '')
+        d = {}
+        d['node_name'] = self.node_name
+        d['stor_pool_name'] = self.name
+        d['free_space_mgr_name'] = self.free_space_mgr_name
+        if self.free_space:
+            d["free_space"] = self.free_space.data_v0
+        d['driver'] = self.DRIVER_KIND_MAP.get(self.provider_kind, '')
+        d['static_traits'] = [{"key": x, "value": v} for x, v in self.static_traits.items()]
+        if self.properties:
+            d["props"] = [{"key": x, "value": v} for x, v in self.properties.items()]
         return d
 
 
-class StoragePoolListResponse(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(StoragePoolListResponse, self).__init__(protobuf)
+class StoragePoolListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(StoragePoolListResponse, self).__init__(rest_data)
 
     @property
     def storage_pools(self):
@@ -486,7 +514,7 @@ class StoragePoolListResponse(ProtoMessageResponse):
         :return: list of storage pools
         :rtype: list[StoragePool]
         """
-        return [StoragePool(x) for x in self._proto_msg.stor_pools]
+        return [StoragePool(x) for x in self._rest_data]
 
     @property
     def data_v0(self):
@@ -495,9 +523,9 @@ class StoragePoolListResponse(ProtoMessageResponse):
         }
 
 
-class KeyValueStoresResponse(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(KeyValueStoresResponse, self).__init__(protobuf)
+class KeyValueStoresResponse(RESTMessageResponse):
+    def __init__(self, data):
+        super(KeyValueStoresResponse, self).__init__(data)
 
     def instances(self):
         """
@@ -505,7 +533,7 @@ class KeyValueStoresResponse(ProtoMessageResponse):
         :return: List with all names of instances
         :rtype: list[str]
         """
-        return [x.name for x in self._proto_msg.key_value_store]
+        return [x.name for x in self._rest_data["key_value_store"]]
 
     def instance(self, name):
         """
@@ -515,7 +543,7 @@ class KeyValueStoresResponse(ProtoMessageResponse):
         :return: KeyValueStore object of the instance, if none found an empty is created
         :rtype: KeyValueStore
         """
-        kv = [x for x in self._proto_msg.key_value_store if x.name == name]
+        kv = [x for x in self._rest_data["key_value_store"] if x.name == name]
         kv = kv[0] if kv else {}
         return KeyValueStore(name, {x.key: x.value for x in kv.props})
 
@@ -539,26 +567,26 @@ class KeyValueStore(object):
         return str({"name": self._instance_name, "properties": self._props})
 
 
-class DrbdVolumeDefinitionData(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(DrbdVolumeDefinitionData, self).__init__(protobuf)
+class DrbdVolumeDefinitionData(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(DrbdVolumeDefinitionData, self).__init__(rest_data)
 
     @property
     def resource_name_suffix(self):
-        return self._proto_msg.rsc_name_suffix
+        return self._rest_data["rsc_name_suffix"]
 
     @property
     def minor(self):
-        return self._proto_msg.minor
+        return self._rest_data["minor_number"]
 
     @property
     def number(self):
-        return self._proto_msg.number
+        return self._rest_data["volume_number"]
 
 
-class VolumeDefinition(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(VolumeDefinition, self).__init__(protobuf)
+class VolumeDefinition(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(VolumeDefinition, self).__init__(rest_data)
 
     @property
     def number(self):
@@ -568,7 +596,7 @@ class VolumeDefinition(ProtoMessageResponse):
         :return: Volume definition number
         :rtype: int
         """
-        return int(self._proto_msg.vlm_nr)
+        return self._rest_data["volume_number"]
 
     @property
     def size(self):
@@ -578,7 +606,7 @@ class VolumeDefinition(ProtoMessageResponse):
         :return: Nett volume size in KiB.
         :rtype: int
         """
-        return int(self._proto_msg.vlm_size)
+        return self._rest_data["size_kib"]
 
     @property
     def flags(self):
@@ -588,7 +616,7 @@ class VolumeDefinition(ProtoMessageResponse):
         :return: Resource definition flags as string list
         :rtype: list[str]
         """
-        return [x for x in self._proto_msg.vlm_flags]
+        return self._rest_data.get("flags", [])
 
     @property
     def properties(self):
@@ -598,19 +626,75 @@ class VolumeDefinition(ProtoMessageResponse):
         :return: Property map
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.vlm_props}
+        return self._rest_data.get("props", {})
 
     @property
     def drbd_data(self):
-        for layer in self._proto_msg.layer_data:
-            if layer.layer_type == LayerType.DRBD:
-                return DrbdVolumeDefinitionData(layer.drbd)
+        for layer in self._rest_data.get("layer_data", []):
+            if layer["type"] == "DRBD" and layer.get("data"):
+                return DrbdVolumeDefinitionData(layer["data"])
         return None
 
+    @property
+    def data_v0(self):
+        """
+        Returns compatibility output for the first machine readable format.
 
-class ResourceDefinition(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(ResourceDefinition, self).__init__(protobuf)
+        :return: Dictionary with old resource definition format
+        """
+        v0_vlm_dfn = {
+            "vlm_nr": self.number,
+            "vlm_size": self.size
+        }
+
+        if self.flags:
+            v0_vlm_dfn['vlm_flags'] = self.flags
+
+        if self.properties:
+            v0_vlm_dfn['vlm_props'] = [{"key": x, "value": v} for x, v in self.properties.items()]
+
+        drbd_data = self.drbd_data
+        if drbd_data:
+            v0_vlm_dfn['vlm_minor'] = drbd_data.minor
+
+        return v0_vlm_dfn
+
+
+class VolumeDefinitionResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(VolumeDefinitionResponse, self).__init__(rest_data)
+
+    @property
+    def volume_definitions(self):
+        """
+
+        :return:
+        :rtype: list[VolumeDefinition]
+        """
+        return [VolumeDefinition(x) for x in self._rest_data]
+
+    @property
+    def rest_data(self):
+        return self._rest_data
+
+
+class DrbdLayer(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(DrbdLayer, self).__init__(rest_data)
+
+    @property
+    def port(self):
+        return self._rest_data["port"]
+
+    @property
+    def secret(self):
+        return self._rest_data["secret"]
+
+
+class ResourceDefinition(RESTMessageResponse):
+    def __init__(self, rest_data, volume_def_rest_data):
+        super(ResourceDefinition, self).__init__(rest_data)
+        self._volume_definitions = volume_def_rest_data
 
     @property
     def name(self):
@@ -620,7 +704,16 @@ class ResourceDefinition(ProtoMessageResponse):
         :return: Resource definition name
         :rtype: str
         """
-        return self._proto_msg.rsc_name
+        return self._rest_data["name"]
+
+    @property
+    def external_name(self):
+        """
+        Returns the external name of the resource
+        :return:
+        :rtype: str
+        """
+        return self._rest_data.get("external_name", "")
 
     @property
     def flags(self):
@@ -630,7 +723,7 @@ class ResourceDefinition(ProtoMessageResponse):
         :return: Resource definition flags as string list
         :rtype: list[str]
         """
-        return [x for x in self._proto_msg.rsc_dfn_flags]
+        return self._rest_data.get("flags", [])
 
     @property
     def properties(self):
@@ -640,13 +733,13 @@ class ResourceDefinition(ProtoMessageResponse):
         :return: Property map
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.rsc_dfn_props}
+        return self._rest_data.get("props", {})
 
     @property
     def drbd_data(self):
-        for layer in self.proto_msg.layer_data:
-            if layer.layer_type == LayerType.DRBD:
-                return layer.drbd
+        for layer in self._rest_data.get("layer_data", []):
+            if layer["type"] == "DRBD" and layer.get("data"):
+                return DrbdLayer(layer["data"])
         return None
 
     @property
@@ -657,12 +750,16 @@ class ResourceDefinition(ProtoMessageResponse):
         :return:
         :rtype: list[VolumeDefinition]
         """
-        return [VolumeDefinition(x) for x in self._proto_msg.vlm_dfns]
+        return [VolumeDefinition(x) for x in self._volume_definitions]
 
 
-class ResourceDefinitionResponse(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(ResourceDefinitionResponse, self).__init__(protobuf)
+class ResourceDefinitionResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ResourceDefinitionResponse, self).__init__(rest_data)
+        self._volume_def_map = {}  # type: dict[str, dict[str, Any]]
+
+    def set_volume_definition_data(self, name, rest_data):
+        self._volume_def_map[name] = rest_data
 
     @property
     def resource_definitions(self):
@@ -671,7 +768,7 @@ class ResourceDefinitionResponse(ProtoMessageResponse):
         :return: List of resource definitions
         :rtype: list[ResourceDefinition]
         """
-        return list(ResourceDefinition(x) for x in self._proto_msg.rsc_dfns)
+        return [ResourceDefinition(x, self._volume_def_map.get(x["name"], [])) for x in self._rest_data]
 
     @property
     def data_v0(self):
@@ -682,30 +779,9 @@ class ResourceDefinitionResponse(ProtoMessageResponse):
         """
         rsc_dfns = []
         for rsc_dfn in self.resource_definitions:
-            vlm_dfns = []
-            for vlm_dfn in rsc_dfn.volume_definitions:
-                v0_vlm_dfn = {
-                    "vlm_dfn_uuid": vlm_dfn.proto_msg.vlm_dfn_uuid,
-                    "vlm_nr": vlm_dfn.number,
-                    "vlm_size": vlm_dfn.size
-                }
-
-                if vlm_dfn.flags:
-                    v0_vlm_dfn['vlm_flags'] = vlm_dfn.flags
-
-                if vlm_dfn.properties:
-                    v0_vlm_dfn['vlm_props'] = [{"key": x, "value": v} for x, v in vlm_dfn.properties.items()]
-
-                drbd_data = vlm_dfn.drbd_data
-                if drbd_data:
-                    v0_vlm_dfn['vlm_minor'] = drbd_data.minor
-
-                vlm_dfns.append(v0_vlm_dfn)
-
             v0_rsc_dfn = {
-                "rsc_dfn_uuid": rsc_dfn.proto_msg.rsc_dfn_uuid,
                 "rsc_name": rsc_dfn.name,
-                "vlm_dfns": vlm_dfns
+                "vlm_dfns": [x.data_v0 for x in rsc_dfn.volume_definitions]
             }
 
             if rsc_dfn.flags:
@@ -723,18 +799,10 @@ class ResourceDefinitionResponse(ProtoMessageResponse):
             "rsc_dfns": rsc_dfns
         }
 
-    @property
-    def data_v1(self):
-        data = super(ResourceDefinitionResponse, self).data_v1
-        for rsc_dfn in data['rsc_dfns']:
-            if "external_name" in rsc_dfn:
-                rsc_dfn["external_name"] = base64.b64decode(rsc_dfn["external_name"]).decode('utf-8')
-        return data
 
-
-class VolumeState(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(VolumeState, self).__init__(protobuf)
+class VolumeState(RESTMessageResponse):
+    def __init__(self, data):
+        super(VolumeState, self).__init__(data)
 
     @property
     def number(self):
@@ -743,7 +811,7 @@ class VolumeState(ProtoMessageResponse):
         :return: Volume number index
         :rtype: int
         """
-        return self._proto_msg.vlm_nr
+        return self._rest_data["vlm_nr"]
 
     @property
     def disk_state(self):
@@ -751,20 +819,31 @@ class VolumeState(ProtoMessageResponse):
         :return: String describing the disk state
         :rtype: str
         """
-        return self._proto_msg.disk_state
+        return self._rest_data.get("disk_state")
+
+    @property
+    def data_v0(self):
+        return {
+            "vlm_nr": self.number,
+            "disk_state": self.disk_state
+        }
 
 
-class ResourceState(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(ResourceState, self).__init__(protobuf)
+class ResourceState(RESTMessageResponse):
+    def __init__(self, data):
+        super(ResourceState, self).__init__(data)
 
     @property
     def name(self):
-        return self._proto_msg.rsc_name
+        return self._rest_data["rsc_name"]
+
+    @property
+    def rsc_name(self):
+        return self.name
 
     @property
     def node_name(self):
-        return self._proto_msg.node_name
+        return self._rest_data["node_name"]
 
     @property
     def in_use(self):
@@ -773,7 +852,7 @@ class ResourceState(ProtoMessageResponse):
         Other types might be unknown/None
         :return: bool or None
         """
-        return self._proto_msg.in_use
+        return self._rest_data.get("in_use")
 
     @property
     def volume_states(self):
@@ -782,20 +861,34 @@ class ResourceState(ProtoMessageResponse):
         :return: volume states list
         :rtype: list[VolumeState]
         """
-        return [VolumeState(x) for x in self._proto_msg.vlm_states]
+        return [VolumeState(x) for x in self._rest_data.get("vlm_states", [])]
+
+    @property
+    def data_v0(self):
+        d = {
+            "rsc_name": self.name,
+            "node_name": self.node_name
+        }
+
+        if self.in_use is not None:
+            d["in_use"] = self.in_use
+
+        if self.volume_states:
+            d["vlm_states"] = [x.data_v0 for x in self.volume_states]
+        return d
 
 
-class ResourceLayerData(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(ResourceLayerData, self).__init__(protobuf)
+class ResourceLayerData(RESTMessageResponse):
+    def __init__(self, data):
+        super(ResourceLayerData, self).__init__(data)
 
     @property
     def id(self):
-        return self.proto_msg.id
+        return self._rest_data["id"]
 
     @property
     def name_suffix(self):
-        return self.proto_msg.rsc_name_suffix
+        return self._rest_data["rsc_name_suffix"]
 
     @property
     def children(self):
@@ -804,14 +897,14 @@ class ResourceLayerData(ProtoMessageResponse):
         :return: List of resource layer data children
         :rtype: list[ResourceLayerData]
         """
-        return [ResourceLayerData(x) for x in self.proto_msg.children]
+        return [ResourceLayerData(x) for x in self._rest_data.children]
 
     # TODO payload
 
 
-class VolumeLayerData(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(VolumeLayerData, self).__init__(protobuf)
+class VolumeLayerData(RESTMessageResponse):
+    def __init__(self, data):
+        super(VolumeLayerData, self).__init__(data)
 
     @property
     def layer_type(self):
@@ -820,95 +913,93 @@ class VolumeLayerData(ProtoMessageResponse):
         :return: Name of the layer type
         :rtype: str
         """
-        return LayerType.LayerType.Name(self.proto_msg.layer_type)
+        return self._rest_data['type']
 
 
-class DrbdVolumeDefinition(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(DrbdVolumeDefinition, self).__init__(protobuf)
+class DrbdVolumeDefinition(RESTMessageResponse):
+    def __init__(self, data):
+        super(DrbdVolumeDefinition, self).__init__(data)
 
     @property
     def number(self):
-        return self.proto_msg.vlm_nr
+        return self._rest_data["volume_number"]
 
     @property
     def minor(self):
-        return self.proto_msg.minor
+        return self._rest_data["minor_number"]
 
     @property
     def resource_name_suffix(self):
-        return self.proto_msg.rsc_name_suffix
+        return self._rest_data["resource_name_suffix"]
 
 
-class DrbdVolumeData(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(DrbdVolumeData, self).__init__(protobuf)
+class DrbdVolumeData(RESTMessageResponse):
+    def __init__(self, data):
+        super(DrbdVolumeData, self).__init__(data)
 
     @property
     def drbd_volume_definition(self):
-        return DrbdVolumeDefinition(self.proto_msg.drbd_vlm_dfn)
+        return DrbdVolumeDefinition(self._rest_data["drbd_volume_definition"])
 
     @property
     def device_path(self):
-        return self.proto_msg.device_path
+        return self._rest_data["device_path"]
 
     @property
     def backing_device(self):
-        return self.proto_msg.backing_device
+        return self._rest_data.get("backing_device")
 
     @property
     def meta_disk(self):
-        return self.proto_msg.meta_disk
+        return self._rest_data.get('meta_disk', "")
 
     @property
     def allocated_size(self):
-        return self.proto_msg.allocated_size
+        return self._rest_data["allocated_size_kib"]
 
     @property
     def usable_size(self):
-        return self.proto_msg.usable_size
+        return self._rest_data["usable_size_kib"]
 
 
-class StorageVolumeData(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(StorageVolumeData, self).__init__(protobuf)
+class StorageVolumeData(RESTMessageResponse):
+    def __init__(self, data):
+        super(StorageVolumeData, self).__init__(data)
 
 
-class LUKSVolumeData(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(LUKSVolumeData, self).__init__(protobuf)
+class LUKSVolumeData(RESTMessageResponse):
+    def __init__(self, data):
+        super(LUKSVolumeData, self).__init__(data)
 
 
-class Volume(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(Volume, self).__init__(protobuf)
+class Volume(RESTMessageResponse):
+    def __init__(self, data):
+        super(Volume, self).__init__(data)
 
     @property
     def number(self):
-        return self.proto_msg.vlm_nr
+        return self._rest_data["volume_number"]
 
     @property
     def storage_pool_name(self):
-        return self.proto_msg.stor_pool_name
+        return self._rest_data.get("storage_pool_name")
 
     @property
     def storage_pool_driver_name(self):
-        return self.proto_msg.stor_pool_driver_name
+        return self._rest_data["provider_kind"]
 
     @property
     def device_path(self):
-        return self.proto_msg.device_path
+        return self._rest_data.get("device_path")
 
     @property
     def allocated_size(self):
-        if self.proto_msg.HasField('allocated_size'):
-            return self.proto_msg.allocated_size
-        return None
+        return self._rest_data.get('allocated_size_kib')
 
     @property
     def usable_size(self):
-        if self.proto_msg.HasField('usable_size'):
-            return self.proto_msg.usable_size
+        if self.drbd_data:
+            return self.drbd_data.usable_size
         return None
 
     @property
@@ -919,7 +1010,7 @@ class Volume(ProtoMessageResponse):
         :return: Resource definition flags as string list
         :rtype: list[str]
         """
-        return [x for x in self._proto_msg.vlm_flags]
+        return self._rest_data.get("flags", [])
 
     @property
     def properties(self):
@@ -929,40 +1020,37 @@ class Volume(ProtoMessageResponse):
         :return: Property map
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.vlm_props}
+        return self._rest_data.get("props", {})
 
     @property
     def layer_data(self):
-        return [VolumeLayerData(x) for x in self._proto_msg.layer_data]
+        return [VolumeLayerData(x) for x in self._rest_data.get("layer_data", [])]
 
     @property
     def drbd_data(self):
-        for layer in self.layer_data:
-            if layer.proto_msg.layer_type == LayerType.DRBD:
-                return DrbdVolumeData(layer.proto_msg.drbd)
+        for layer in self._rest_data.get("layer_data_list", []):
+            if layer["type"] == "DRBD" and layer.get("data"):
+                return DrbdVolumeData(layer["data"])
         return None
 
     @property
     def storage_data(self):
-        for layer in self.layer_data:
-            if layer.proto_msg.layer_type == LayerType.STORAGE:
-                return StorageVolumeData(layer.proto_msg.storage)
+        for layer in self._rest_data.get("layer_data_list", []):
+            if layer["type"] == "STORAGE" and layer.get("data"):
+                return DrbdVolumeData(layer["data"])
         return None
 
     @property
     def luks_data(self):
-        for layer in self.layer_data:
-            if layer.proto_msg.layer_type == LayerType.LUKS:
-                return LUKSVolumeData(layer.proto_msg.luks)
+        for layer in self._rest_data.get("layer_data_list", []):
+            if layer["type"] == "LUKS" and layer.get("data"):
+                return DrbdVolumeData(layer["data"])
         return None
 
     @property
     def data_v0(self):
         d = {
-            "vlm_uuid": self.proto_msg.vlm_uuid,
-            "vlm_dfn_uuid": self.proto_msg.vlm_uuid,
             "stor_pool_name": self.storage_pool_name,
-            "stor_pool_uuid": self.proto_msg.stor_pool_uuid,
             "vlm_nr": self.number,
             "device_path": self.device_path
         }
@@ -970,25 +1058,18 @@ class Volume(ProtoMessageResponse):
         drbd_data = self.drbd_data
         if drbd_data is not None:
             d['vlm_minor_nr'] = drbd_data.drbd_volume_definition.minor
-            d['backing_disk'] = drbd_data.backing_device
+            if drbd_data.backing_device:
+                d['backing_disk'] = drbd_data.backing_device
             d['meta_disk'] = drbd_data.meta_disk
             if drbd_data.allocated_size:
-                d['allocated'] = self.proto_msg.allocated_size
+                d['allocated'] = self.allocated_size
 
         return d
 
 
-class Resource(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(Resource, self).__init__(protobuf)
-
-    @property
-    def name(self):
-        return self._proto_msg.name
-
-    @property
-    def node_name(self):
-        return self._proto_msg.node_name
+class VolumeResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(VolumeResponse, self).__init__(rest_data)
 
     @property
     def volumes(self):
@@ -997,7 +1078,29 @@ class Resource(ProtoMessageResponse):
         :return: Resource volumes
         :rtype: list[Volume]
         """
-        return list([Volume(x) for x in self._proto_msg.vlms])
+        return list([Volume(x) for x in self._rest_data])
+
+
+class Resource(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(Resource, self).__init__(rest_data)
+
+    @property
+    def name(self):
+        return self._rest_data["name"]
+
+    @property
+    def node_name(self):
+        return self._rest_data["node_name"]
+
+    @property
+    def volumes(self):
+        """
+        Resource volumes.
+        :return: Resource volumes
+        :rtype: list[Volume]
+        """
+        return list([Volume(x) for x in self._rest_data.get("volumes", [])])
 
     @property
     def flags(self):
@@ -1007,7 +1110,7 @@ class Resource(ProtoMessageResponse):
         :return: Resource definition flags as string list
         :rtype: list[str]
         """
-        return [x for x in self._proto_msg.rsc_flags]
+        return self._rest_data.get("flags", [])
 
     @property
     def properties(self):
@@ -1017,7 +1120,7 @@ class Resource(ProtoMessageResponse):
         :return: Property map
         :rtype: dict[str, str]
         """
-        return {x.key: x.value for x in self._proto_msg.props}
+        return self._rest_data.get("props", {})
 
     @property
     def layer_data(self):
@@ -1026,16 +1129,13 @@ class Resource(ProtoMessageResponse):
         :return:
         :rtype: ResourceLayerData
         """
-        if self.proto_msg.HasField('layer_object'):
-            return ResourceLayerData(self.proto_msg.layer_object)
+        if "layer_object" in self._rest_data:
+            return ResourceLayerData(self._rest_data["layer_object"])
         return None
 
     @property
     def data_v0(self):
         return {
-            "uuid": self.proto_msg.uuid,
-            "node_uuid": self.proto_msg.node_uuid,
-            "rsc_dfn_uuid": self.proto_msg.rsc_dfn_uuid,
             "name": self.name,
             "node_name": self.node_name,
             "rsc_flags": self.flags,
@@ -1044,9 +1144,9 @@ class Resource(ProtoMessageResponse):
         }
 
 
-class ResourceResponse(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(ResourceResponse, self).__init__(protobuf)
+class ResourceResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ResourceResponse, self).__init__(rest_data)
 
     @property
     def resources(self):
@@ -1055,7 +1155,16 @@ class ResourceResponse(ProtoMessageResponse):
         :return: List of resources
         :rtype: list[Resource]
         """
-        return list(Resource(x) for x in self._proto_msg.resources)
+        return list(Resource(x) for x in self._rest_data)
+
+    @property
+    def nodes(self):
+        """
+        List of node names, the resource is deployed
+        :return:
+        :rtype: list[str]
+        """
+        return [x["node_name"] for x in self._rest_data]
 
     @property
     def resource_states(self):
@@ -1064,7 +1173,15 @@ class ResourceResponse(ProtoMessageResponse):
         :return:
         :rtype: list[ResourceState]
         """
-        return list(ResourceState(x) for x in self._proto_msg.resource_states)
+        return [ResourceState({
+            "rsc_name": x["name"],
+            "node_name": x["node_name"],
+            "in_use": x.get("state", {}).get("in_use"),
+            "vlm_states": [{
+                "vlm_nr": y["volume_number"],
+                "disk_state": y.get("state", {}).get("disk_state")
+            } for y in x.get("volumes", [])]
+        }) for x in self._rest_data]
 
     @property
     def data_v0(self):
@@ -1079,19 +1196,254 @@ class ResourceResponse(ProtoMessageResponse):
         }
 
 
-class Snapshot(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(Snapshot, self).__init__(protobuf)
+class ResourceConnection(RESTMessageResponse):
+    def __init__(self, data):
+        super(ResourceConnection, self).__init__(data)
+
+    @property
+    def node_a(self):
+        return self._rest_data["node_a"]
+
+    @property
+    def node_b(self):
+        return self._rest_data["node_b"]
+
+    @property
+    def flags(self):
+        return self._rest_data.get("flags", [])
+
+    @property
+    def properties(self):
+        return self._rest_data.get("props", {})
+
+    @property
+    def port(self):
+        return self._rest_data.get("port")
+
+    @property
+    def data_v0(self):
+        d = {
+            "node_name_1": self.node_a,
+            "node_name_2": self.node_b
+        }
+        if self.flags:
+            d["flags"] = self.flags
+        if self.properties:
+            d["props"] = [{"key": x, "value": v} for x, v in self.properties.items()]
+        if self.port is not None:
+            d["port"] = self.port
+        return d
+
+
+class ResourceConnectionsResponse(RESTMessageResponse):
+    def __init__(self, data):
+        super(ResourceConnectionsResponse, self).__init__(data)
+
+    @property
+    def resource_connections(self):
+        return [ResourceConnection(x) for x in self._rest_data]
+
+    @property
+    def data_v0(self):
+        d = {}
+        if self.resource_connections:
+            d["rsc_connections"] = [x.data_v0 for x in self.resource_connections]
+        return d
+
+
+class SnapshotVolumeDefinition(RESTMessageResponse):
+    def __init__(self, data):
+        super(SnapshotVolumeDefinition, self).__init__(data)
+
+    @property
+    def number(self):
+        return self._rest_data["volume_number"]
+
+    @property
+    def size(self):
+        return self._rest_data["size_kib"]
+
+    @property
+    def data_v0(self):
+        return {
+            "vlm_nr": self.number,
+            "vlm_size": self.size
+        }
+
+
+class SnapshotDefinition(RESTMessageResponse):
+    def __init__(self, data):
+        super(SnapshotDefinition, self).__init__(data)
+
+    @property
+    def name(self):
+        return self._rest_data["name"]
+
+    @property
+    def snapshot_name(self):
+        return self.name
+
+    @property
+    def resource_name(self):
+        return self._rest_data["resource_name"]
 
     @property
     def rsc_name(self):
-        return self.proto_msg.rsc_name
+        return self.resource_name
+
+    @property
+    def nodes(self):
+        """
+        Node name list this snapshot is deployed.
+        :return:
+        :rtype: list[str]
+        """
+        return self._rest_data["nodes"]
+
+    @property
+    def flags(self):
+        return self._rest_data["flags"]
+
+    @property
+    def snapshot_volume_definitions(self):
+        return [SnapshotVolumeDefinition(x) for x in self._rest_data.get("volume_definitions", [])]
+
+    @property
+    def data_v0(self):
+        return {
+            "rsc_name": self.resource_name,
+            "snapshot_name": self.snapshot_name,
+            "snapshot_dfn_flags": self.flags,
+            "snapshots": [{"node_name": n} for n in self.nodes],
+            "snapshot_vlm_dfns": [x.data_v0 for x in self.snapshot_volume_definitions]
+        }
 
 
-class SnapshotsResponse(ProtoMessageResponse):
-    def __init__(self, protobuf):
-        super(SnapshotsResponse, self).__init__(protobuf)
+class SnapshotResponse(RESTMessageResponse):
+    def __init__(self, data):
+        super(SnapshotResponse, self).__init__(data)
 
     @property
     def snapshots(self):
-        return [Snapshot(x) for x in self._proto_msg.snapshot_dfns]
+        """
+        Returns snapshot list
+        :return:
+        :rtype: list[SnapshotDefinition]
+        """
+        return [SnapshotDefinition(x) for x in self._rest_data]
+
+    @property
+    def data_v0(self):
+        d = {}
+        if self.snapshots:
+            d["snapshot_dfns"] = [x.data_v0 for x in self.snapshots]
+        return d
+
+
+class ControllerProperties(RESTMessageResponse):
+    def __init__(self, data):
+        super(ControllerProperties, self).__init__(data)
+
+    @property
+    def properties(self):
+        return self._rest_data
+
+
+class StoragePoolDefinition(RESTMessageResponse):
+    def __init__(self, data):
+        super(StoragePoolDefinition, self).__init__(data)
+
+    @property
+    def name(self):
+        return self._rest_data["storage_pool_name"]
+
+    @property
+    def properties(self):
+        return self._rest_data.get("props", {})
+
+    @property
+    def data_v0(self):
+        d = {
+            "stor_pool_name": self.name
+        }
+
+        if self.properties:
+            d["props"] = [{"key": x, "value": v} for x, v in self.properties.items()]
+
+        return d
+
+
+class StoragePoolDefinitionResponse(RESTMessageResponse):
+    def __init__(self, data):
+        super(StoragePoolDefinitionResponse, self).__init__(data)
+
+    @property
+    def storage_pool_definitions(self):
+        return [StoragePoolDefinition(x) for x in self._rest_data]
+
+    @property
+    def data_v0(self):
+        d = {}
+        if self.storage_pool_definitions:
+            d["stor_pool_dfns"] = [x.data_v0 for x in self.storage_pool_definitions]
+        return d
+
+
+class Candidate(RESTMessageResponse):
+    def __init__(self, data):
+        super(Candidate, self).__init__(data)
+
+    @property
+    def max_volume_size(self):
+        return self._rest_data["max_volume_size_kib"]
+
+    @property
+    def storage_pool(self):
+        return self._rest_data["storage_pool"]
+
+    @property
+    def node_names(self):
+        return self._rest_data.get("node_names", [])
+
+    @property
+    def all_thin(self):
+        return self._rest_data["all_thin"]
+
+
+class MaxVolumeSizeResponse(RESTMessageResponse):
+    def __init__(self, data):
+        super(MaxVolumeSizeResponse, self).__init__(data)
+
+    @property
+    def candidates(self):
+        """
+
+        :return:
+        :rtype: list[Candidates]
+        """
+        return [Candidate(x) for x in self._rest_data.get("candidates", [])]
+
+    @property
+    def default_max_oversubscription_ratio(self):
+        return self._rest_data["default_max_oversubscription_ratio"]
+
+
+class ControllerVersion(RESTMessageResponse):
+    def __init__(self, data):
+        super(ControllerVersion, self).__init__(data)
+
+    @property
+    def version(self):
+        return self._rest_data["version"]
+
+    @property
+    def git_hash(self):
+        return self._rest_data.get("git_hash")
+
+    @property
+    def build_time(self):
+        return self._rest_data["build_time"]
+
+    @property
+    def rest_api_version(self):
+        return self._rest_data.get("rest_api_version", "1.0.0")

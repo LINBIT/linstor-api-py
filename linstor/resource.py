@@ -643,8 +643,8 @@ class Resource(object):
             self._lin = lin
 
             if snapshots:
-                snapshot_list = lin.snapshot_dfn_list()[0]
-                for snap in [x for x in snapshot_list.proto_msg.snapshot_dfns if x.rsc_name == self._name]:
+                snapshot_list = lin.snapshot_dfn_list()[0]  # type: linstor.responses.SnapshotResponse
+                for snap in [x for x in snapshot_list.snapshots if x.rsc_name == self._name]:
                     lin.snapshot_delete(rsc_name=self._name, snapshot_name=snap.snapshot_name)
 
             return self._delete(node_name)

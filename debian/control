@@ -8,9 +8,7 @@ Build-Depends: bash-completion,
                dh-python,
                docbook-xsl,
                help2man,
-               protobuf-compiler,
                python-all (>= 2.7),
-               python-protobuf,
                python-setuptools,
                xsltproc
 Standards-Version: 3.9.6
@@ -19,7 +17,6 @@ Package: python-linstor
 Architecture: all
 # keep python-natsort on its own line!
 Depends: ${misc:Depends},
-         python-protobuf,
          ${python:Depends}
 Description: Linstor python api library
  This library provides functions to access the Linstor controller
