@@ -124,6 +124,7 @@ class Linstor(object):
         self._keep_alive = keep_alive
         self._rest_conn = None  # type: HTTPConnection
         self._connected = False
+        self._mode_curl = False
 
     def __del__(self):
         self.disconnect()
@@ -158,6 +159,10 @@ class Linstor(object):
         :return:
         :rtype: list[Union[ApiCallRESTResponse, ResourceResponse]]
         """
+        if self._mode_curl:
+            self.__output_curl_command(method, path, body)
+            return []
+
         try:
             self._rest_conn.request(method, path, json.dumps(body) if body is not None else None)
         except socket.error as err:
@@ -196,6 +201,21 @@ class Linstor(object):
                 response_list += [response_class(data)]
 
         return response_list
+
+    @property
+    def curl(self):
+        return self._mode_curl
+
+    @curl.setter
+    def curl(self, enable):
+        """
+        Set the curl mode on or off.
+        If on it will not execute any commands and instead will only print equivalent curl commands.
+
+        :param bool enable: enable or disable curl mode
+        :return: None
+        """
+        self._mode_curl = enable
 
     @classmethod
     def all_api_responses_no_error(cls, replies):
@@ -272,6 +292,9 @@ class Linstor(object):
 
         :return: True
         """
+        if self._mode_curl:
+            self._connected = True
+            return True
         url = urlparse(self._ctrl_host)
         port = url.port if url.port else Linstor.REST_PORT
         self._rest_conn = HTTPConnection(host=url.hostname, port=port, timeout=self._timeout)
