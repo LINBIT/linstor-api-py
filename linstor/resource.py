@@ -279,8 +279,10 @@ class Resource(object):
             self._assignments[node_name] = is_diskless
             for vlm in rsc.volumes:
                 vlm_nr = vlm.number
-                self.volumes[vlm_nr]._device_path = vlm.device_path
-                self.volumes[vlm_nr]._storage_pool_name = vlm.storage_pool_name
+                if vlm.device_path:
+                    self.volumes[vlm_nr]._device_path = vlm.device_path
+                if vlm.storage_pool_name:
+                    self.volumes[vlm_nr]._storage_pool_name = vlm.storage_pool_name
                 if vlm.drbd_data is not None:
                     self.volumes[vlm_nr]._minor = vlm.drbd_data.drbd_volume_definition.minor
 
