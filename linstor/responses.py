@@ -1077,3 +1077,21 @@ class ResourceResponse(ProtoMessageResponse):
             "resource_states": [x.data_v0 for x in self.resource_states],
             "resources": [x.data_v0 for x in self.resources]
         }
+
+
+class Snapshot(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(Snapshot, self).__init__(protobuf)
+
+    @property
+    def rsc_name(self):
+        return self.proto_msg.rsc_name
+
+
+class SnapshotsResponse(ProtoMessageResponse):
+    def __init__(self, protobuf):
+        super(SnapshotsResponse, self).__init__(protobuf)
+
+    @property
+    def snapshots(self):
+        return [Snapshot(x) for x in self._proto_msg.snapshot_dfns]

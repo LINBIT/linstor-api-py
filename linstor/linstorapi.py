@@ -18,7 +18,7 @@ from google.protobuf.internal import decoder
 from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError
 from .responses import ProtoMessageResponse, ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
 from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
-from .responses import ResourceResponse
+from .responses import ResourceResponse, SnapshotsResponse
 
 try:
     from urlparse import urlparse
@@ -155,7 +155,7 @@ class _LinstorNetClient(threading.Thread):
         apiconsts.API_LST_RSC_DFN: (MsgLstRscDfn, ResourceDefinitionResponse),
         apiconsts.API_LST_RSC: (MsgLstRsc, ResourceResponse),
         apiconsts.API_LST_VLM: (MsgLstRsc, ResourceResponse),
-        apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, ProtoMessageResponse),
+        apiconsts.API_LST_SNAPSHOT_DFN: (MsgLstSnapshotDfn, SnapshotsResponse),
         apiconsts.API_LST_CTRL_PROPS: (MsgLstCtrlCfgProps, ProtoMessageResponse),
         apiconsts.API_LST_RSC_CONN: (MsgLstRscConn, ProtoMessageResponse),
         apiconsts.API_HOSTNAME: (MsgHostname, ProtoMessageResponse),
@@ -2178,7 +2178,7 @@ class Linstor(object):
         Request a list of all snapshot definitions known to the controller.
 
         :return: A MsgLstSnapshotDfn proto message containing all information.
-        :rtype: list[ProtoMessageResponse]
+        :rtype: list[SnapshotsResponse]
         """
         return self._send_and_wait(apiconsts.API_LST_SNAPSHOT_DFN)
 
