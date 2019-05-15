@@ -47,6 +47,11 @@ class Volume(object):
         self._client_ref = None
         self._assignments = []
 
+    def __repr__(self):
+        return "Volume({n}, {nr}, {s}kib, {m})".format(
+            n=self._rsc_name, nr=self._volume_id, s=self._size, m=self._minor
+        )
+
     @property
     def storage_pool_name(self):
         return self._storage_pool_name
@@ -196,6 +201,9 @@ class Resource(object):
 
     def __str__(self):
         return self._name
+
+    def __repr__(self):
+        return "Resource({n}, {h})".format(n=self._name, h=self.client.uri_list)
 
     def _set_properties(self):
         dp = 'yes' if self._allow_two_primaries else 'no'
