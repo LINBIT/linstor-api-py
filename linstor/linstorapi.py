@@ -6,6 +6,7 @@ import logging
 import socket
 import time
 import json
+import zlib
 from datetime import datetime
 from distutils.version import StrictVersion
 
@@ -127,7 +128,9 @@ class Linstor(object):
         self._mode_curl = False
 
         self._http_headers = {
-            "User-Agent": "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN)
+            "User-Agent": "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN),
+            "Connection": "keep-alive",
+            "Accept-Encoding": "gzip"
         }
 
     def __del__(self):
@@ -152,6 +155,13 @@ class Linstor(object):
     @classmethod
     def _current_milli_time(cls):
         return int(round(time.time() * 1000))
+
+    @classmethod
+    def _decode_response_data(cls, response):
+        data = response.read()
+        if response.getheader("Content-Encoding", "text") == "gzip":
+            return zlib.decompress(data, zlib.MAX_WBITS | 16)
+        return data
 
     def _rest_request(self, apicall, method, path, body=None):
         """
@@ -183,7 +193,7 @@ class Linstor(object):
             if response.status < 400:
                 return self.__convert_rest_response(apicall, response, path)
             else:
-                error_data_raw = response.read()
+                error_data_raw = self._decode_response_data(response)
                 if error_data_raw:
                     error_data = json.loads(error_data_raw)
                     return [ApiCallResponse(x) for x in error_data]
@@ -195,7 +205,7 @@ class Linstor(object):
             raise LinstorNetworkError("Error reading response from {hp}: {err}".format(hp=self._ctrl_host, err=err))
 
     def __convert_rest_response(self, apicall, response, path):
-        resp_data = response.read()
+        resp_data = self._decode_response_data(response)
         try:
             data = json.loads(resp_data)
         except ValueError as ve:
