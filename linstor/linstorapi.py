@@ -119,7 +119,6 @@ class Linstor(object):
 
     def __init__(self, ctrl_host, timeout=300, keep_alive=False):
         self._ctrl_host = ctrl_host
-        self._linstor_client = None  # type: _LinstorNetClient
         self._logger = logging.getLogger('Linstor')
         self._timeout = timeout
         self._keep_alive = keep_alive
