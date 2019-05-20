@@ -15,6 +15,7 @@ from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, 
 from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
 from .responses import RESTMessageResponse, StoragePool, SnapshotResponse, ControllerProperties
 from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
+from . import VERSION
 
 try:
     from urlparse import urlparse
@@ -126,6 +127,10 @@ class Linstor(object):
         self._connected = False
         self._mode_curl = False
 
+        self._http_headers = {
+            "User-Agent": "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN)
+        }
+
     def __del__(self):
         self.disconnect()
 
@@ -164,7 +169,12 @@ class Linstor(object):
             return []
 
         try:
-            self._rest_conn.request(method, path, json.dumps(body) if body is not None else None)
+            self._rest_conn.request(
+                method=method,
+                url=path,
+                body=json.dumps(body) if body is not None else None,
+                headers=self._http_headers
+            )
         except socket.error as err:
             raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=self._ctrl_host, err=err))
 
