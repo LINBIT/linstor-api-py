@@ -177,17 +177,22 @@ class Linstor(object):
         except socket.error as err:
             raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=self._ctrl_host, err=err))
 
-        response = self._rest_conn.getresponse()
+        try:
+            response = self._rest_conn.getresponse()
 
-        if response.status < 400:
-            return self.__convert_rest_response(apicall, response, path)
-        else:
-            error_data_raw = response.read()
-            if error_data_raw:
-                error_data = json.loads(error_data_raw)
-                return [ApiCallResponse(x) for x in error_data]
-            raise LinstorError("REST api call method '{m}' to resoure '{p}' returned status {s} with no data."
-                               .format(m=method, p=path, s=response.status))
+            if response.status < 400:
+                return self.__convert_rest_response(apicall, response, path)
+            else:
+                error_data_raw = response.read()
+                if error_data_raw:
+                    error_data = json.loads(error_data_raw)
+                    return [ApiCallResponse(x) for x in error_data]
+                raise LinstorError("REST api call method '{m}' to resource '{p}' returned status {s} with no data."
+                                   .format(m=method, p=path, s=response.status))
+        except socket.timeout:
+            raise LinstorTimeoutError("Socket timeout, no data received for more than {t}s.".format(t=self._timeout))
+        except socket.error as err:
+            raise LinstorNetworkError("Error reading response from {hp}: {err}".format(hp=self._ctrl_host, err=err))
 
     def __convert_rest_response(self, apicall, response, path):
         resp_data = response.read()
@@ -196,7 +201,7 @@ class Linstor(object):
         except ValueError as ve:
             raise LinstorError(
                 "Unable to parse REST json data: " + str(ve) + "\n"
-                "Request-Uri: " + path + "\n" + resp_data
+                "Request-Uri: " + path
             )
 
         response_list = []
