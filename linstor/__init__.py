@@ -1,3 +1,5 @@
+VERSION = "0.9.3"
+
 from .linstorapi import ApiCallResponse, ErrorReport
 from .linstorapi import Linstor, MultiLinstor
 from .resource import Resource, Volume
@@ -9,8 +11,6 @@ from .size_calc import SizeCalc
 from .errors import LinstorError, LinstorTimeoutError, LinstorNetworkError, LinstorApiCallError
 from .errors import LinstorReadOnlyAfterSetError
 from . import sharedconsts as consts
-
-VERSION = "0.9.3"
 
 try:
     from linstor.consts_githash import GITHASH

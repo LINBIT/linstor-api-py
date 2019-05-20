@@ -25,6 +25,14 @@ from setuptools import setup, Command
 
 
 def get_version():
+    """
+    Function to parse the version string from the linstor/__init__.py.
+    This was done to not rely on a working build, e.g. sometimes files were
+    not yet generated and this made problems with importing.
+
+    :return: semantic version string
+    :rtype: str
+    """
     with open('linstor/__init__.py') as linstor_init:
         for line in linstor_init:
             if line.startswith('VERSION'):
@@ -67,7 +75,7 @@ class CheckUpToDate(Command):
 
 setup(
     name="python-linstor",
-    version='0.9.3',
+    version=get_version(),
     description="Linstor python api",
     long_description="Python linstor api interface",
     url='https://www.linbit.com',
