@@ -1,8 +1,8 @@
-# Linstor python api
+# LINSTOR Python API
 
-This repository contains a python library to communicate with a linstor controller.
+This repository contains a Python library to communicate with a linstor controller.
 
-Linstor, developed by [LINBIT](https://www.linbit.com), is a software that manages DRBD replicated
+LINSTOR, developed by [LINBIT](https://www.linbit.com), is a software that manages DRBD replicated
 LVM/ZFS volumes across a group of machines. It maintains DRBD configuration on the participating machines.  It
 creates/deletes the backing LVM/ZFS volumes. It automatically places the backing LVM/ZFS volumes among the
 participating machines.
