@@ -430,6 +430,10 @@ class StoragePool(RESTMessageResponse):
         return self._rest_data["storage_pool_name"]
 
     @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
+
+    @property
     def node_name(self):
         return self._rest_data["node_name"]
 
@@ -490,10 +494,12 @@ class StoragePool(RESTMessageResponse):
 
     @property
     def data_v0(self):
-        d = {}
-        d['node_name'] = self.node_name
-        d['stor_pool_name'] = self.name
-        d['free_space_mgr_name'] = self.free_space_mgr_name
+        d = {
+            "stor_pool_uuid": self.uuid,
+            "stor_pool_name": self.name,
+            "node_name": self.node_name,
+            "free_space_mgr_name": self.free_space_mgr_name
+        }
         if self.free_space:
             d["free_space"] = self.free_space.data_v0
         d['driver'] = self.DRIVER_KIND_MAP.get(self.provider_kind, '')
@@ -599,6 +605,10 @@ class VolumeDefinition(RESTMessageResponse):
         return self._rest_data["volume_number"]
 
     @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
+
+    @property
     def size(self):
         """
         Nett volume size in KiB.
@@ -644,7 +654,8 @@ class VolumeDefinition(RESTMessageResponse):
         """
         v0_vlm_dfn = {
             "vlm_nr": self.number,
-            "vlm_size": self.size
+            "vlm_size": self.size,
+            "vlm_dfn_uuid": self.uuid
         }
 
         if self.flags:
@@ -705,6 +716,10 @@ class ResourceDefinition(RESTMessageResponse):
         :rtype: str
         """
         return self._rest_data["name"]
+
+    @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
 
     @property
     def external_name(self):
@@ -781,6 +796,7 @@ class ResourceDefinitionResponse(RESTMessageResponse):
         for rsc_dfn in self.resource_definitions:
             v0_rsc_dfn = {
                 "rsc_name": rsc_dfn.name,
+                "rsc_dfn_uuid": rsc_dfn.uuid,
                 "vlm_dfns": [x.data_v0 for x in rsc_dfn.volume_definitions]
             }
 
@@ -981,6 +997,10 @@ class Volume(RESTMessageResponse):
         return self._rest_data["volume_number"]
 
     @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
+
+    @property
     def storage_pool_name(self):
         return self._rest_data.get("storage_pool_name")
 
@@ -1052,6 +1072,7 @@ class Volume(RESTMessageResponse):
         d = {
             "stor_pool_name": self.storage_pool_name,
             "vlm_nr": self.number,
+            "vlm_uuid": self.uuid,
             "device_path": self.device_path
         }
 
@@ -1088,6 +1109,10 @@ class Resource(RESTMessageResponse):
     @property
     def name(self):
         return self._rest_data["name"]
+
+    @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
 
     @property
     def node_name(self):
@@ -1137,6 +1162,7 @@ class Resource(RESTMessageResponse):
     def data_v0(self):
         return {
             "name": self.name,
+            "uuid": self.uuid,
             "node_name": self.node_name,
             "rsc_flags": self.flags,
             "props": [{"key": x, "value": v} for x, v in self.properties.items()],
@@ -1280,6 +1306,10 @@ class SnapshotDefinition(RESTMessageResponse):
         return self._rest_data["name"]
 
     @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
+
+    @property
     def snapshot_name(self):
         return self.name
 
@@ -1313,6 +1343,7 @@ class SnapshotDefinition(RESTMessageResponse):
         return {
             "rsc_name": self.resource_name,
             "snapshot_name": self.snapshot_name,
+            "uuid": self.uuid,
             "snapshot_dfn_flags": self.flags,
             "snapshots": [{"node_name": n} for n in self.nodes],
             "snapshot_vlm_dfns": [x.data_v0 for x in self.snapshot_volume_definitions]
