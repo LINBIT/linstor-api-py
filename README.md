@@ -7,6 +7,9 @@ LVM/ZFS volumes across a group of machines. It maintains DRBD configuration on t
 creates/deletes the backing LVM/ZFS volumes. It automatically places the backing LVM/ZFS volumes among the
 participating machines.
 
+# Online API documentation
+A rendered html documentation for the LINSTOR Python API can be found [here](https://linbit.github.io/linstor-api-py/).
+
 # Using Linstor
 Please read the user-guide provided at [docs.linbit.com](https://docs.linbit.com).
 
