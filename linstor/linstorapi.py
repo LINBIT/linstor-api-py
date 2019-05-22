@@ -14,7 +14,7 @@ from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, Lins
 from .responses import ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
 from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
 from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
-from .responses import RESTMessageResponse, StoragePool, SnapshotResponse, ControllerProperties
+from .responses import RESTMessageResponse, SnapshotResponse, ControllerProperties
 from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from . import VERSION
 
@@ -32,8 +32,8 @@ except ImportError:
 
 import linstor.sharedconsts as apiconsts
 
-API_VERSION = "1.0.3"
-API_VERSION_MIN = "1.0.3"
+API_VERSION_MIN = "1.0.4"
+API_VERSION = API_VERSION_MIN
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -101,7 +101,7 @@ class Linstor(object):
 
     APICALL2RESPONSE = {
         apiconsts.API_LST_NODE: NodeListResponse,
-        apiconsts.API_LST_STOR_POOL: StoragePool,
+        apiconsts.API_LST_STOR_POOL: StoragePoolListResponse,
         apiconsts.API_LST_RSC_DFN: ResourceDefinitionResponse,
         apiconsts.API_LST_VLM_DFN: VolumeDefinitionResponse,
         apiconsts.API_LST_RSC: ResourceResponse,
@@ -771,31 +771,29 @@ class Linstor(object):
         :return: A MsgLstStorPool proto message containing all information.
         :rtype: list[RESTMessageResponse]
         """
-        nodes = None
+        query_params = ""
         if filter_by_nodes:
-            nodes = filter_by_nodes
-        else:
-            nodes = [x.name for x in self.node_list_raise().nodes]
-
-        lower_filter = []
+            query_params += "&".join(["nodes=" + x for x in filter_by_nodes])
         if filter_by_stor_pools:
-            lower_filter = [x.lower() for x in filter_by_stor_pools]
+            query_params += "&".join(["storage_pools=" + x for x in filter_by_stor_pools])
 
-        stor_pool_list = []
-        errs = []
-        for node in nodes:
-            stor_pool = self._rest_request(
-                apiconsts.API_LST_STOR_POOL,
-                "GET", "/v1/nodes/" + node + "/storage-pools"
-            )
-            if stor_pool:
-                node_stor_pools = [x for x in stor_pool[0]._rest_data if 'ret_code' not in x]
-                if filter_by_stor_pools:
-                    node_stor_pools = [x for x in node_stor_pools
-                                       if x["storage_pool_name"].lower() in lower_filter]
-                stor_pool_list += node_stor_pools
-                errs += [ApiCallResponse(x) for x in stor_pool[0]._rest_data if 'ret_code' in x]
-        return [StoragePoolListResponse(stor_pool_list)] + errs
+        path = "/v1/view/storage-pools"
+        if query_params:
+            path += "?" + query_params
+        storage_pool_res = self._rest_request(
+            apiconsts.API_LST_STOR_POOL,
+            "GET",
+            path
+        )  # type: list[StoragePoolListResponse]
+
+        result = []
+        errors = []
+        if storage_pool_res and isinstance(storage_pool_res[0], StoragePoolListResponse):
+            result += storage_pool_res
+        else:
+            errors += storage_pool_res
+
+        return result + errors
 
     def storage_pool_list_raise(self, filter_by_nodes=None, filter_by_stor_pools=None):
         """
