@@ -4,9 +4,32 @@ Resource module
 
 import linstor
 import socket
+import sys
 from functools import wraps
 from linstor.sharedconsts import FAIL_EXISTS_RSC, FLAG_DISKLESS
 from linstor.responses import ResourceDefinitionResponse, ResourceResponse
+
+PYTHON2 = True
+if sys.version_info > (3, 0):
+    PYTHON2 = False
+    unicode = str
+
+
+class _Utils(object):
+    @classmethod
+    def to_unicode(cls, t):
+        if isinstance(t, str):
+            if PYTHON2:
+                return unicode(t, 'UTF-8')
+            else:
+                return t
+        elif isinstance(t, unicode):
+            return t
+        else:
+            if PYTHON2:
+                return unicode(t)
+            else:
+                return str(t)
 
 
 class _Client(object):
@@ -181,7 +204,7 @@ class Resource(object):
 
     def __init__(self, name, uri='linstor://localhost'):
         # external properties
-        self._name = name
+        self._name = name  # the user facing name, what linstor calls the "external name"
         self._port = None
         self.client = _Client(uri)
         self.placement = _Placement()
@@ -194,6 +217,7 @@ class Resource(object):
         # internal
         self._lin = None  # used to pass in an existing client (e.g,, _update_volumes)
         self._assignments = {}
+        self._linstor_name = None
 
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
@@ -208,7 +232,7 @@ class Resource(object):
     def _set_properties(self):
         dp = 'yes' if self._allow_two_primaries else 'no'
         props = {'DrbdOptions/Net/allow-two-primaries': dp}
-        rs = self._lin.resource_dfn_modify(self._name, props, delete_props=None)
+        rs = self._lin.resource_dfn_modify(self._linstor_name, props, delete_props=None)
         if not rs[0].is_success():
             raise linstor.LinstorError('Could not set DRBD properties for resource {}: {}'
                                        .format(self._name, rs[0]))
@@ -216,10 +240,17 @@ class Resource(object):
     def _maybe_create_rd_and_vd(self):
         # resource definition
         if not self.defined:
-            rs = self._lin.resource_dfn_create(self._name, self._port)
+            rs = self._lin.resource_dfn_create("", self._port, external_name=self._name)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not create resource definition {}: {}'
                                            .format(self._name, rs[0]))
+            ors = rs[0].object_refs
+            try:
+                self._linstor_name = ors['RscDfn']
+            except KeyError:
+                raise linstor.LinstorError('Could not get RscDfn for resource definition {}'
+                                           .format(self._name))
+
             self.defined = True
             self._set_properties()
 
@@ -231,12 +262,12 @@ class Resource(object):
             if v._rsc_name is None:
                 size_kib = linstor.SizeCalc.convert_round_up(v.size, linstor.SizeCalc.UNIT_B,
                                                              linstor.SizeCalc.UNIT_KiB)
-                rs = self._lin.volume_dfn_create(self._name, size_kib, k, v._minor,
+                rs = self._lin.volume_dfn_create(self._linstor_name, size_kib, k, v._minor,
                                                  encrypt=False, storage_pool=self.placement.storage_pool)
                 if not rs[0].is_success():
-                    raise linstor.LinstorError('Could not create volume definition {}/{}: {}'
-                                               .format(self._name, k, rs[0]))
-                self.volumes[k]._rsc_name = self._name
+                    raise linstor.LinstorError('Could not create volume definition {r}({x})/{k}: {e}'
+                                               .format(r=self._linstor_name, x=self._name, k=k, e=rs[0]))
+                self.volumes[k]._rsc_name = self._linstor_name
 
     def __update_volumes(self):
         # create fresh volume definitions
@@ -249,14 +280,18 @@ class Resource(object):
 
         rsc_dfn_list_reply = rsc_dfn_list_replies[0]  # type: ResourceDefinitionResponse
         for rsc_dfn in rsc_dfn_list_reply.resource_definitions:
-            if rsc_dfn.name == self._name:
+            # WORKAROUND: linstor-server < 0.9.9 did not set the external_name, so for compat
+            # and as these only used non external names, fall back to the name
+            to_cmp = rsc_dfn.external_name if rsc_dfn.external_name != "" else rsc_dfn.name
+            if _Utils.to_unicode(to_cmp) == _Utils.to_unicode(self._name):
+                self._linstor_name = rsc_dfn.name
                 self.defined = True
                 for vlm_dfn in rsc_dfn.volume_definitions:
                     vlm_nr = vlm_dfn.number
                     if not self.volumes.get(vlm_nr):
                         self.volumes[vlm_nr] = Volume(None)
                     self.volumes[vlm_nr]._volume_id = vlm_nr
-                    self.volumes[vlm_nr]._rsc_name = self._name
+                    self.volumes[vlm_nr]._rsc_name = self._linstor_name
                     self.volumes[vlm_nr]._client_ref = self.client
                     size_b = linstor.SizeCalc.convert_round_up(vlm_dfn.size, linstor.SizeCalc.UNIT_KiB,
                                                                linstor.SizeCalc.UNIT_B)
@@ -267,7 +302,11 @@ class Resource(object):
                     if key == 'DrbdOptions/Net/allow-two-primaries':
                         self._allow_two_primaries = True if value == 'yes' else False
 
-        rsc_list_replies = self._lin.resource_list(filter_by_nodes=None, filter_by_resources=[self._name])
+        if self._linstor_name is None:
+            return True
+
+        rsc_list_replies = self._lin.resource_list(filter_by_nodes=None,
+                                                   filter_by_resources=[self._linstor_name])
         if not rsc_list_replies or not rsc_list_replies[0]:
             return True
 
@@ -312,9 +351,9 @@ class Resource(object):
     @property
     def name(self):
         """
-        Returns the name of the Resource.
+        Returns the external/user facing name of the Resource.
 
-        :return: The name of the Resource.
+        :return: The external/user facing name of the Resource.
         :rtype: str
         """
         return self._name
@@ -356,7 +395,7 @@ class Resource(object):
         :return: True if success, else raises LinstorError
         """
         rs = self._lin.resource_auto_place(
-            self._name,
+            self._linstor_name,
             self.placement.redundancy,
             self.placement.storage_pool,
             do_not_place_with=None,
@@ -384,7 +423,7 @@ class Resource(object):
         rsc_create_replies = self._lin.resource_create([
             linstor.ResourceData(
                 node_name,
-                self._name,
+                self._linstor_name,
                 diskless=True
             )
         ])
@@ -422,7 +461,7 @@ class Resource(object):
             rs = self._lin.resource_create([
                 linstor.ResourceData(
                     node_name,
-                    self._name,
+                    self._linstor_name,
                     diskless=diskless,
                     storage_pool=sp
                 )
@@ -431,7 +470,8 @@ class Resource(object):
                 raise linstor.LinstorError('Could not create resource {} on node {} as diskless={}: {}'
                                            .format(self._name, node_name, diskless, rs[0]))
         elif is_diskless != diskless:
-            rs = self._lin.resource_toggle_disk(node_name, self._name, diskless=diskless, storage_pool=sp)
+            rs = self._lin.resource_toggle_disk(node_name, self._linstor_name,
+                                                diskless=diskless, storage_pool=sp)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not toggle disk for resource {} on node {} to diskless={}: {}'
                                            .format(self._name, node_name, diskless, rs[0]))
@@ -609,13 +649,13 @@ class Resource(object):
         reinit = False
         if node_name is None:
             node_name = 'ALL'  # for error msg
-            rs = self._lin.resource_dfn_delete(self._name)
+            rs = self._lin.resource_dfn_delete(self._linstor_name)
             reinit = True
             self.defined = False
         else:
             if not self.is_assigned(node_name):
                 return True
-            rs = self._lin.resource_delete(node_name, self._name)
+            rs = self._lin.resource_delete(node_name, self._linstor_name)
             if socket.gethostname() == node_name:  # deleted on myself
                 reinit = True
 
@@ -644,13 +684,13 @@ class Resource(object):
 
             if snapshots:
                 snapshot_list = lin.snapshot_dfn_list()[0]  # type: linstor.responses.SnapshotResponse
-                for snap in [x for x in snapshot_list.snapshots if x.rsc_name == self._name]:
-                    lin.snapshot_delete(rsc_name=self._name, snapshot_name=snap.snapshot_name)
+                for snap in [x for x in snapshot_list.snapshots if x.rsc_name == self._linstor_name]:
+                    lin.snapshot_delete(rsc_name=self._linstor_name, snapshot_name=snap.snapshot_name)
 
             return self._delete(node_name)
 
     def drbd_proxy_enable(self, node_name_a, node_name_b):
-        proxy_enable_replies = self._lin.drbd_proxy_enable(self._name, node_name_a, node_name_b)
+        proxy_enable_replies = self._lin.drbd_proxy_enable(self._linstor_name, node_name_a, node_name_b)
         proxy_enable_reply = proxy_enable_replies[0]
         if not proxy_enable_reply.is_success():
             raise linstor.LinstorError('Could not enable drbd-proxy for resource {} between {} and {}: {}'
@@ -658,7 +698,7 @@ class Resource(object):
         return True
 
     def drbd_proxy_disable(self, node_name_a, node_name_b):
-        proxy_disable_replies = self._lin.drbd_proxy_disable(self._name, node_name_a, node_name_b)
+        proxy_disable_replies = self._lin.drbd_proxy_disable(self._linstor_name, node_name_a, node_name_b)
         proxy_disable_reply = proxy_disable_replies[0]
         if not proxy_disable_reply.is_success():
             raise linstor.LinstorError('Could not disable drbd-proxy for resource {} between {} and {}: {}'
