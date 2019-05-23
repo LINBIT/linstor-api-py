@@ -365,6 +365,20 @@ class Resource(object):
         self._name = name
 
     @property
+    def linstor_name(self):
+        """
+        Returns the internal/linstor/DRBD name of the Resource.
+
+        :return: The internal/linstor/DRBD name of the Resource.
+        :rtype: str
+        """
+        return self._linstor_name
+
+    @linstor_name.setter
+    def linstor_name(self, name):
+        raise linstor.LinstorReadOnlyAfterSetError()
+
+    @property
     def port(self):
         """
         Returns the port of the Resource.
