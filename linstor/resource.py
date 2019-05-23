@@ -224,10 +224,10 @@ class Resource(object):
             self.__update_volumes()
 
     def __str__(self):
-        return self._name
+        return '{e}({i})'.format(e=self._name, i=self._linstor_name)
 
     def __repr__(self):
-        return "Resource({n}, {h})".format(n=self._name, h=self.client.uri_list)
+        return "Resource({n}, {h})".format(n=self, h=self.client.uri_list)
 
     def _set_properties(self):
         dp = 'yes' if self._allow_two_primaries else 'no'
@@ -235,7 +235,7 @@ class Resource(object):
         rs = self._lin.resource_dfn_modify(self._linstor_name, props, delete_props=None)
         if not rs[0].is_success():
             raise linstor.LinstorError('Could not set DRBD properties for resource {}: {}'
-                                       .format(self._name, rs[0]))
+                                       .format(self, rs[0]))
 
     def _maybe_create_rd_and_vd(self):
         # resource definition
@@ -243,13 +243,13 @@ class Resource(object):
             rs = self._lin.resource_dfn_create("", self._port, external_name=self._name)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not create resource definition {}: {}'
-                                           .format(self._name, rs[0]))
+                                           .format(self, rs[0]))
             ors = rs[0].object_refs
             try:
                 self._linstor_name = ors['RscDfn']
             except KeyError:
                 raise linstor.LinstorError('Could not get RscDfn for resource definition {}'
-                                           .format(self._name))
+                                           .format(self))
 
             self.defined = True
             self._set_properties()
@@ -265,8 +265,8 @@ class Resource(object):
                 rs = self._lin.volume_dfn_create(self._linstor_name, size_kib, k, v._minor,
                                                  encrypt=False, storage_pool=self.placement.storage_pool)
                 if not rs[0].is_success():
-                    raise linstor.LinstorError('Could not create volume definition {r}({x})/{k}: {e}'
-                                               .format(r=self._linstor_name, x=self._name, k=k, e=rs[0]))
+                    raise linstor.LinstorError('Could not create volume definition {n}/{k}: {e}'
+                                               .format(n=self, k=k, e=rs[0]))
                 self.volumes[k]._rsc_name = self._linstor_name
 
     def __update_volumes(self):
@@ -406,7 +406,7 @@ class Resource(object):
 
         if not rs[0].is_success():
             raise linstor.LinstorError('Could not autoplace resource {}: {}'
-                                       .format(self._name, rs[0]))
+                                       .format(self, rs[0]))
         return True
 
     @_update_volumes
@@ -432,7 +432,7 @@ class Resource(object):
             return True
 
         raise linstor.LinstorError('Could not activate resource {} on node {}: {}'
-                                   .format(self._name, node_name, rsc_create_reply))
+                                   .format(self, node_name, rsc_create_reply))
 
     # no decorator, calles delete
     def deactivate(self, node_name):
@@ -468,13 +468,13 @@ class Resource(object):
             ])
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not create resource {} on node {} as diskless={}: {}'
-                                           .format(self._name, node_name, diskless, rs[0]))
+                                           .format(self, node_name, diskless, rs[0]))
         elif is_diskless != diskless:
             rs = self._lin.resource_toggle_disk(node_name, self._linstor_name,
                                                 diskless=diskless, storage_pool=sp)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not toggle disk for resource {} on node {} to diskless={}: {}'
-                                           .format(self._name, node_name, diskless, rs[0]))
+                                           .format(self, node_name, diskless, rs[0]))
         return True
 
     def snapshot_create(self, name):
@@ -661,7 +661,7 @@ class Resource(object):
 
         if not rs[0].is_success():
             raise linstor.LinstorError('Could not delete resource {} on node {}: {}'
-                                       .format(self._name, node_name, rs[0]))
+                                       .format(self, node_name, rs[0]))
         if reinit:
             self._volumes = _VolumeDict()
 
@@ -694,7 +694,7 @@ class Resource(object):
         proxy_enable_reply = proxy_enable_replies[0]
         if not proxy_enable_reply.is_success():
             raise linstor.LinstorError('Could not enable drbd-proxy for resource {} between {} and {}: {}'
-                                       .format(self._name, node_name_a, node_name_b, proxy_enable_reply))
+                                       .format(self, node_name_a, node_name_b, proxy_enable_reply))
         return True
 
     def drbd_proxy_disable(self, node_name_a, node_name_b):
@@ -702,5 +702,5 @@ class Resource(object):
         proxy_disable_reply = proxy_disable_replies[0]
         if not proxy_disable_reply.is_success():
             raise linstor.LinstorError('Could not disable drbd-proxy for resource {} between {} and {}: {}'
-                                       .format(self._name, node_name_a, node_name_b, proxy_disable_reply))
+                                       .format(self, node_name_a, node_name_b, proxy_disable_reply))
         return True
