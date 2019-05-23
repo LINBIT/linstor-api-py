@@ -1,3 +1,30 @@
+python-linstor (0.9.4-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * output-v0: use allocated_size from volume
+  * resource: add __repr__ for Resource and Volume
+  * responses: add compatibility classes for Snapshot and SnapshotsResponse
+  * resource: only override values if they are there
+  * rest only python-linstor library
+  * add curl mode
+  * do not generate protobuf anymore
+  * unittests: remove parse_host test
+  * setup.py: read version string from __init__
+  * linstorapi: send user agent header
+  * linstorapi: remove unused _linstor_client field
+  * linstorapi: improve connection error reporting
+  * linstorapi: support and request gzip compression
+  * add uuid data to v0 output
+  * linstorapi: use /v1/views/storage-pools and pump MIN_REST_API_VERSION
+  * common: use latest shared code
+  * use resync-after fixed gendrbdoptions script
+
+  [ Roland Kammerer ]
+  * README.md: add link to online API doc
+  * README.md: use the more official names
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 23 May 2019 08:37:34 +0200
+
 python-linstor (0.9.3-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
