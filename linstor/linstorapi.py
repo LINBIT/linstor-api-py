@@ -771,15 +771,15 @@ class Linstor(object):
         :return: A MsgLstStorPool proto message containing all information.
         :rtype: list[RESTMessageResponse]
         """
-        query_params = ""
+        query_params = []
         if filter_by_nodes:
-            query_params += "&".join(["nodes=" + x for x in filter_by_nodes])
+            query_params += ["nodes=" + x for x in filter_by_nodes]
         if filter_by_stor_pools:
-            query_params += "&".join(["storage_pools=" + x for x in filter_by_stor_pools])
+            query_params += ["storage_pools=" + x for x in filter_by_stor_pools]
 
         path = "/v1/view/storage-pools"
         if query_params:
-            path += "?" + query_params
+            path += "?" + "&".join(query_params)
         storage_pool_res = self._rest_request(
             apiconsts.API_LST_STOR_POOL,
             "GET",
@@ -1275,16 +1275,16 @@ class Linstor(object):
         """
         result = []
         errors = []
-        query_params = ""
+        query_params = []
         if filter_by_nodes:
-            query_params += "&".join(["nodes=" + x for x in filter_by_nodes])
+            query_params += ["nodes=" + x for x in filter_by_nodes]
         if filter_by_stor_pools:
-            query_params += "&".join(["storage_pools=" + x for x in filter_by_stor_pools])
+            query_params += ["storage_pools=" + x for x in filter_by_stor_pools]
         if filter_by_resources:
-            query_params += "&".join(["resources=" + x for x in filter_by_resources])
+            query_params += ["resources=" + x for x in filter_by_resources]
         path = "/v1/view/resources"
         if query_params:
-            path += "?" + query_params
+            path += "?" + "&".join(query_params)
         resource_resp = self._rest_request(
             apiconsts.API_LST_RSC,
             "GET",
