@@ -26,9 +26,9 @@ except ImportError:
     from urllib.parse import urlencode
 
 try:
-    from httplib import HTTPConnection
+    from httplib import HTTPConnection, BadStatusLine
 except ImportError:
-    from http.client import HTTPConnection
+    from http.client import HTTPConnection, BadStatusLine
 
 import linstor.sharedconsts as apiconsts
 
@@ -163,7 +163,7 @@ class Linstor(object):
             return zlib.decompress(data, zlib.MAX_WBITS | 16)
         return data
 
-    def _rest_request(self, apicall, method, path, body=None):
+    def _rest_request(self, apicall, method, path, body=None, reconnect=True):
         """
 
         :param str apicall: linstor apicall strid
@@ -208,7 +208,17 @@ class Linstor(object):
         except socket.timeout:
             raise LinstorTimeoutError("Socket timeout, no data received for more than {t}s.".format(t=self._timeout))
         except socket.error as err:
-            raise LinstorNetworkError("Error reading response from {hp}: {err}".format(hp=self._ctrl_host, err=err))
+            if self._keep_alive and reconnect:
+                self.connect()
+                return self._rest_request(apicall, method, path, body, reconnect=False)
+            else:
+                raise LinstorNetworkError("Error reading response from {hp}: {err}".format(hp=self._ctrl_host, err=err))
+        except BadStatusLine:  # python2 raises BadStatusLine on connection closed
+            if self._keep_alive and reconnect:
+                self.connect()
+                return self._rest_request(apicall, method, path, body, reconnect=False)
+            else:
+                raise
 
     def __convert_rest_response(self, apicall, response, path):
         resp_data = self._decode_response_data(response)
