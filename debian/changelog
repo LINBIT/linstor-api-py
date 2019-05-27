@@ -1,3 +1,18 @@
+python-linstor (0.9.5-1) experimental; urgency=medium
+
+  [ Roland Kammerer ]
+  * high-level resource: introduce external names
+  * high-level resource: use self/__str__ in err msgs
+  * high-level resource: expose linstor_name
+
+  [ Rene Peinthor ]
+  * linstorapi: fix incorrect query param concating
+  * common: Whitelisted property DrbdCurrentGI
+  * linstorapi: better logging if error couldn't be json parsed
+  * linstorapi: fix keep-alive mode
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 27 May 2019 14:25:46 +0200
+
 python-linstor (0.9.4-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
