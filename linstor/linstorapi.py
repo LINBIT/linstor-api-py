@@ -195,7 +195,13 @@ class Linstor(object):
             else:
                 error_data_raw = self._decode_response_data(response)
                 if error_data_raw:
-                    error_data = json.loads(error_data_raw)
+                    try:
+                        error_data = json.loads(error_data_raw)
+                    except ValueError as ve:
+                        raise LinstorError(
+                            "Unable to parse REST json data: " + str(ve) + "\n"
+                            "Request-Uri: " + path
+                        )
                     return [ApiCallResponse(x) for x in error_data]
                 raise LinstorError("REST api call method '{m}' to resource '{p}' returned status {s} with no data."
                                    .format(m=method, p=path, s=response.status))
