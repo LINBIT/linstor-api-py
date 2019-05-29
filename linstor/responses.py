@@ -159,6 +159,14 @@ class ApiCallResponse(RESTMessageResponse):
             d["error_report_ids"] = self.error_report_ids
         return d
 
+    def __eq__(self, other):
+        if isinstance(other, ApiCallResponse):
+            return self.__hash__() == other.__hash__()
+        return False
+
+    def __hash__(self):
+        return hash((self.ret_code, self.message))
+
 
 class ErrorReport(RESTMessageResponse):
     def __init__(self, data):
