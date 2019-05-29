@@ -519,6 +519,10 @@ class StoragePool(RESTMessageResponse):
         return self.provider_kind in StoragePoolDriver.diskless_driver()
 
     @property
+    def reports(self):
+        return [ApiCallResponse(x) for x in self._rest_data.get("reports", [])]
+
+    @property
     def data_v0(self):
         d = {
             "stor_pool_uuid": self.uuid,
