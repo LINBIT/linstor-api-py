@@ -141,6 +141,24 @@ class ApiCallResponse(RESTMessageResponse):
     def error_report_ids(self):
         return self._rest_data.get("error_report_ids", [])
 
+    @property
+    def data_v0(self):
+        d = {
+            "ret_code": self.ret_code,
+            "message": self.message
+        }
+        if self.cause:
+            d["cause"] = self.cause
+        if self.correction:
+            d["correction"] = self.correction
+        if self.details:
+            d["details"] = self.details
+        if self.object_refs:
+            d["object_refs"] = [{"key": x, "value": self.object_refs[x]} for x in self.object_refs]
+        if self.error_report_ids:
+            d["error_report_ids"] = self.error_report_ids
+        return d
+
 
 class ErrorReport(RESTMessageResponse):
     def __init__(self, data):
