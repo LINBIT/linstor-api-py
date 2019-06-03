@@ -498,8 +498,11 @@ class Resource(object):
         :param str name: Name of the snapshot
         :return: True if success, else raises LinstorError
         """
+        if self._linstor_name is None:
+            raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
+
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
-            rs = lin.snapshot_create(node_names=[], rsc_name=self.name, snapshot_name=name, async_msg=False)
+            rs = lin.snapshot_create(node_names=[], rsc_name=self._linstor_name, snapshot_name=name, async_msg=False)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not create snapshot {}: {}'.format(name, rs[0].message))
         return True
@@ -511,8 +514,11 @@ class Resource(object):
         :param str name: Name of the snapshot
         :return: True if success, else raises LinstorError
         """
+        if self._linstor_name is None:
+            raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
+
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
-            rs = lin.snapshot_delete(rsc_name=self.name, snapshot_name=name)
+            rs = lin.snapshot_delete(rsc_name=self._linstor_name, snapshot_name=name)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not delete snapshot {}: {}'.format(name, rs[0].message))
         return True
@@ -527,8 +533,11 @@ class Resource(object):
         :param str name: Name of the snapshot
         :return: True if success, else raises LinstorError
         """
+        if self._linstor_name is None:
+            raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
+
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
-            rs = lin.snapshot_rollback(rsc_name=self.name, snapshot_name=name)
+            rs = lin.snapshot_rollback(rsc_name=self._linstor_name, snapshot_name=name)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not rollback to snapshot {}: {}'.format(name, rs[0].message))
         return True
@@ -542,6 +551,9 @@ class Resource(object):
         :return: A new resource object restored from the snapshot.
         :rtype: Resource
         """
+        if self._linstor_name is None:
+            raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
+
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             rs = lin.resource_dfn_create(resource_name_to)
             if not rs[0].is_success():
@@ -549,7 +561,7 @@ class Resource(object):
                                            .format(resource_name_to))
 
             rs = lin.snapshot_volume_definition_restore(
-                from_resource=self.name,
+                from_resource=self._linstor_name,
                 from_snapshot=snapshot_name,
                 to_resource=resource_name_to
             )
@@ -557,12 +569,12 @@ class Resource(object):
             if not rs[0].is_success():
                 raise linstor.LinstorError(
                     "Could not restore volume definition '{rd}' from snapshot {sn} to resource definition '{tr}'"
-                    .format(rd=self.name, sn=snapshot_name, tr=resource_name_to)
+                    .format(rd=self._linstor_name, sn=snapshot_name, tr=resource_name_to)
                 )
 
             rs = lin.snapshot_resource_restore(
                 node_names=[],  # to all
-                from_resource=self.name,
+                from_resource=self._linstor_name,
                 from_snapshot=snapshot_name,
                 to_resource=resource_name_to
             )
@@ -693,17 +705,23 @@ class Resource(object):
 
         :return: True if success, else raises LinstorError
         """
+        if self._linstor_name is None:
+            return True  # resource doesn't exist
+
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
 
             if snapshots:
                 snapshot_list = lin.snapshot_dfn_list()[0]  # type: linstor.responses.SnapshotResponse
-                for snap in [x for x in snapshot_list.snapshots if x.rsc_name == self._linstor_name]:
+                for snap in [x for x in snapshot_list.snapshots if x.rsc_name.lower() == self._linstor_name.lower()]:
                     lin.snapshot_delete(rsc_name=self._linstor_name, snapshot_name=snap.snapshot_name)
 
             return self._delete(node_name)
 
     def drbd_proxy_enable(self, node_name_a, node_name_b):
+        if self._linstor_name is None:
+            raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
+
         proxy_enable_replies = self._lin.drbd_proxy_enable(self._linstor_name, node_name_a, node_name_b)
         proxy_enable_reply = proxy_enable_replies[0]
         if not proxy_enable_reply.is_success():
@@ -712,6 +730,9 @@ class Resource(object):
         return True
 
     def drbd_proxy_disable(self, node_name_a, node_name_b):
+        if self._linstor_name is None:
+            raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
+
         proxy_disable_replies = self._lin.drbd_proxy_disable(self._linstor_name, node_name_a, node_name_b)
         proxy_disable_reply = proxy_disable_replies[0]
         if not proxy_disable_reply.is_success():
