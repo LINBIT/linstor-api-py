@@ -320,7 +320,7 @@ class Resource(object):
                 vlm_nr = vlm.number
                 if vlm.device_path:
                     self.volumes[vlm_nr]._device_path = vlm.device_path
-                if vlm.storage_pool_name:
+                if vlm.storage_pool_name and not is_diskless:
                     self.volumes[vlm_nr]._storage_pool_name = vlm.storage_pool_name
                 if vlm.drbd_data is not None:
                     self.volumes[vlm_nr]._minor = vlm.drbd_data.drbd_volume_definition.minor
