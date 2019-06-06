@@ -557,8 +557,8 @@ class Resource(object):
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             rs = lin.resource_dfn_create(resource_name_to)
             if not rs[0].is_success():
-                raise linstor.LinstorError("Could not resource definition '{}' for snapshot restore"
-                                           .format(resource_name_to))
+                raise linstor.LinstorError("Could not resource definition '{r}' for snapshot restore: {err}"
+                                           .format(r=resource_name_to, err=rs[0].message))
 
             rs = lin.snapshot_volume_definition_restore(
                 from_resource=self._linstor_name,
@@ -568,8 +568,8 @@ class Resource(object):
 
             if not rs[0].is_success():
                 raise linstor.LinstorError(
-                    "Could not restore volume definition '{rd}' from snapshot {sn} to resource definition '{tr}'"
-                    .format(rd=self._linstor_name, sn=snapshot_name, tr=resource_name_to)
+                    "Could not restore volume definition '{rd}' from snapshot {sn} to resource definition '{tr}': {err}"
+                    .format(rd=self._linstor_name, sn=snapshot_name, tr=resource_name_to, err=rs[0].message)
                 )
 
             rs = lin.snapshot_resource_restore(
@@ -581,8 +581,8 @@ class Resource(object):
 
             if not rs[0].is_success():
                 raise linstor.LinstorError(
-                    "Could not restore resource '{rd}' from snapshot {sn} to resource definition '{tr}'"
-                    .format(rd=self.name, sn=snapshot_name, tr=resource_name_to)
+                    "Could not restore resource '{rd}' from snapshot {sn} to resource definition '{tr}': {err}"
+                    .format(rd=self.name, sn=snapshot_name, tr=resource_name_to, err=rs[0].message)
                 )
 
         return Resource(resource_name_to, ",".join(self.client.uri_list))
