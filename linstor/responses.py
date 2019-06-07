@@ -70,13 +70,14 @@ class ApiCallResponse(RESTMessageResponse):
         Returns True if the ApiCallResponse is any error and "code" is unset.
         If "code" is set, return True if the given "code" matches the response code.
 
-        :return: True if it is any error and "code" unset. If "code" is set return True if "code" matches
-         response code. In any other cases (e.g., not an error at all), return False.
+        :return: True if it is any error and "code" unset.
+                 If "code" is set return True if "code" matches
+                 response code. In any other cases (e.g., not an error at all), return False.
         """
         if self.ret_code & apiconsts.MASK_ERROR != apiconsts.MASK_ERROR:
             return False  # not an error at all
 
-        return ((code | self.ret_code) != 0) if code else True
+        return ((code & self.ret_code) == code) if code else True
 
     def is_warning(self):
         """

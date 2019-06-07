@@ -2,7 +2,8 @@ import unittest
 from . import test_utils
 
 _std_tests = [
-    "linstor_tests.test_utils"
+    "linstor_tests.test_utils",
+    "linstor_tests.test_responses"
 ]
 
 
