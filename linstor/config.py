@@ -38,10 +38,10 @@ class Config(object):
     @staticmethod
     def get_controllers(section='global', config_file_name=None, fallback='linstor://localhost'):
         """
-        :param str section Section to parse, defaults to 'global'
-        :param str config_file_name Config file to parse, if not set, the default files in /etc and $HOME are
+        :param str section: Section to parse, defaults to 'global'
+        :param str config_file_name: Config file to parse, if not set, the default files in /etc and $HOME are
          parsed
-        :param str fallback Fallback controller if none was found in the environment or the config. Defaults
+        :param str fallback: Fallback controller if none was found in the environment or the config. Defaults
          to 'linstor://localhost'.
         :return: List of linstor uris. This list is intended to be used via the MultiLinstor class.
         :rtype: list[str]

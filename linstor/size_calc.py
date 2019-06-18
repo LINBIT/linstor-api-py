@@ -67,7 +67,7 @@ class SizeCalc(object):
         :return: a tuple of the size value as int and the SizeCalc.UNIT
         :rtype: (int, int)
         """
-        m = re.match('(\d+)\s*(\D*)', value)
+        m = re.match(r'(\d+)\s*(\D*)', value)
 
         size = None
         if m:
@@ -108,15 +108,16 @@ class SizeCalc(object):
         a size value given in the scale unit of unit_out
         (e.g. convert from decimal megabytes to binary gigabytes, ...)
 
-        @param   size: numeric size value
-        @param   unit_in: scale unit selector of the size parameter
-        @param   unit_out: scale unit selector of the return value
-        @return: size value converted to the scale unit of unit_out
+        :param   size: numeric size value
+        :param   unit_in: scale unit selector of the size parameter
+        :param   unit_out: scale unit selector of the return value
+        :return: size value converted to the scale unit of unit_out
                  truncated to an integer value
+        :rtype: int
         """
         fac_in = ((unit_in & 0xffffff00) >> 8) ** (unit_in & 0xff)
         div_out = ((unit_out & 0xffffff00) >> 8) ** (unit_out & 0xff)
-        return (size * fac_in // div_out)
+        return size * fac_in // div_out
 
     @classmethod
     def convert_round_up(cls, size, unit_in, unit_out):
@@ -133,10 +134,11 @@ class SizeCalc(object):
          returns 97,657 binary kilobytes (kiB), which equals 100 million
          plus 768 bytes and therefore is large enough to contain 100 megabytes)
 
-        @param   size: numeric size value
-        @param   unit_in: scale unit selector of the size parameter
-        @param   unit_out: scale unit selector of the return value
-        @return: size value converted to the scale unit of unit_out
+        :param   size: numeric size value
+        :param   unit_in: scale unit selector of the size parameter
+        :param   unit_out: scale unit selector of the return value
+        :return: size value converted to the scale unit of unit_out
+        :rtype: int
         """
         fac_in = ((unit_in & 0xffffff00) >> 8) ** (unit_in & 0xff)
         div_out = ((unit_out & 0xffffff00) >> 8) ** (unit_out & 0xff)
@@ -151,6 +153,10 @@ class SizeCalc(object):
     def approximate_size_string(cls, size_kib):
         """
         Produce human readable size information as a string
+
+        :param int size_kib: size in kibi byte
+        :return: human readable size string
+        :rtype: str
         """
         units = [
             "KiB",
@@ -176,7 +182,7 @@ class SizeCalc(object):
         size_str = None
         if size_kib % magnitude != 0:
             size_unit = float(size_kib) / magnitude
-            size_loc = locale.format('%3.2f', size_unit, grouping=True)
+            size_loc = locale.format_string('%3.2f', size_unit, grouping=True)
             size_str = "%s %s" % (size_loc, units[index])
         else:
             size_unit = size_kib / magnitude
