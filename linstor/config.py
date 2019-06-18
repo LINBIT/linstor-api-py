@@ -2,15 +2,15 @@ import linstor
 import os
 
 try:
-    import ConfigParser as configparser
+    from configparser import ConfigParser
 except ImportError:
-    import configparser
+    from ConfigParser import SafeConfigParser as ConfigParser
 
 
 class Config(object):
     @staticmethod
     def read_config(config_file):
-        cp = configparser.SafeConfigParser()
+        cp = ConfigParser()
         cp.read(config_file)
         config = {}
         for section in cp.sections():
