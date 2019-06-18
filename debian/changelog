@@ -1,3 +1,12 @@
+python-linstor (0.9.7-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * responses: fix broken ApiCallResponse.is_error(code)
+  * config: fix py2/py3 safeconfigparser import
+  * code cleanup
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 18 Jun 2019 11:23:31 +0200
+
 python-linstor (0.9.6-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
