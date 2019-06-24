@@ -149,7 +149,8 @@ class Linstor(object):
         if body is not None:
             cmd += ['-H "Content-Type: application/json"']
             cmd += ["-d '" + json.dumps(body) + "'"]
-        cmd += ["http://" + url.hostname + ":" + str(url.port) + path]
+        port = url.port if url.port else self.REST_PORT
+        cmd += ["http://" + url.hostname + ":" + str(port) + path]
         print(" ".join(cmd))
 
     @classmethod
