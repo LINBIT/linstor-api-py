@@ -126,6 +126,7 @@ class Linstor(object):
         self._rest_conn = None  # type: HTTPConnection
         self._connected = False
         self._mode_curl = False
+        self._ctrl_version = None
 
         self._http_headers = {
             "User-Agent": "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN),
@@ -163,6 +164,19 @@ class Linstor(object):
         if response.getheader("Content-Encoding", "text") == "gzip":
             return zlib.decompress(data, zlib.MAX_WBITS | 16)
         return data
+
+    def _require_version(self, required_version):
+        """
+
+        :param str required_version: semantic version string
+        :return: True if supported
+        :raises: LinstorError if server version is lower than required version
+        """
+        if self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(required_version):
+            raise LinstorError(
+                "Volume modify not supported by server, REST-API-VERSION: " + self._ctrl_version.rest_api_version +
+                "; needed " + required_version
+            )
 
     def _rest_request(self, apicall, method, path, body=None, reconnect=True):
         """
@@ -341,12 +355,12 @@ class Linstor(object):
         self._rest_conn = HTTPConnection(host=url.hostname, port=port, timeout=self._timeout)
         try:
             self._rest_conn.connect()
-            ctrl_version = self.controller_version()
-            if not ctrl_version.rest_api_version.startswith("1") or \
-                    StrictVersion(API_VERSION_MIN) > StrictVersion(ctrl_version.rest_api_version):
+            self._ctrl_version = self.controller_version()
+            if not self._ctrl_version.rest_api_version.startswith("1") or \
+                    StrictVersion(API_VERSION_MIN) > StrictVersion(self._ctrl_version.rest_api_version):
                 self._rest_conn.close()
                 raise LinstorApiCallError(
-                    "Client doesn't support Controller rest api version: " + ctrl_version.rest_api_version +
+                    "Client doesn't support Controller rest api version: " + self._ctrl_version.rest_api_version +
                     "; Minimal version needed: " + API_VERSION_MIN
                 )
             self._connected = True
@@ -1313,6 +1327,34 @@ class Linstor(object):
             errors += resource_resp
 
         return result + errors
+
+    def volume_modify(self, node_name, rsc_name, vlm_nr, property_dict, delete_props=None):
+        """
+        Modify properties of a given resource.
+
+        :param str node_name: Node name where the resource is deployed.
+        :param str rsc_name: Name of the resource.
+        :param int vlm_nr: Number of the volume
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param list[str] delete_props: List of properties to delete
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.6")
+
+        body = {}
+
+        if property_dict:
+            body["override_props"] = property_dict
+
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_VLM,
+            "PUT", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/volumes/" + str(vlm_nr),
+            body
+        )
 
     def resource_toggle_disk(
             self,
