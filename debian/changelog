@@ -1,3 +1,12 @@
+python-linstor (0.9.8-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * allow PrefNic on node
+  * curl-mode: fix `None` port output
+  * linstor/volume_modify: allow set property for volumes
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 25 Jun 2019 10:36:09 +0200
+
 python-linstor (0.9.7-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
