@@ -620,7 +620,7 @@ class Linstor(object):
 
         return self._rest_request(apiconsts.API_CRT_NET_IF, "POST", "/v1/nodes/" + node_name + "/net-interfaces", body)
 
-    def netinterface_modify(self, node_name, interface_name, ip, port=None, com_type=None):
+    def netinterface_modify(self, node_name, interface_name, ip=None, port=None, com_type=None):
         """
         Modify a netinterface on the given node.
 
@@ -634,8 +634,10 @@ class Linstor(object):
         """
         body = {
             "name": interface_name,
-            "address": ip,
         }
+
+        if ip:
+            body["address"] = ip
 
         if port:
             body["satellite_port"] = port
