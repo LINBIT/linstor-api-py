@@ -1650,14 +1650,14 @@ class Linstor(object):
             body
         )
 
-    def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg):
+    def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg=False):
         """
         Create a snapshot.
 
-        :param list[str] node_names: Names of the nodes.
+        :param list[str] node_names: Names of the nodes, if empty or None snapshot will be created on all nodes.
         :param str rsc_name: Name of the resource.
         :param str snapshot_name: Name of the new snapshot.
-        :param bool async_msg: True to return without waiting for the action to complete on the satellites.
+        :param bool async_msg: True to return without waiting for the action to complete on the nodes.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
