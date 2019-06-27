@@ -250,7 +250,8 @@ class Node(RESTMessageResponse):
         "AUTHENTICATION_ERROR": 5,
         "UNKNOWN": 6,
         "HOSTNAME_MISMATCH": 7,
-        "OTHER_CONTROLLER": 8
+        "OTHER_CONTROLLER": 8,
+        "NO_STLT_CONN": 9
     }
 
     def __init__(self, rest_data):
