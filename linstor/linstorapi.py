@@ -581,7 +581,8 @@ class Linstor(object):
 
         :return: Node list response objects
         :rtype: NodeListResponse
-        :raise LinstorError: if apicallerror or no response received
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
         """
         list_res = self.node_list()
         if list_res:
@@ -829,10 +830,12 @@ class Linstor(object):
     def storage_pool_list_raise(self, filter_by_nodes=None, filter_by_stor_pools=None):
         """
 
-        :param filter_by_nodes:
-        :param filter_by_stor_pools:
-        :return:
+        :param Optional[list[str]] filter_by_nodes: node names to filter
+        :param Optional[list[str]] filter_by_stor_pools: storage pool names to filter
+        :return: StoragePoolListResponse object
         :rtype: StoragePoolListResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
         """
         list_res = self.storage_pool_list(filter_by_nodes=filter_by_nodes, filter_by_stor_pools=filter_by_stor_pools)
         if list_res:
@@ -942,7 +945,7 @@ class Linstor(object):
         """
         Request a list of all resource definitions known to the controller.
 
-        :return: A MsgLstRscDfn proto message containing all information.
+        :return: A list with one ResourceDefinitionResponse object.
         :rtype: list[ResourceDefinitionResponse]
         """
         rsc_dfns_resp = self._rest_request(apiconsts.API_LST_RSC_DFN, "GET", "/v1/resource-definitions")
@@ -957,6 +960,22 @@ class Linstor(object):
                 rsc_dfns_resp[0].set_volume_definition_data(rsc_dfn.name, vlm_dfn[0].rest_data)
 
         return rsc_dfns_resp
+
+    def resource_dfn_list_raise(self, query_volume_definitions=True):
+        """
+        Request a list of all resource definitions known to the controller.
+
+        :return: A ResourceDefinitionResponse object
+        :rtype: ResourceDefinitionResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        list_res = self.resource_dfn_list(query_volume_definitions=query_volume_definitions)
+        if list_res:
+            if isinstance(list_res[0], ResourceDefinitionResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
 
     def resource_dfn_props_list(self, rsc_name, filter_by_namespace=''):
         """
@@ -1289,10 +1308,23 @@ class Linstor(object):
 
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_resources: filter resources by resource names
-        :return: A MsgLstRsc proto message containing all information.
+        :return: A list containing a ResourceResponse object
         :rtype: list[RESTMessageResponse]
         """
         return self.volume_list(filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources)
+
+    def resource_list_raise(self, filter_by_nodes=None, filter_by_resources=None):
+        """
+        Request a list of all resources known to the controller.
+
+        :param list[str] filter_by_nodes: filter resources by nodes
+        :param list[str] filter_by_resources: filter resources by resource names
+        :return: A ResourceResponse object
+        :rtype: ResourceResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        return self.volume_list_raise(filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources)
 
     def volume_list(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_resources=None):
         """
@@ -1301,7 +1333,7 @@ class Linstor(object):
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_stor_pools: filter resources by storage pool names
         :param list[str] filter_by_resources: filter resources by resource names
-        :return: A MsgLstRsc proto message containing all information.
+        :return: A list containing a ResourceResponse object
         :rtype: list[RESTMessageResponse]
         """
         result = []
@@ -1327,6 +1359,29 @@ class Linstor(object):
             errors += resource_resp
 
         return result + errors
+
+    def volume_list_raise(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_resources=None):
+        """
+        Request a list of all volumes known to the controller.
+
+        :param list[str] filter_by_nodes: filter resources by nodes
+        :param list[str] filter_by_stor_pools: filter resources by storage pool names
+        :param list[str] filter_by_resources: filter resources by resource names
+        :return: A ResourceResponse object
+        :rtype: ResourceResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        list_res = self.volume_list(
+            filter_by_nodes=filter_by_nodes,
+            filter_by_stor_pools=filter_by_stor_pools,
+            filter_by_resources=filter_by_resources
+        )
+        if list_res:
+            if isinstance(list_res[0], ResourceResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
 
     def volume_modify(self, node_name, rsc_name, vlm_nr, property_dict, delete_props=None):
         """
@@ -1563,15 +1618,32 @@ class Linstor(object):
         """
         Request a list of all resource connection to the given resource name.
 
-        :param rsc_name: Name of the resource to get the connections.
-        :return: MsgLstRscConn
-        :rtype: list[ProtoMessageResponse]
+        :param str rsc_name: Name of the resource to get the connections.
+        :return: List of ResourceConnectionsResponse or ApiCallRcResponse
+        :rtype: list[RESTMessageResponse]
         """
         return self._rest_request(
             apiconsts.API_REQ_RSC_CONN_LIST,
             "GET",
             "/v1/resource-definitions/" + rsc_name + "/resource-connections"
         )
+
+    def resource_conn_list_raise(self, rsc_name):
+        """
+        Request a list of all resource connection to the given resource name.
+
+        :param str rsc_name: Name of the resource to get the connections.
+        :return: ResourceConnectionsResponse object
+        :rtype: ResourceConnectionsResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        list_res = self.resource_conn_list(rsc_name)
+        if list_res:
+            if isinstance(list_res[0], ResourceConnectionsResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
 
     def drbd_proxy_enable(self, rsc_name, node_a, node_b, port=None):
         """
@@ -1768,6 +1840,22 @@ class Linstor(object):
             if snapshots:
                 result += snapshots[0]._rest_data
         return [SnapshotResponse(result)]
+
+    def snapshot_dfn_list_raise(self):
+        """
+        Request a list of all snapshot definitions known to the controller.
+
+        :return: A MsgLstSnapshotDfn proto message containing all information.
+        :rtype: SnapshotsResponse
+        :raises LinstorError: if no response
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        list_res = self.snapshot_dfn_list()
+        if list_res:
+            if isinstance(list_res[0], SnapshotResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
 
     def error_report_list(self, nodes=None, with_content=False, since=None, to=None, ids=None):
         """
