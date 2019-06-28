@@ -231,6 +231,10 @@ class NetInterface(RESTMessageResponse):
         return self._rest_data.get("satellite_encryption_type")
 
     @property
+    def is_active(self):
+        return self._rest_data.get("is_active")
+
+    @property
     def data_v0(self):
         return {
             "address": self.address,

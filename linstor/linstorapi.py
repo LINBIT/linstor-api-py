@@ -529,7 +529,8 @@ class Linstor(object):
                     "name": netif_name,
                     "address": ip,
                     "satellite_port": port,
-                    "satellite_encryption_type": com_type
+                    "satellite_encryption_type": com_type,
+                    "is_active": True
                 }
             ]
         }
@@ -597,7 +598,7 @@ class Linstor(object):
             replies += self._rest_request(apiconsts.API_NODE_RECONNECT, "PUT", "/v1/nodes/" + node_name + "/reconnect")
         return replies
 
-    def netinterface_create(self, node_name, interface_name, ip, port=None, com_type=None):
+    def netinterface_create(self, node_name, interface_name, ip, port=None, com_type=None, is_active=False):
         """
         Create a netinterface for a given node.
 
@@ -606,6 +607,7 @@ class Linstor(object):
         :param str ip: IP address of the interface.
         :param int port: Port of the interface
         :param str com_type: Communication type to use on the interface.
+        :param bool is_active: True if the net interface should become the active satellite connection
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -618,9 +620,11 @@ class Linstor(object):
             body["satellite_port"] = port
             body["satellite_encryption_type"] = com_type
 
+        body["is_active"] = is_active
+
         return self._rest_request(apiconsts.API_CRT_NET_IF, "POST", "/v1/nodes/" + node_name + "/net-interfaces", body)
 
-    def netinterface_modify(self, node_name, interface_name, ip=None, port=None, com_type=None):
+    def netinterface_modify(self, node_name, interface_name, ip=None, port=None, com_type=None, is_active=False):
         """
         Modify a netinterface on the given node.
 
@@ -629,12 +633,11 @@ class Linstor(object):
         :param str ip: New IP address of the netinterface
         :param int port: New Port of the netinterface
         :param str com_type: New communication type of the netinterface
+        :param bool is_active: True if the net interface should become the active satellite connection
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        body = {
-            "name": interface_name,
-        }
+        body = {"name": interface_name}
 
         if ip:
             body["address"] = ip
@@ -642,6 +645,8 @@ class Linstor(object):
         if port:
             body["satellite_port"] = port
             body["satellite_encryption_type"] = com_type
+
+        body["is_active"] = is_active
 
         return self._rest_request(
             apiconsts.API_CRT_NET_IF,
