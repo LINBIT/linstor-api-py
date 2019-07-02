@@ -613,7 +613,7 @@ class Linstor(object):
         """
         body = {
             "name": interface_name,
-            "address": ip,
+            "address": ip
         }
 
         if port:
@@ -668,6 +668,17 @@ class Linstor(object):
             "DELETE",
             "/v1/nodes/" + node_name + "/net-interfaces/" + interface_name
         )
+
+    # unused
+    def net_interface_list(self, node_name):
+        """
+        Request a list of all netinterfaces of a node known to the controller.
+
+        :param str node_name: Name of the node.
+        :return: A REST message containing all information.
+        :rtype: list[RESTMessageResponse]
+        """
+        return self._rest_request(apiconsts.API_LST_NET_IF, "GET", "/v1/nodes/" + node_name + "/net-interfaces")
 
     def node_list(self):
         """
