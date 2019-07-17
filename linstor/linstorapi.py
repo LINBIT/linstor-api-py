@@ -7,6 +7,8 @@ import socket
 import time
 import json
 import zlib
+import ssl
+import base64
 from datetime import datetime
 from distutils.version import StrictVersion
 
@@ -26,9 +28,9 @@ except ImportError:
     from urllib.parse import urlencode
 
 try:
-    from httplib import HTTPConnection, BadStatusLine
+    from httplib import HTTPConnection, HTTPSConnection, BadStatusLine
 except ImportError:
-    from http.client import HTTPConnection, BadStatusLine
+    from http.client import HTTPConnection, HTTPSConnection, BadStatusLine
 
 import linstor.sharedconsts as apiconsts
 
@@ -117,6 +119,7 @@ class Linstor(object):
     }
 
     REST_PORT = 3370
+    REST_HTTPS_PORT = 3371
 
     def __init__(self, ctrl_host, timeout=300, keep_alive=False):
         self._ctrl_host = ctrl_host
@@ -127,6 +130,9 @@ class Linstor(object):
         self._connected = False
         self._mode_curl = False
         self._ctrl_version = None
+        self._username = None
+        self._password = None
+        self._allow_insecure = False
 
         self._http_headers = {
             "User-Agent": "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN),
@@ -144,14 +150,44 @@ class Linstor(object):
     def __exit__(self, type, value, traceback):
         self.disconnect()
 
+    @property
+    def username(self):
+        return self._username
+
+    @username.setter
+    def username(self, username):
+        self._username = username
+
+    @property
+    def password(self):
+        return self._password
+
+    @password.setter
+    def password(self, password):
+        self._password = password
+
+    @property
+    def allow_insecure(self):
+        return self._allow_insecure
+
+    @allow_insecure.setter
+    def allow_insecure(self, val):
+        self._allow_insecure = val
+
     def __output_curl_command(self, method, path, body):
         url = urlparse(self._ctrl_host)
         cmd = ["curl", "-X", method]
         if body is not None:
             cmd += ['-H "Content-Type: application/json"']
             cmd += ["-d '" + json.dumps(body) + "'"]
-        port = url.port if url.port else self.REST_PORT
-        cmd += ["http://" + url.hostname + ":" + str(port) + path]
+
+        port = url.port if url.port else Linstor.REST_PORT
+        is_https = True if url.scheme == "linstor+ssl" else False
+
+        port = port if not is_https else Linstor.REST_HTTPS_PORT
+
+        scheme = "https" if is_https else "http"
+        cmd += [scheme + "://" + url.hostname + ":" + str(port) + path]
         print(" ".join(cmd))
 
     @classmethod
@@ -193,11 +229,16 @@ class Linstor(object):
             return []
 
         try:
+            headers = {}
+            headers.update(self._http_headers)
+            if self.username:
+                auth_token = self.username + ":" + self.password
+                headers["Authorization"] = "Basic " + base64.b64encode(auth_token.encode()).decode()
             self._rest_conn.request(
                 method=method,
                 url=path,
                 body=json.dumps(body) if body is not None else None,
-                headers=self._http_headers
+                headers=headers
             )
         except socket.error as err:
             raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=self._ctrl_host, err=err))
@@ -242,7 +283,7 @@ class Linstor(object):
         except ValueError as ve:
             raise LinstorError(
                 "Unable to parse REST json data: " + str(ve) + "\n"
-                "Request-Uri: " + path
+                "Request-Uri: " + path + "; Status: " + str(response.status)
             )
 
         response_list = []
@@ -341,6 +382,28 @@ class Linstor(object):
             msg.delete_prop_keys.extend(delete_props)
         return msg
 
+    @classmethod
+    def has_linstor_https(cls, hostname, port):
+        """
+        Returns the redirect https port.
+
+        :param hostname: hostname/ip of the linstor server
+        :param port: http port to check for redirect
+        :return: The https port of linstor if enabled, otherwise 0
+        :rtype: int
+        """
+        conn = HTTPConnection(hostname, port, timeout=3)
+        try:
+            conn.connect()
+            conn.request("GET", "/v1/controller/version")
+            response = conn.getresponse()
+            if response.status == 302:
+                https_url = urlparse(response.getheader("Location"))
+                return https_url.port
+        except socket.error:
+            return 0
+        return 0
+
     def connect(self):
         """
         Connects the internal linstor network client.
@@ -352,7 +415,30 @@ class Linstor(object):
             return True
         url = urlparse(self._ctrl_host)
         port = url.port if url.port else Linstor.REST_PORT
-        self._rest_conn = HTTPConnection(host=url.hostname, port=port, timeout=self._timeout)
+        is_https = False
+
+        if url.scheme == "linstor+ssl" or url.scheme == "https":
+            is_https = True
+            if url.port is None:
+                port = Linstor.REST_HTTPS_PORT
+        else:
+            https_port = self.has_linstor_https(url.hostname, port)
+            if https_port:
+                is_https = True
+                port = https_port
+
+        if is_https:
+            self._rest_conn = HTTPSConnection(
+                host=url.hostname,
+                port=port,
+                timeout=self._timeout,
+                context=ssl._create_unverified_context()
+            )
+        else:
+            if self.username and not self.allow_insecure:
+                raise LinstorNetworkError("Password authentication with HTTP not allowed, until explicitly enabled.")
+            self._rest_conn = HTTPConnection(host=url.hostname, port=port, timeout=self._timeout)
+
         try:
             self._rest_conn.connect()
             self._ctrl_version = self.controller_version()
@@ -376,6 +462,16 @@ class Linstor(object):
         :return: True if connected, else False.
         """
         return self._connected
+
+    @property
+    def is_secure_connection(self):
+        """
+        Returns True if the connection to linstor uses HTTPS.
+
+        :return: True if using https else False
+        :rtype: bool
+        """
+        return isinstance(self._rest_conn, HTTPSConnection)
 
     def disconnect(self):
         """
@@ -1510,12 +1606,16 @@ class Linstor(object):
         :return: Controller info string or None if not connected.
         :rtype: str
         """
-        cversion = self._rest_request(
+        cversion_list = self._rest_request(
             apiconsts.API_VERSION,
             "GET", "/v1/controller/version"
-        )[0]  # type: ControllerVersion
+        ) # type: list[ControllerVersion]
 
-        return "LINSTOR,Controller," + cversion.version + "," + cversion.git_hash + "," + cversion.build_time
+        if cversion_list:
+            cversion = cversion_list[0]
+
+            return "LINSTOR,Controller," + cversion.version + "," + cversion.git_hash + "," + cversion.build_time
+        return None
 
     def controller_version(self):
         """
