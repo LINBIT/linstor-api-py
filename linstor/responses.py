@@ -354,6 +354,8 @@ class StoragePoolDriver(object):
     Diskless = "DISKLESS"
     SwordfishTarget = "SWORDFISH_TARGET"
     SwordfishInitiator = "SWORDFISH_INITIATOR"
+    FILE = "FILE"
+    FILEThin = "FILE_THIN"
 
     @staticmethod
     def list():
@@ -364,7 +366,9 @@ class StoragePoolDriver(object):
             StoragePoolDriver.ZFSThin,
             StoragePoolDriver.Diskless,
             StoragePoolDriver.SwordfishTarget,
-            StoragePoolDriver.SwordfishInitiator
+            StoragePoolDriver.SwordfishInitiator,
+            StoragePoolDriver.FILE,
+            StoragePoolDriver.FILEThin
         ]
 
     @classmethod
@@ -404,6 +408,11 @@ class StoragePoolDriver(object):
 
         if storage_driver == StoragePoolDriver.ZFSThin:
             return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN: driver_pool_name}
+
+        if storage_driver in [
+                StoragePoolDriver.FILE,
+                StoragePoolDriver.FILEThin]:
+            return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_FILE_DIRECTORY: driver_pool_name}
 
         raise LinstorError(
             "Unknown storage driver '{drv}', known drivers: "
