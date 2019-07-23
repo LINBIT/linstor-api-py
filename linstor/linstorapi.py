@@ -483,6 +483,18 @@ class Linstor(object):
         if self._rest_conn:
             self._rest_conn.close()
 
+    def _require_node_is_active(self, net_interface, value=True):
+        """
+        Adds 'is_active' property if supported by controller.
+
+        :param dict[str, Any] net_interface:
+        :param bool value: Value for is_active
+        :return:
+        """
+        # is_active is added with API 1.0.7, before active stlt conn was set via property
+        if self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) >= StrictVersion("1.0.7"):
+            net_interface["is_active"] = value
+
     def node_create(
             self,
             node_name,
@@ -529,11 +541,12 @@ class Linstor(object):
                     "name": netif_name,
                     "address": ip,
                     "satellite_port": port,
-                    "satellite_encryption_type": com_type,
-                    "is_active": True
+                    "satellite_encryption_type": com_type
                 }
             ]
         }
+
+        self._require_node_is_active(body["net_interfaces"][0])
 
         return self._rest_request(apiconsts.API_CRT_NODE, "POST", "/v1/nodes", body)
 
@@ -620,7 +633,7 @@ class Linstor(object):
             body["satellite_port"] = port
             body["satellite_encryption_type"] = com_type
 
-        body["is_active"] = is_active
+        self._require_node_is_active(body, is_active)
 
         return self._rest_request(apiconsts.API_CRT_NET_IF, "POST", "/v1/nodes/" + node_name + "/net-interfaces", body)
 
@@ -646,7 +659,7 @@ class Linstor(object):
             body["satellite_port"] = port
             body["satellite_encryption_type"] = com_type
 
-        body["is_active"] = is_active
+        self._require_node_is_active(body, is_active)
 
         return self._rest_request(
             apiconsts.API_CRT_NET_IF,
