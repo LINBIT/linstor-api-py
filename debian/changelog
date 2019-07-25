@@ -1,3 +1,22 @@
+python-linstor (0.9.9-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * linstorapi/snapshot_create: async_msg wasn't optional
+  * linstorapi: add _raise versions of all *_list methods + update docstrings
+  * linstorapi: HTTPS and auth support
+  * netinterface: make linstorapi compatible with pre 1.0.7 API
+
+  [ Gabor Hernadi ]
+  * Add FILE and FILE_THIN providers
+
+  [ Rainer Laschober ]
+  * Make argument 'ip' of 'n i m' optional
+  * Add new connection status
+  * Allow node to set active stlt conn on netIf crt or mod
+  * Add api-function for listing net interfaces
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 25 Jul 2019 09:15:53 +0200
+
 python-linstor (0.9.8-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
