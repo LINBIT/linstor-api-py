@@ -241,7 +241,7 @@ class Linstor(object):
                 headers=headers
             )
         except socket.error as err:
-            raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=self._ctrl_host, err=err))
+            raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=self._ctrl_host, err=err))
 
         try:
             response = self._rest_conn.getresponse()
@@ -451,7 +451,7 @@ class Linstor(object):
                 )
             self._connected = True
         except socket.error as err:
-            raise LinstorNetworkError("Unable connecting to {hp}: {err}".format(hp=self._ctrl_host, err=err))
+            raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=self._ctrl_host, err=err))
         return True
 
     @property
