@@ -9,6 +9,7 @@ import json
 import zlib
 import ssl
 import base64
+import re
 from datetime import datetime
 from distutils.version import StrictVersion
 
@@ -18,6 +19,7 @@ from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, 
 from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
 from .responses import RESTMessageResponse, SnapshotResponse, ControllerProperties
 from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
+from .responses import ResourceGroupResponse, VolumeGroupResponse
 from . import VERSION
 from .size_calc import SizeCalc
 
@@ -106,6 +108,8 @@ class Linstor(object):
         apiconsts.API_LST_NODE: NodeListResponse,
         apiconsts.API_LST_STOR_POOL: StoragePoolListResponse,
         apiconsts.API_LST_RSC_DFN: ResourceDefinitionResponse,
+        apiconsts.API_LST_RSC_GRP: ResourceGroupResponse,
+        apiconsts.API_LST_VLM_GRP: VolumeGroupResponse,
         apiconsts.API_LST_VLM_DFN: VolumeDefinitionResponse,
         apiconsts.API_LST_RSC: ResourceResponse,
         apiconsts.API_LST_VLM: VolumeResponse,
@@ -1033,6 +1037,298 @@ class Linstor(object):
         """
         return StoragePoolDriver.list()
 
+    def resource_group_create(
+            self,
+            name,
+            description=None,
+            place_count=None,
+            storage_pool=None,
+            do_not_place_with=None,
+            do_not_place_with_regex=None,
+            replicas_on_same=None,
+            replicas_on_different=None,
+            diskless_on_remaining=None,
+            layer_list=None,
+            provider_list=None,
+            property_dict=None
+    ):
+        """
+        Create resource group with values.
+
+        :param str name: Name of the resource group to modify.
+        :param str description: description for the resource group.
+        :param int place_count: Number of placements, on how many different nodes
+        :param str storage_pool: Storage pool to use
+        :param list[str] do_not_place_with: Do not place with resource names in this list
+        :param str do_not_place_with_regex: A regex string that rules out resources
+        :param list[str] replicas_on_same: A list of node property names, their values should match
+        :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
+        :param list[str] layer_list: Define layers for the resource
+        :param list[str] provider_list: Filter provider kinds
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.8")
+        body = {
+            "name": name
+        }
+
+        if description:
+            body["description"] = description
+
+        if property_dict:
+            body["props"] = property_dict
+
+        self._set_select_filter_body(
+            body,
+            place_count=place_count,
+            storage_pool=storage_pool,
+            do_not_place_with=do_not_place_with,
+            do_not_place_with_regex=do_not_place_with_regex,
+            replicas_on_same=replicas_on_same,
+            replicas_on_different=replicas_on_different,
+            diskless_on_remaining=diskless_on_remaining,
+            layer_list=layer_list,
+            provider_list=provider_list
+        )
+
+        return self._rest_request(
+            apiconsts.API_CRT_RSC_GRP,
+            "POST", "/v1/resource-groups",
+            body
+        )
+
+    def resource_group_modify(
+            self,
+            name,
+            description=None,
+            place_count=None,
+            storage_pool=None,
+            do_not_place_with=None,
+            do_not_place_with_regex=None,
+            replicas_on_same=None,
+            replicas_on_different=None,
+            diskless_on_remaining=None,
+            layer_list=None,
+            provider_list=None,
+            property_dict=None,
+            delete_props=None):
+        """
+        Modify the given resource group.
+
+        :param str name: Name of the resource group to modify.
+        :param str description: description for the resource group.
+        :param int place_count: Number of placements, on how many different nodes
+        :param str storage_pool: Storage pool to use
+        :param list[str] do_not_place_with: Do not place with resource names in this list
+        :param str do_not_place_with_regex: A regex string that rules out resources
+        :param list[str] replicas_on_same: A list of node property names, their values should match
+        :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
+        :param list[str] layer_list: Define layers for the resource
+        :param list[str] provider_list: Filter provider kinds
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param list[str] delete_props: List of properties to delete
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.8")
+        body = {}
+
+        if description is not None:
+            body["description"] = description
+
+        self._set_select_filter_body(
+            body,
+            place_count=place_count,
+            storage_pool=storage_pool,
+            do_not_place_with=do_not_place_with,
+            do_not_place_with_regex=do_not_place_with_regex,
+            replicas_on_same=replicas_on_same,
+            replicas_on_different=replicas_on_different,
+            diskless_on_remaining=diskless_on_remaining,
+            layer_list=layer_list,
+            provider_list=provider_list
+        )
+
+        if property_dict:
+            body["override_props"] = property_dict
+
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_RSC_GRP,
+            "PUT", "/v1/resource-groups/" + name,
+            body
+        )
+
+    def resource_group_delete(self, name):
+        """
+        Delete a given resource group.
+
+        :param str name: Resource group name to delete.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.8")
+        return self._rest_request(apiconsts.API_DEL_RSC_GRP, "DELETE", "/v1/resource-groups/" + name)
+
+    def resource_group_list_raise(self):
+        """
+        Request a list of all resource groups known to the controller.
+
+        :return: A ResourceGroupResponse object
+        :rtype: ResourceGroupResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        self._require_version("1.0.8")
+        list_res = self._rest_request(apiconsts.API_LST_RSC_GRP, "GET", "/v1/resource-groups")
+
+        if list_res:
+            if isinstance(list_res[0], ResourceGroupResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
+
+    def resource_group_spawn(self, rsc_grp_name, rsc_dfn_name, vlm_sizes, partial=False, definitions_only=False):
+        """
+        Spawns resource for the given resource group.
+
+        :param str rsc_grp_name: Name of the resource group to spawn from.
+        :param str rsc_dfn_name: Name of the new resource definition.
+        :param list[str] vlm_sizes: Volume definitions to spawn
+        :param bool partial: If false, the length of the vlm_sizes has to match the number of volume-groups or an
+                             error is returned.
+        :param bool definitions_only: Do not auto place resource, just create the definitions
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.8")
+        vlm_sizes_int = []
+        for size in vlm_sizes:
+            if isinstance(size, int):
+                vlm_sizes_int.append(size)
+            elif isinstance(size, str):
+                vlm_sizes_int.append(self.parse_volume_size_to_kib(size))
+            else:
+                raise LinstorError("Volume size has no valid type: " + str(size))
+
+        body = {
+            "resource_definition_name": rsc_dfn_name,
+            "volume_sizes": vlm_sizes_int,
+            "partial": partial,
+            "definitions_only": definitions_only
+        }
+        return self._rest_request(
+            apiconsts.API_SPAWN_RSC_DFN,
+            "POST",
+            "/v1/resource-groups/" + rsc_grp_name + "/spawn",
+            body
+        )
+
+    def volume_group_create(
+            self,
+            resource_grp_name,
+            volume_nr=None,
+            property_dict=None
+    ):
+        """
+        Create a volume group.
+
+        :param str resource_grp_name: Name of the resource group.
+        :param int volume_nr: Volume number to set, might be None.
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.8")
+        body = {}
+
+        if volume_nr is not None:
+            body["volume_number"] = volume_nr
+
+        if property_dict:
+            body["props"] = property_dict
+
+        return self._rest_request(
+            apiconsts.API_CRT_VLM_GRP,
+            "POST", "/v1/resource-groups/" + str(resource_grp_name) + "/volume-groups",
+            body
+        )
+
+    def volume_group_modify(
+            self,
+            resource_grp_name,
+            volume_nr,
+            property_dict=None,
+            delete_props=None):
+        """
+        Modify properties of the given volume group.
+
+        :param str resource_grp_name: Name of the resource group to modify.
+        :param int volume_nr: Volume number to edit.
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param list[str] delete_props: List of properties to delete
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.8")
+        body = {}
+
+        if property_dict:
+            body["override_props"] = property_dict
+
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_VLM_GRP,
+            "PUT", "/v1/resource-groups/" + resource_grp_name + "/volume-groups/" + str(volume_nr),
+            body
+        )
+
+    def volume_group_delete(self, resource_grp_name, volume_nr):
+        """
+        Delete a given resource group.
+
+        :param str resource_grp_name: Resource group name.
+        :param int volume_nr: Volume nr to delete.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.8")
+        return self._rest_request(
+            apiconsts.API_DEL_VLM_GRP,
+            "DELETE",
+            "/v1/resource-groups/" + resource_grp_name + "/volume-groups/" + str(volume_nr)
+        )
+
+    def volume_group_list_raise(self, resource_grp_name):
+        """
+        Request a list of all resource groups known to the controller.
+
+        :return: A VolumeGroupResponse object
+        :rtype: VolumeGroupResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        self._require_version("1.0.8")
+        list_res = self._rest_request(
+            apiconsts.API_LST_VLM_GRP,
+            "GET",
+            "/v1/resource-groups/" + resource_grp_name + "/volume-groups"
+        )
+
+        if list_res:
+            if isinstance(list_res[0], VolumeGroupResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
+
     def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None):
         """
         Creates a resource definition.
@@ -1306,6 +1602,48 @@ class Linstor(object):
             body
         )
 
+    @classmethod
+    def _set_select_filter_body(
+            cls,
+            body,
+            place_count,
+            storage_pool,
+            do_not_place_with,
+            do_not_place_with_regex,
+            replicas_on_same,
+            replicas_on_different,
+            diskless_on_remaining,
+            layer_list,
+            provider_list
+    ):
+        if "select_filter" not in body:
+            body["select_filter"] = {}
+
+        if place_count is not None:
+            body["select_filter"]["place_count"] = place_count
+
+        if diskless_on_remaining is not None:
+            body["select_filter"]["diskless_on_remaining"] = diskless_on_remaining
+
+        if storage_pool:
+            body["select_filter"]["storage_pool"] = storage_pool
+        if do_not_place_with:
+            body["select_filter"]["not_place_with_rsc"] = do_not_place_with
+        if do_not_place_with_regex:
+            body["select_filter"]["not_place_with_rsc_regex"] = do_not_place_with_regex
+        if replicas_on_same:
+            body["select_filter"]["replicas_on_same"] = replicas_on_same
+        if replicas_on_different:
+            body["select_filter"]["replicas_on_different"] = replicas_on_different
+
+        if layer_list:
+            body["layer_list"] = layer_list
+            body["select_filter"]["layer_stack"] = layer_list
+
+        if provider_list:
+            body["select_filter"]["provider_list"] = provider_list
+        return body
+
     def resource_auto_place(
             self,
             rsc_name,
@@ -1338,29 +1676,21 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
         body = {
-            "select_filter": {
-                "place_count": place_count
-            },
             "diskless_on_remaining": diskless_on_remaining
         }
 
-        if storage_pool:
-            body["select_filter"]["storage_pool"] = storage_pool
-        if do_not_place_with:
-            body["select_filter"]["not_place_with_rsc"] = do_not_place_with
-        if do_not_place_with_regex:
-            body["select_filter"]["not_place_with_rsc_regex"] = do_not_place_with_regex
-        if replicas_on_same:
-            body["select_filter"]["replicas_on_same"] = replicas_on_same
-        if replicas_on_different:
-            body["select_filter"]["replicas_on_different"] = replicas_on_different
-
-        if layer_list:
-            body["layer_list"] = layer_list
-            body["select_filter"]["layer_stack"] = layer_list
-
-        if provider_list:
-            body["select_filter"]["provider_list"] = provider_list
+        self._set_select_filter_body(
+            body,
+            place_count=place_count,
+            storage_pool=storage_pool,
+            do_not_place_with=do_not_place_with,
+            do_not_place_with_regex=do_not_place_with_regex,
+            replicas_on_same=replicas_on_same,
+            replicas_on_different=replicas_on_different,
+            diskless_on_remaining=diskless_on_remaining,
+            layer_list=layer_list,
+            provider_list=provider_list
+        )
 
         return self._rest_request(
             apiconsts.API_AUTO_PLACE_RSC,

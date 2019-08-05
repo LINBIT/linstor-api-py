@@ -861,6 +861,175 @@ class ResourceDefinitionResponse(RESTMessageResponse):
         }
 
 
+class SelectFilter(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(SelectFilter, self).__init__(rest_data)
+
+    @property
+    def place_count(self):
+        return self._rest_data.get("place_count")
+
+    @property
+    def diskless_on_remaining(self):
+        return self._rest_data.get("diskless_on_remaining", False)
+
+    @property
+    def storage_pool(self):
+        return self._rest_data.get("storage_pool")
+
+    @property
+    def not_place_with_rsc(self):
+        return self._rest_data.get("not_place_with_rsc")
+
+    @property
+    def not_place_with_rsc_regex(self):
+        return self._rest_data.get("not_place_with_rsc_regex")
+
+    @property
+    def replicas_on_same(self):
+        return self._rest_data.get("replicas_on_same")
+
+    @property
+    def replicas_on_different(self):
+        return self._rest_data.get("replicas_on_different")
+
+    @property
+    def layer_stack(self):
+        return self._rest_data.get("layer_stack")
+
+    @property
+    def provider_list(self):
+        return self._rest_data.get("provider_list")
+
+    def __str__(self):
+        fields = []
+        if self.place_count:
+            fields.append("PlaceCount: " + str(self.place_count))
+
+        if self.storage_pool:
+            fields.append("StoragePool: " + str(self.storage_pool))
+
+        if "diskless_on_remaining" in self._rest_data:
+            fields.append("DisklessOnRemaining: " + str(self.diskless_on_remaining))
+
+        if self.not_place_with_rsc:
+            fields.append("NotPlaceWithRsc: " + str(self.not_place_with_rsc))
+
+        if self.not_place_with_rsc_regex:
+            fields.append("NotPlaceWithRscRegex: " + str(self.not_place_with_rsc_regex))
+
+        if self.replicas_on_same:
+            fields.append("ReplicasOnSame: " + str(self.replicas_on_same))
+
+        if self.replicas_on_different:
+            fields.append("ReplicasOnDifferent: " + str(self.replicas_on_different))
+
+        if self.layer_stack:
+            fields.append("LayerStack: " + str(self.layer_stack))
+
+        if self.provider_list:
+            fields.append("ProviderList: " + str(self.provider_list))
+        return "\n".join(fields)
+
+
+class ResourceGroup(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ResourceGroup, self).__init__(rest_data)
+
+    @property
+    def name(self):
+        """
+        Resource group name.
+
+        :return: Resource group name
+        :rtype: str
+        """
+        return self._rest_data["name"]
+
+    @property
+    def description(self):
+        """
+        Resource group description.
+
+        :return: Group description
+        :rtype: str
+        """
+        return self._rest_data.get("description", "")
+
+    @property
+    def properties(self):
+        """
+        Resource group properties.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return self._rest_data.get("props", {})
+
+    @property
+    def select_filter(self):
+        """
+        Returns the select filter for the resource group.
+
+        :return: Select filter class
+        :rtype: SelectFilter
+        """
+        return SelectFilter(self._rest_data.get("select_filter", {}))
+
+
+class ResourceGroupResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ResourceGroupResponse, self).__init__(rest_data)
+
+    @property
+    def resource_groups(self):
+        """
+        List of resource groups
+        :return: List of resource groups
+        :rtype: list[ResourceGroup]
+        """
+        return [ResourceGroup(x) for x in self._rest_data]
+
+
+class VolumeGroup(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(VolumeGroup, self).__init__(rest_data)
+
+    @property
+    def number(self):
+        """
+        Volume number
+
+        :return: volume number
+        :rtype: int
+        """
+        return self._rest_data["volume_number"]
+
+    @property
+    def properties(self):
+        """
+        Volume group properties.
+
+        :return: Property map
+        :rtype: dict[str, str]
+        """
+        return self._rest_data.get("props", {})
+
+
+class VolumeGroupResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(VolumeGroupResponse, self).__init__(rest_data)
+
+    @property
+    def volume_groups(self):
+        """
+        List of volume groups
+        :return: List of volume groups
+        :rtype: list[VolumeGroup]
+        """
+        return [VolumeGroup(x) for x in self._rest_data]
+
+
 class VolumeState(RESTMessageResponse):
     def __init__(self, data):
         super(VolumeState, self).__init__(data)
