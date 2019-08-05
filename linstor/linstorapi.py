@@ -12,13 +12,14 @@ import base64
 from datetime import datetime
 from distutils.version import StrictVersion
 
-from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError
+from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError, LinstorArgumentError
 from .responses import ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
 from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
 from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
 from .responses import RESTMessageResponse, SnapshotResponse, ControllerProperties
 from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from . import VERSION
+from .size_calc import SizeCalc
 
 try:
     from urlparse import urlparse
@@ -193,6 +194,42 @@ class Linstor(object):
     @classmethod
     def _current_milli_time(cls):
         return int(round(time.time() * 1000))
+
+    @classmethod
+    def parse_volume_size_to_kib(cls, size_str):
+        """
+        Parses a string e.g. "1g" to computer size units and return KiB
+
+        :param str size_str: string to parse
+        :return: KiB of the parsed string
+        :rtype: int
+        :raises LinstorArgumentError: If string can not be parsed as number
+        """
+        m = re.match(r'(\d+)(\D*)', size_str)
+
+        size = 0
+        try:
+            size = int(m.group(1))
+        except AttributeError:
+            raise LinstorArgumentError("Size '{s}' is not a valid number".format(s=size_str))
+
+        unit_str = m.group(2)
+        if unit_str == "":
+            unit_str = "GiB"
+        try:
+            _, unit = SizeCalc.UNITS_MAP[unit_str.lower()]
+        except KeyError:
+            raise LinstorArgumentError(
+                '"%s" is not a valid unit!\nValid units: %s' % (unit_str, SizeCalc.UNITS_LIST_STR)
+            )
+
+        _, unit = SizeCalc.UNITS_MAP[unit_str.lower()]
+
+        if unit != SizeCalc.UNIT_KiB:
+            size = SizeCalc.convert_round_up(size, unit,
+                                             SizeCalc.UNIT_KiB)
+
+        return size
 
     @classmethod
     def _decode_response_data(cls, response):

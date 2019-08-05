@@ -46,6 +46,14 @@ class LinstorApiCallError(LinstorError):
         super(LinstorApiCallError, self).__init__(str(apicallresponse), more_errors)
 
 
+class LinstorArgumentError(LinstorError):
+    """
+    Linstor error if an argument for a function call is invalid.
+    """
+    def __init__(self, msg, more_errors=None):
+        super(LinstorArgumentError, self).__init__(msg, more_errors)
+
+
 class LinstorReadOnlyAfterSetError(LinstorError):
     """
     Linstor error raised if a property that is only allowed to be set once, is re-set.
