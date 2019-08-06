@@ -812,6 +812,16 @@ class ResourceDefinition(RESTMessageResponse):
         """
         return [VolumeDefinition(x) for x in self._volume_definitions]
 
+    @property
+    def resource_group_name(self):
+        """
+        Returns the resource group name linked to the resource.
+
+        :return: Name of the resource group this resource belongs too.
+        :rtype: str
+        """
+        return self._rest_data.get("resource_group_name", "")
+
 
 class ResourceDefinitionResponse(RESTMessageResponse):
     def __init__(self, rest_data):
