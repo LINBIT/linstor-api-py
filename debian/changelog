@@ -1,3 +1,17 @@
+python-linstor (1.0.0-1) experimental; urgency=medium
+
+  [ Hayley Swimelar ]
+  * Unable to connect message grammar is incorrect
+
+  [ Rene Peinthor ]
+  * linstorapi: add parse_volume_size and LinstorArgumentError
+  * linstorapi: add resource_group and volume_group methods
+  * responses/ResourceDefinition: add resource_group_name property
+  * linstorapi/rscdfn: rscdfn create allow linking of a specific rsc grp
+  * update to latest linstor-common
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 08 Aug 2019 10:54:15 +0200
+
 python-linstor (0.9.9-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
