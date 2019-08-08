@@ -1329,7 +1329,7 @@ class Linstor(object):
             raise LinstorApiCallError(list_res[0])
         raise LinstorError("No list response received.")
 
-    def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None):
+    def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None, resource_group=None):
         """
         Creates a resource definition.
 
@@ -1337,6 +1337,7 @@ class Linstor(object):
         :param int port: Port the resource definition should use.
         :param list[str] layer_list: Set of layer names to use.
         :param str external_name: Unicode string of the user specified name.
+        :param str resource_group: Name of the resource group the definition should be linked to.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1355,6 +1356,9 @@ class Linstor(object):
             body["resource_definition"]["layer_data"] = []
             for layer in layer_list:
                 body["resource_definition"]["layer_data"].append({"type": layer})
+
+        if resource_group:
+            body["resource_definition"]["resource_group_name"] = resource_group
 
         return self._rest_request(
             apiconsts.API_CRT_RSC_DFN,
