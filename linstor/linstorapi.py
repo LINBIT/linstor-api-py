@@ -137,6 +137,9 @@ class Linstor(object):
         self._ctrl_version = None
         self._username = None
         self._password = None
+        self._certfile = None
+        self._keyfile = None
+        self._cafile = None
         self._allow_insecure = False
 
         self._http_headers = {
@@ -170,6 +173,30 @@ class Linstor(object):
     @password.setter
     def password(self, password):
         self._password = password
+
+    @property
+    def certfile(self):
+        return self._certfile
+
+    @certfile.setter
+    def certfile(self, certfile):
+        self._certfile = certfile
+
+    @property
+    def keyfile(self):
+        return self._keyfile
+
+    @keyfile.setter
+    def keyfile(self, keyfile):
+        self._keyfile = keyfile
+
+    @property
+    def cafile(self):
+        return self._cafile
+
+    @cafile.setter
+    def cafile(self, cafile):
+        self._cafile = cafile
 
     @property
     def allow_insecure(self):
@@ -469,11 +496,19 @@ class Linstor(object):
                 port = https_port
 
         if is_https:
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+            if self._certfile or self._keyfile:
+                context.load_cert_chain(self._certfile, self._keyfile)
+            if self._cafile:
+                context.load_verify_locations(self._cafile)
+                context.verify_mode = ssl.CERT_REQUIRED
+                context.check_hostname = True
+
             self._rest_conn = HTTPSConnection(
                 host=url.hostname,
                 port=port,
                 timeout=self._timeout,
-                context=ssl._create_unverified_context()
+                context=context
             )
         else:
             if self.username and not self.allow_insecure:
