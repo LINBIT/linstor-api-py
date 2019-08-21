@@ -522,7 +522,8 @@ class StoragePool(RESTMessageResponse):
         return self._rest_data.get("free_space_mgr_name")
 
     def supports_snapshots(self):
-        return self.static_traits.get("SupportsSnapshots", "false") == "true"
+        sup_snaps = self._rest_data.get("supports_snapshots")
+        return self.static_traits.get("SupportsSnapshots", "false") == "true" if sup_snaps is None else sup_snaps
 
     def is_thin(self):
         return self.static_traits.get("Provisioning", "") == "Thin"
