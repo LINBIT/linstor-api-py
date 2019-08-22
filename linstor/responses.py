@@ -278,6 +278,22 @@ class Node(RESTMessageResponse):
         return [NetInterface(x) for x in self._rest_data.get("net_interfaces", [])]
 
     @property
+    def storage_providers(self):
+        return self._rest_data.get("storage_providers", [])
+
+    @property
+    def resource_layers(self):
+        return self._rest_data.get("resource_layers", [])
+
+    @property
+    def unsupported_providers(self):
+        return self._rest_data.get("unsupported_providers", {})
+
+    @property
+    def unsupported_layers(self):
+        return self._rest_data.get("unsupported_layers", {})
+
+    @property
     def props(self):
         return self._rest_data.get("props", {})
 
