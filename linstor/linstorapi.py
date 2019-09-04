@@ -1456,7 +1456,8 @@ class Linstor(object):
                     "GET",
                     "/v1/resource-definitions/" + rsc_dfn.name + "/volume-definitions"
                 )
-                rsc_dfns_resp[0].set_volume_definition_data(rsc_dfn.name, vlm_dfn[0].rest_data)
+                if vlm_dfn and isinstance(vlm_dfn[0], VolumeDefinitionResponse):
+                    rsc_dfns_resp[0].set_volume_definition_data(rsc_dfn.name, vlm_dfn[0].rest_data)
 
         return rsc_dfns_resp
 
@@ -2374,7 +2375,7 @@ class Linstor(object):
                 apiconsts.API_LST_SNAPSHOT_DFN,
                 "GET", "/v1/resource-definitions/" + rsc_dfn.name + "/snapshots"
             )
-            if snapshots:
+            if snapshots and isinstance(snapshots[0], SnapshotResponse):
                 result += snapshots[0]._rest_data
         return [SnapshotResponse(result)]
 
