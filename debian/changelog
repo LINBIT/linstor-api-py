@@ -1,3 +1,16 @@
+python-linstor (1.0.2-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * responses: support new supports_snapshots field
+  * linstorapi: fix race conditions if rsc_dfns are deleted
+  * responses: Fix snapshots flags access if null
+  * resource-api: Do not delete all snapshots if only deleted on a node
+
+  [ Beorn Facchini ]
+  * Add SSL context for client auth
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 10 Sep 2019 14:13:03 +0200
+
 python-linstor (1.0.0-1) experimental; urgency=medium
 
   [ Hayley Swimelar ]
