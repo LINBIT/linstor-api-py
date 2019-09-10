@@ -711,7 +711,7 @@ class Resource(object):
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             self._lin = lin
 
-            if snapshots:
+            if snapshots and node_name is None:  # only remove snapshots if resource definition will be deleted
                 snapshot_list = lin.snapshot_dfn_list()[0]  # type: linstor.responses.SnapshotResponse
                 for snap in [x for x in snapshot_list.snapshots if x.rsc_name.lower() == self._linstor_name.lower()]:
                     lin.snapshot_delete(rsc_name=self._linstor_name, snapshot_name=snap.snapshot_name)
