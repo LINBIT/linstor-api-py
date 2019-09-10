@@ -1557,7 +1557,7 @@ class SnapshotDefinition(RESTMessageResponse):
 
     @property
     def flags(self):
-        return self._rest_data["flags"]
+        return self._rest_data.get("flags", [])
 
     @property
     def snapshot_volume_definitions(self):
