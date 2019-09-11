@@ -1,3 +1,10 @@
+python-linstor (1.0.3-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * linstorapi: fix ssl error on python < 2.7.13
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 11 Sep 2019 11:26:45 +0200
+
 python-linstor (1.0.2-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
