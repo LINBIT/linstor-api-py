@@ -496,7 +496,7 @@ class Linstor(object):
                 port = https_port
 
         if is_https:
-            context = ssl.SSLContext(ssl.PROTOCOL_TLS)
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS if hasattr(ssl, 'PROTOCOL_TLS') else 2)
             if self._certfile or self._keyfile:
                 context.load_cert_chain(self._certfile, self._keyfile)
             if self._cafile:
