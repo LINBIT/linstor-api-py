@@ -206,6 +206,7 @@ class Resource(object):
         # external properties
         self._name = name  # the user facing name, what linstor calls the "external name"
         self._port = None
+        self._resource_group_name = None  # type: Optional[str]
         self.client = _Client(uri)
         self.placement = _Placement()
         self.volumes = _VolumeDict()  # type: dict[int, Volume]
@@ -228,6 +229,36 @@ class Resource(object):
 
     def __repr__(self):
         return "Resource({n}, {h})".format(n=self, h=self.client.uri_list)
+
+    @classmethod
+    def from_resource_group(cls, linstor_controllers, resource_group_name, resource_name, vlm_sizes):
+        """
+        Spawns a new resource definition from the given resource group.
+
+        :param str linstor_controllers: string of possible linstor controllers, feeded to .controller_uri_list
+        :param str resource_group_name: Name of the resource group
+        :param str resource_name: Name of the new resource definition
+        :param list[str] vlm_sizes: String list of volume sizes e.g. ['128Mib', '1G']
+        :return: Resource object of the newly created resource definition
+        :rtype: Resource
+        """
+        with linstor.MultiLinstor(linstor.MultiLinstor.controller_uri_list(linstor_controllers)) as lin:
+            result = lin.resource_group_spawn(
+                resource_group_name,
+                resource_name,
+                vlm_sizes
+            )
+            if not result[0].is_success():
+                raise linstor.LinstorError(
+                    'Could not spawn resource "{}" from resource group "{}": {}'.format(
+                        resource_name,
+                        resource_group_name,
+                        result[0].message
+                    )
+                )
+
+            return Resource(resource_name, uri=linstor_controllers)
+        return None
 
     def _set_properties(self):
         dp = 'yes' if self._allow_two_primaries else 'no'
@@ -285,6 +316,7 @@ class Resource(object):
             to_cmp = rsc_dfn.external_name if rsc_dfn.external_name != "" else rsc_dfn.name
             if _Utils.to_unicode(to_cmp) == _Utils.to_unicode(self._name):
                 self._linstor_name = rsc_dfn.name
+                self._resource_group_name = rsc_dfn.resource_group_name
                 self.defined = True
                 for vlm_dfn in rsc_dfn.volume_definitions:
                     vlm_nr = vlm_dfn.number
@@ -393,6 +425,10 @@ class Resource(object):
         if self.defined:
             raise linstor.LinstorReadOnlyAfterSetError()
         self._port = port_nr
+
+    @property
+    def resource_group_name(self):
+        return self._resource_group_name
 
     @_update_volumes
     def autoplace(self):
@@ -555,7 +591,7 @@ class Resource(object):
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
-            rs = lin.resource_dfn_create(resource_name_to)
+            rs = lin.resource_dfn_create(resource_name_to, resource_group=self.resource_group_name)
             if not rs[0].is_success():
                 raise linstor.LinstorError("Could not resource definition '{r}' for snapshot restore: {err}"
                                            .format(r=resource_name_to, err=rs[0].message))
