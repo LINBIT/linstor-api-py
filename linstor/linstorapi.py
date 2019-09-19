@@ -131,7 +131,7 @@ class Linstor(object):
         self._logger = logging.getLogger('Linstor')
         self._timeout = timeout
         self._keep_alive = keep_alive
-        self._rest_conn = None  # type: HTTPConnection
+        self._rest_conn = None  # type: Optional[HTTPConnection]
         self._connected = False
         self._mode_curl = False
         self._ctrl_version = None
@@ -1019,7 +1019,7 @@ class Linstor(object):
             apiconsts.API_LST_STOR_POOL,
             "GET",
             path
-        )  # type: list[StoragePoolListResponse]
+        )  # type: List[StoragePoolListResponse]
 
         result = []
         errors = []
@@ -1843,7 +1843,7 @@ class Linstor(object):
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_resources: filter resources by resource names
         :return: A list containing a ResourceResponse object
-        :rtype: list[RESTMessageResponse]
+        :rtype: list[ResourceResponse]
         """
         return self.volume_list(filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources)
 
@@ -1886,7 +1886,7 @@ class Linstor(object):
             apiconsts.API_LST_RSC,
             "GET",
             path
-        )  # type: list[ResourceResponse]
+        )  # type: List[ResourceResponse]
         if resource_resp and isinstance(resource_resp[0], ResourceResponse):
             result += resource_resp
         else:
@@ -2047,7 +2047,7 @@ class Linstor(object):
         cversion_list = self._rest_request(
             apiconsts.API_VERSION,
             "GET", "/v1/controller/version"
-        ) # type: list[ControllerVersion]
+        )  # type: List[ControllerVersion]
 
         if cversion_list:
             cversion = cversion_list[0]
@@ -2514,7 +2514,7 @@ class MultiLinstor(Linstor):
         :param keep_alive:
         """
         super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive)
-        self._ctrl_host_list = ctrl_host_list  # type: list[str]
+        self._ctrl_host_list = ctrl_host_list  # type: List[str]
 
     def connect(self):
         conn_errors = []
