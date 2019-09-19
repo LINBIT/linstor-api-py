@@ -1293,6 +1293,10 @@ class Volume(RESTMessageResponse):
         return None
 
     @property
+    def reports(self):
+        return [ApiCallResponse(x) for x in self._rest_data.get("reports", [])]
+
+    @property
     def data_v0(self):
         d = {
             "stor_pool_name": self.storage_pool_name,
