@@ -1677,7 +1677,6 @@ class Linstor(object):
             body["select_filter"]["replicas_on_different"] = replicas_on_different
 
         if layer_list:
-            body["layer_list"] = layer_list
             body["select_filter"]["layer_stack"] = layer_list
 
         if provider_list:
@@ -1731,6 +1730,9 @@ class Linstor(object):
             layer_list=layer_list,
             provider_list=provider_list
         )
+
+        if layer_list:
+            body["layer_list"] = layer_list
 
         return self._rest_request(
             apiconsts.API_AUTO_PLACE_RSC,
