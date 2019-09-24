@@ -1003,7 +1003,7 @@ class Linstor(object):
 
     def storage_pool_list(self, filter_by_nodes=None, filter_by_stor_pools=None):
         """
-        Request a list of all storage pool known to the controller.
+        Request a list of all storage pools known to the controller.
 
         :param list[str] filter_by_nodes: Filter storage pools by nodes.
         :param list[str] filter_by_stor_pools: Filter storage pools by storage pool names.
@@ -1215,17 +1215,26 @@ class Linstor(object):
         self._require_version("1.0.8", msg="Resource group delete not supported by server")
         return self._rest_request(apiconsts.API_DEL_RSC_GRP, "DELETE", "/v1/resource-groups/" + name)
 
-    def resource_group_list_raise(self):
+    def resource_group_list_raise(self, filter_by_resource_groups=None):
         """
         Request a list of all resource groups known to the controller.
 
-        :return: A ResourceGroupResponse object
+        :return: A ResourceGroupListResponse object
         :rtype: ResourceGroupResponse
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
         self._require_version("1.0.8", msg="Resource group list not supported by server")
-        list_res = self._rest_request(apiconsts.API_LST_RSC_GRP, "GET", "/v1/resource-groups")
+
+        query_params = []
+        if filter_by_resource_groups:
+            query_params += ["resource_groups=" + x for x in filter_by_resource_groups]
+
+        path = "/v1/resource-groups"
+        if query_params:
+            path += "?" + "&".join(query_params)
+
+        list_res = self._rest_request(apiconsts.API_LST_RSC_GRP, "GET", path)
 
         if list_res:
             if isinstance(list_res[0], ResourceGroupResponse):
