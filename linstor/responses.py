@@ -749,9 +749,8 @@ class DrbdLayer(RESTMessageResponse):
 
 
 class ResourceDefinition(RESTMessageResponse):
-    def __init__(self, rest_data, volume_def_rest_data):
+    def __init__(self, rest_data):
         super(ResourceDefinition, self).__init__(rest_data)
-        self._volume_definitions = volume_def_rest_data
 
     @property
     def name(self):
@@ -811,7 +810,8 @@ class ResourceDefinition(RESTMessageResponse):
         :return:
         :rtype: list[VolumeDefinition]
         """
-        return [VolumeDefinition(x) for x in self._volume_definitions]
+        return [VolumeDefinition(x) for x in self._rest_data.get("volume_definitions", [])]
+
 
     @property
     def resource_group_name(self):
@@ -827,10 +827,6 @@ class ResourceDefinition(RESTMessageResponse):
 class ResourceDefinitionResponse(RESTMessageResponse):
     def __init__(self, rest_data):
         super(ResourceDefinitionResponse, self).__init__(rest_data)
-        self._volume_def_map = {}  # type: dict[str, dict[str, Any]]
-
-    def set_volume_definition_data(self, name, rest_data):
-        self._volume_def_map[name] = rest_data
 
     @property
     def resource_definitions(self):
@@ -839,7 +835,7 @@ class ResourceDefinitionResponse(RESTMessageResponse):
         :return: List of resource definitions
         :rtype: list[ResourceDefinition]
         """
-        return [ResourceDefinition(x, self._volume_def_map.get(x["name"], [])) for x in self._rest_data]
+        return [ResourceDefinition(x) for x in self._rest_data]
 
     @property
     def data_v0(self):

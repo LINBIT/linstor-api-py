@@ -1453,29 +1453,33 @@ class Linstor(object):
         """
         return self._rest_request(apiconsts.API_DEL_RSC_DFN, "DELETE", "/v1/resource-definitions/" + name)
 
-    def resource_dfn_list(self, query_volume_definitions=True):
+    def resource_dfn_list(self, query_volume_definitions=True, filter_by_resource_definitions=None):
         """
         Request a list of all resource definitions known to the controller.
 
-        :return: A list with one ResourceDefinitionResponse object.
-        :rtype: list[ResourceDefinitionResponse]
+        :param bool query_volume_definitions: Query the volume definitions of this resource definition.
+        :param list[str] filter_by_resource_definitions: Filter resource definitions by resource definition names.
+        :return: A ResourceDefinitionResponse object
+        :rtype: list[RESTMessageResponse]
         """
-        rsc_dfns_resp = self._rest_request(apiconsts.API_LST_RSC_DFN, "GET", "/v1/resource-definitions")
+        query_params = []
+        if filter_by_resource_definitions:
+            query_params += ["resource_definitions=" + x for x in filter_by_resource_definitions]
+        if query_volume_definitions:
+            query_params += ["with_volume_definitions=true"]
 
-        if rsc_dfns_resp:
-            for rsc_dfn in rsc_dfns_resp[0].resource_definitions:
-                if query_volume_definitions:
-                    vlm_dfn = self._rest_request(
-                        apiconsts.API_LST_VLM_DFN,
-                        "GET",
-                        "/v1/resource-definitions/" + rsc_dfn.name + "/volume-definitions"
-                    )
-                    if vlm_dfn and isinstance(vlm_dfn[0], VolumeDefinitionResponse):
-                        rsc_dfns_resp[0].set_volume_definition_data(rsc_dfn.name, vlm_dfn[0].rest_data)
+        path = "/v1/resource-definitions"
+        if query_params:
+            path += "?" + "&".join(query_params)
+        resource_definition_res = self._rest_request(
+            apiconsts.API_LST_RSC_DFN,
+            "GET",
+            path
+        )  # type: List[ResourceDefinitionResponse]
 
-        return rsc_dfns_resp
+        return resource_definition_res
 
-    def resource_dfn_list_raise(self, query_volume_definitions=True):
+    def resource_dfn_list_raise(self, query_volume_definitions=True, filter_by_resource_definitions=None):
         """
         Request a list of all resource definitions known to the controller.
 
@@ -1484,7 +1488,10 @@ class Linstor(object):
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        list_res = self.resource_dfn_list(query_volume_definitions=query_volume_definitions)
+        list_res = self.resource_dfn_list(
+            query_volume_definitions=query_volume_definitions,
+            filter_by_resource_definitions=filter_by_resource_definitions
+        )
         if list_res:
             if isinstance(list_res[0], ResourceDefinitionResponse):
                 return list_res[0]
@@ -1500,7 +1507,7 @@ class Linstor(object):
         :return: dict containing matching keys
         :raises LinstorError: if resource can not be found
         """
-        rsc_dfn_list_replies = self.resource_dfn_list()
+        rsc_dfn_list_replies = self.resource_dfn_list([rsc_name])
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
             raise LinstorError('Could not list resource definitions, or they are empty')
 
@@ -1604,7 +1611,10 @@ class Linstor(object):
         :return: Size of the volume definition in kibibytes. IMPORTANT: This will change to a tuple/dict type
         :raises LinstorError: if resource or volume_nr can not be found
         """
-        rsc_dfn_list_replies = self.resource_dfn_list(query_volume_definitions=True)
+        rsc_dfn_list_replies = self.resource_dfn_list(
+            query_volume_definitions=True,
+            filter_by_resource_definitions=[rsc_name]
+        )
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
             raise LinstorError('Could not list resource definitions, or they are empty')
 
