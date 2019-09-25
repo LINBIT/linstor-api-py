@@ -773,16 +773,28 @@ class Linstor(object):
         """
         return self._rest_request(apiconsts.API_LST_NET_IF, "GET", "/v1/nodes/" + node_name + "/net-interfaces")
 
-    def node_list(self):
+    def node_list(self, filter_by_nodes=None):
         """
         Request a list of all nodes known to the controller.
 
+        :param list[str] filter_by_nodes: Filter by nodes.
         :return: A MsgLstNode proto message containing all information.
         :rtype: list[RESTMessageResponse]
         """
-        return self._rest_request(apiconsts.API_LST_NODE, "GET", "/v1/nodes")
+        query_params = []
+        if filter_by_nodes:
+            query_params += ["nodes=" + x for x in filter_by_nodes]
 
-    def node_list_raise(self):
+        path = "/v1/nodes"
+        if query_params:
+            path += "?" + "&".join(query_params)
+        return self._rest_request(
+            apiconsts.API_LST_NODE,
+            "GET",
+            path
+        )
+
+    def node_list_raise(self, filter_by_nodes=None):
         """
         Request a list of all nodes known to the controller.
 
@@ -791,7 +803,7 @@ class Linstor(object):
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        list_res = self.node_list()
+        list_res = self.node_list(filter_by_nodes=filter_by_nodes)
         if list_res:
             if isinstance(list_res[0], NodeListResponse):
                 return list_res[0]
