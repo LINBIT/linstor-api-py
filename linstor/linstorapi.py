@@ -269,7 +269,7 @@ class Linstor(object):
             return zlib.decompress(data, zlib.MAX_WBITS | 16)
         return data
 
-    def _require_version(self, required_version):
+    def _require_version(self, required_version, msg="REST action not supported by server"):
         """
 
         :param str required_version: semantic version string
@@ -278,7 +278,7 @@ class Linstor(object):
         """
         if self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(required_version):
             raise LinstorError(
-                "Volume modify not supported by server, REST-API-VERSION: " + self._ctrl_version.rest_api_version +
+                msg + ", REST-API-VERSION: " + self._ctrl_version.rest_api_version +
                 "; needed " + required_version
             )
 
@@ -1108,7 +1108,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group create not supported by server")
         body = {
             "name": name
         }
@@ -1172,7 +1172,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group modify not supported by server")
         body = {}
 
         if description is not None:
@@ -1211,7 +1211,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group delete not supported by server")
         return self._rest_request(apiconsts.API_DEL_RSC_GRP, "DELETE", "/v1/resource-groups/" + name)
 
     def resource_group_list_raise(self):
@@ -1223,7 +1223,7 @@ class Linstor(object):
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group list not supported by server")
         list_res = self._rest_request(apiconsts.API_LST_RSC_GRP, "GET", "/v1/resource-groups")
 
         if list_res:
@@ -1245,7 +1245,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group API not supported by server")
         vlm_sizes_int = []
         for size in vlm_sizes:
             if isinstance(size, int):
@@ -1283,7 +1283,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group API not supported by server")
         body = {}
 
         if volume_nr is not None:
@@ -1314,7 +1314,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group API not supported by server")
         body = {}
 
         if property_dict:
@@ -1338,7 +1338,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group API not supported by server")
         return self._rest_request(
             apiconsts.API_DEL_VLM_GRP,
             "DELETE",
@@ -1354,7 +1354,7 @@ class Linstor(object):
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        self._require_version("1.0.8")
+        self._require_version("1.0.8", msg="Resource group API not supported by server")
         list_res = self._rest_request(
             apiconsts.API_LST_VLM_GRP,
             "GET",
@@ -1935,7 +1935,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        self._require_version("1.0.6")
+        self._require_version("1.0.6", msg="Volume modify not supported by server")
 
         body = {}
 
