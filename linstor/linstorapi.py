@@ -527,7 +527,10 @@ class Linstor(object):
                 )
             self._connected = True
         except socket.error as err:
-            raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=self._ctrl_host, err=err))
+            hosturl = self._ctrl_host
+            if is_https:
+                hosturl = "linstor+ssl://" + url.hostname + ":" + str(port)
+            raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=hosturl, err=err))
         return True
 
     @property
