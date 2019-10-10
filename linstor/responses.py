@@ -1707,3 +1707,55 @@ class ControllerVersion(RESTMessageResponse):
     @property
     def rest_api_version(self):
         return self._rest_data.get("rest_api_version", "1.0.0")
+
+
+class NodeStorageEntry(RESTMessageResponse):
+    def __init__(self, data):
+        super(NodeStorageEntry, self).__init__(data)
+
+    @property
+    def device(self):
+        return self._rest_data["device"]
+
+    @property
+    def model(self):
+        return self._rest_data.get("model")
+
+    @property
+    def serial(self):
+        return self._rest_data.get("serial")
+
+    @property
+    def wwn(self):
+        return self._rest_data.get("wwn")
+
+
+class PhysicalDevice(RESTMessageResponse):
+    def __init__(self, data):
+        super(PhysicalDevice, self).__init__(data)
+
+    @property
+    def size(self):
+        return self._rest_data["size"]
+
+    @property
+    def rotational(self):
+        return self._rest_data["rotational"]
+
+    @property
+    def nodes(self):
+        """
+        Returns a node map
+        :return:
+        :rtype: Dict[str, NodeStorageEntry]
+        """
+        return {key: NodeStorageEntry(value) for key, value in self._rest_data.get("nodes", {}).items()}
+
+
+class PhysicalStorageList(RESTMessageResponse):
+    def __init__(self, data):
+        super(PhysicalStorageList, self).__init__(data)
+
+    @property
+    def physical_devices(self):
+        return [PhysicalDevice(x) for x in self._rest_data]

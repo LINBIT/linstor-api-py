@@ -19,7 +19,7 @@ from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, 
 from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
 from .responses import RESTMessageResponse, SnapshotResponse, ControllerProperties
 from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
-from .responses import ResourceGroupResponse, VolumeGroupResponse
+from .responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
 from . import VERSION
 from .size_calc import SizeCalc
 
@@ -120,7 +120,8 @@ class Linstor(object):
         apiconsts.API_LST_STOR_POOL_DFN: StoragePoolDefinitionResponse,
         apiconsts.API_QRY_MAX_VLM_SIZE: MaxVolumeSizeResponse,
         apiconsts.API_LST_KVS: KeyValueStoresResponse,
-        apiconsts.API_VERSION: ControllerVersion
+        apiconsts.API_VERSION: ControllerVersion,
+        apiconsts.API_LST_PHYS_STOR: PhysicalStorageList
     }
 
     REST_PORT = 3370
@@ -2500,6 +2501,71 @@ class Linstor(object):
         """
         kvs = self.keyvaluestores()
         return kvs.instance(instance_name)
+
+    def physical_storage_list(self):
+        """
+        Returns a grouped list of physical storage device, to be used for pools.
+        Requires API version 1.0.10
+
+        :return: PhysicalStorageList object
+        :rtype: PhysicalStorageList
+        :raises: LinstorError
+        """
+        self._require_version("1.0.10", msg="Physical storage API not supported by server")
+        phys_list = self._rest_request(
+            apiconsts.API_LST_PHYS_STOR,
+            "GET", "/v1/physical-storage"
+        )
+
+        if phys_list:
+            if isinstance(phys_list[0], PhysicalStorageList):
+                return phys_list[0]
+            else:
+                raise LinstorError("Unexpected physical storage list response: " + str(phys_list))
+
+    def physical_storage_create_device_pool(
+            self,
+            node_name,
+            provider_kind,
+            device_path,
+            pool_name=None,
+            vdo_enable=False,
+            vdo_logical_size_kib=None,
+            vdo_slab_size_kib=None
+    ):
+        """
+        Creates a device pool on the given device and node.
+
+        :param str node_name: Node name where the device pool should be created.
+        :param str provider_kind: Pool type to create, ['LVM', 'LVMTHIN', 'ZFS']
+        :param str device_path: Full device path on the node.
+        :param Optional[str] pool_name: Pool name
+        :param bool vdo_enable: True or False if VDO should be used.
+        :param Optional[int] vdo_logical_size_kib: Logical pool size for VDO
+        :param Optional[int] vdo_slab_size_kib: Slab size for VDO
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.0.10", msg="Physical storage API not supported by server")
+        body = {
+            "device_path": device_path,
+            "provider_kind": provider_kind,
+            "pool_name": pool_name,
+            "vdo_enable": vdo_enable
+        }
+
+        if vdo_logical_size_kib:
+            body["vdo_logical_size_kib"] = vdo_logical_size_kib
+
+        if vdo_enable and vdo_slab_size_kib:
+            body["vdo_slab_size_kib"] = vdo_slab_size_kib
+
+        return self._rest_request(
+            apiconsts.API_CREATE_DEVICE_POOL,
+            "POST",
+            "/v1/physical-storage/" + node_name,
+            body
+        )
 
     def stats(self):
         """
