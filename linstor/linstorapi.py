@@ -1452,15 +1452,16 @@ class Linstor(object):
         """
         rsc_dfns_resp = self._rest_request(apiconsts.API_LST_RSC_DFN, "GET", "/v1/resource-definitions")
 
-        for rsc_dfn in rsc_dfns_resp[0].resource_definitions:
-            if query_volume_definitions:
-                vlm_dfn = self._rest_request(
-                    apiconsts.API_LST_VLM_DFN,
-                    "GET",
-                    "/v1/resource-definitions/" + rsc_dfn.name + "/volume-definitions"
-                )
-                if vlm_dfn and isinstance(vlm_dfn[0], VolumeDefinitionResponse):
-                    rsc_dfns_resp[0].set_volume_definition_data(rsc_dfn.name, vlm_dfn[0].rest_data)
+        if rsc_dfns_resp:
+            for rsc_dfn in rsc_dfns_resp[0].resource_definitions:
+                if query_volume_definitions:
+                    vlm_dfn = self._rest_request(
+                        apiconsts.API_LST_VLM_DFN,
+                        "GET",
+                        "/v1/resource-definitions/" + rsc_dfn.name + "/volume-definitions"
+                    )
+                    if vlm_dfn and isinstance(vlm_dfn[0], VolumeDefinitionResponse):
+                        rsc_dfns_resp[0].set_volume_definition_data(rsc_dfn.name, vlm_dfn[0].rest_data)
 
         return rsc_dfns_resp
 
