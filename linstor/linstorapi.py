@@ -2527,8 +2527,9 @@ class Linstor(object):
             self,
             node_name,
             provider_kind,
-            device_path,
+            device_paths,
             pool_name=None,
+            raid_level="JBOD",
             vdo_enable=False,
             vdo_logical_size_kib=None,
             vdo_slab_size_kib=None
@@ -2538,7 +2539,8 @@ class Linstor(object):
 
         :param str node_name: Node name where the device pool should be created.
         :param str provider_kind: Pool type to create, ['LVM', 'LVMTHIN', 'ZFS']
-        :param str device_path: Full device path on the node.
+        :param List[str] device_paths: List of full device path on the node.
+        :param str raid_level: For 'JBOD' only.
         :param Optional[str] pool_name: Pool name
         :param bool vdo_enable: True or False if VDO should be used.
         :param Optional[int] vdo_logical_size_kib: Logical pool size for VDO
@@ -2548,7 +2550,7 @@ class Linstor(object):
         """
         self._require_version("1.0.10", msg="Physical storage API not supported by server")
         body = {
-            "device_path": device_path,
+            "device_paths": device_paths,
             "provider_kind": provider_kind,
             "pool_name": pool_name,
             "vdo_enable": vdo_enable

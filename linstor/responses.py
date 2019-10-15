@@ -1747,9 +1747,9 @@ class PhysicalDevice(RESTMessageResponse):
         """
         Returns a node map
         :return:
-        :rtype: Dict[str, NodeStorageEntry]
+        :rtype: Dict[str, List[NodeStorageEntry]]
         """
-        return {key: NodeStorageEntry(value) for key, value in self._rest_data.get("nodes", {}).items()}
+        return {key: [NodeStorageEntry(x) for x in value] for key, value in self._rest_data.get("nodes", {}).items()}
 
 
 class PhysicalStorageList(RESTMessageResponse):
