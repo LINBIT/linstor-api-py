@@ -17,7 +17,7 @@ from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, Lins
 from .responses import ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
 from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
 from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
-from .responses import RESTMessageResponse, SnapshotResponse, ControllerProperties
+from .responses import RESTMessageResponse, SnapshotResponse, ControllerProperties, ResourceConnection
 from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from .responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
 from . import VERSION
@@ -104,6 +104,8 @@ class Linstor(object):
         apiconsts.VAL_NODE_TYPE_STLT
     ]
 
+    API_SINGLE_NODE_REQ = "API_SINGLE_NODE_REQ"
+
     APICALL2RESPONSE = {
         apiconsts.API_LST_NODE: NodeListResponse,
         apiconsts.API_LST_STOR_POOL: StoragePoolListResponse,
@@ -121,7 +123,8 @@ class Linstor(object):
         apiconsts.API_QRY_MAX_VLM_SIZE: MaxVolumeSizeResponse,
         apiconsts.API_LST_KVS: KeyValueStoresResponse,
         apiconsts.API_VERSION: ControllerVersion,
-        apiconsts.API_LST_PHYS_STOR: PhysicalStorageList
+        apiconsts.API_LST_PHYS_STOR: PhysicalStorageList,
+        API_SINGLE_NODE_REQ: ResourceConnection
     }
 
     REST_PORT = 3370
@@ -2217,6 +2220,27 @@ class Linstor(object):
         list_res = self.resource_conn_list(rsc_name)
         if list_res:
             if isinstance(list_res[0], ResourceConnectionsResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0])
+        raise LinstorError("No list response received.")
+
+    def resource_conn_node_list_raise(self, rsc_name, node_a, node_b):
+        """
+        Request a list of all resource connection to the given resource name.
+
+        :param str rsc_name: Name of the resource to get the connections.
+        :param str node_a: Name of the first node
+        :param str node_b: Name of the second node
+        :return: List of ResourceConnectionsResponse or ApiCallRcResponse
+        :rtype: list[ResourceConnection]
+        """
+        list_res = self._rest_request(
+            Linstor.API_SINGLE_NODE_REQ,
+            "GET",
+            "/v1/resource-definitions/" + rsc_name + "/resource-connections/" + node_a + "/" + node_b
+        )
+        if list_res:
+            if isinstance(list_res[0], ResourceConnection):
                 return list_res[0]
             raise LinstorApiCallError(list_res[0])
         raise LinstorError("No list response received.")
