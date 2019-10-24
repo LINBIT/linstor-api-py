@@ -1,3 +1,25 @@
+python-linstor (1.0.4-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * resource-api: add support for resource-groups
+  * linstorapi: improve type comments
+  * responses: add reports property to volumes
+  * linstorapi-selectfilter: fix incorrect layer_list setting
+  * linstorapi: slightly better error message on https connect fails
+  * linstorapi: resource-dfn list, do not fail on empty list response(curl)
+  * linstorapi: fix incorrect message on require_version method
+  * linstorapi: add physica-storage API calls
+  * physical-storage: allow multiple devices per node and storage pool
+  * linstor-common: depend on TIE_BREAKER FLAG
+  * linstorapi: add single resource connection query method
+
+  [ Rainer Laschober ]
+  * ResourceGroups: Implement function for list command; imports; naming
+  * ResourceDefinitions: Modify function for list command
+  * Nodes: Modify function for list command
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 24 Oct 2019 11:32:30 +0200
+
 python-linstor (1.0.3-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
