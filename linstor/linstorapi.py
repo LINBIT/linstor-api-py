@@ -286,6 +286,15 @@ class Linstor(object):
                 "; needed " + required_version
             )
 
+    def _api_version_smaller(self, version):
+        """
+
+        :param str version: semantic version string
+        :return: True if server versionis smaller than given version
+        :rtype: bool
+        """
+        return self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(version)
+
     def _rest_request(self, apicall, method, path, body=None, reconnect=True):
         """
 
@@ -1477,22 +1486,38 @@ class Linstor(object):
         :return: A ResourceDefinitionResponse object
         :rtype: list[RESTMessageResponse]
         """
-        query_params = []
-        if filter_by_resource_definitions:
-            query_params += ["resource_definitions=" + x for x in filter_by_resource_definitions]
-        if query_volume_definitions:
-            query_params += ["with_volume_definitions=true"]
+        if self._api_version_smaller("1.0.10"):
+            rsc_dfns_resp = self._rest_request(apiconsts.API_LST_RSC_DFN, "GET", "/v1/resource-definitions")
 
-        path = "/v1/resource-definitions"
-        if query_params:
-            path += "?" + "&".join(query_params)
-        resource_definition_res = self._rest_request(
-            apiconsts.API_LST_RSC_DFN,
-            "GET",
-            path
-        )  # type: List[ResourceDefinitionResponse]
+            if rsc_dfns_resp:
+                for rsc_dfn in rsc_dfns_resp[0].resource_definitions:
+                    if query_volume_definitions:
+                        vlm_dfn = self._rest_request(
+                            apiconsts.API_LST_VLM_DFN,
+                            "GET",
+                            "/v1/resource-definitions/" + rsc_dfn.name + "/volume-definitions"
+                        )
+                        if vlm_dfn and isinstance(vlm_dfn[0], VolumeDefinitionResponse):
+                            rsc_dfn._rest_data["volume_definitions"] = vlm_dfn[0].rest_data
 
-        return resource_definition_res
+            return rsc_dfns_resp
+        else:
+            query_params = []
+            if filter_by_resource_definitions:
+                query_params += ["resource_definitions=" + x for x in filter_by_resource_definitions]
+            if query_volume_definitions:
+                query_params += ["with_volume_definitions=true"]
+
+            path = "/v1/resource-definitions"
+            if query_params:
+                path += "?" + "&".join(query_params)
+            resource_definition_res = self._rest_request(
+                apiconsts.API_LST_RSC_DFN,
+                "GET",
+                path
+            )  # type: List[ResourceDefinitionResponse]
+
+            return resource_definition_res
 
     def resource_dfn_list_raise(self, query_volume_definitions=True, filter_by_resource_definitions=None):
         """
