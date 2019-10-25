@@ -8,6 +8,7 @@ import sys
 from functools import wraps
 from linstor.sharedconsts import FAIL_EXISTS_RSC, FLAG_DISKLESS
 from linstor.responses import ResourceDefinitionResponse, ResourceResponse
+from linstor import Linstor
 
 PYTHON2 = True
 if sys.version_info > (3, 0):
@@ -144,7 +145,7 @@ class Volume(object):
                                       self._client_ref.timeout,
                                       self._client_ref.keep_alive) as lin:
                 rs = lin.volume_dfn_modify(r, v, size=size_kib)
-                if not rs[0].is_success():
+                if not linstor.Linstor.all_api_responses_no_error(rs):
                     raise linstor.LinstorError('Could not resize Resource/Volume {}/{}: {}'
                                                .format(r, v, rs[0]))
 
@@ -160,7 +161,7 @@ class Volume(object):
                                   self._client_ref.keep_alive) as lin:
             r, v = self._rsc_name, self._volume_id
             rs = lin.volume_dfn_delete(r, v)
-            if not rs[0].is_success():
+            if not linstor.Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError('Could not delete Resource/Volume {}/{}: {}'.format(r, v, rs[0]))
 
 
@@ -248,7 +249,7 @@ class Resource(object):
                 resource_name,
                 vlm_sizes
             )
-            if not result[0].is_success():
+            if not linstor.Linstor.all_api_responses_no_error(result):
                 raise linstor.LinstorError(
                     'Could not spawn resource "{}" from resource group "{}": {}'.format(
                         resource_name,
@@ -264,7 +265,7 @@ class Resource(object):
         dp = 'yes' if self._allow_two_primaries else 'no'
         props = {'DrbdOptions/Net/allow-two-primaries': dp}
         rs = self._lin.resource_dfn_modify(self._linstor_name, props, delete_props=None)
-        if not rs[0].is_success():
+        if not linstor.Linstor.all_api_responses_no_error(rs):
             raise linstor.LinstorError('Could not set DRBD properties for resource {}: {}'
                                        .format(self, rs[0]))
 
@@ -272,7 +273,7 @@ class Resource(object):
         # resource definition
         if not self.defined:
             rs = self._lin.resource_dfn_create("", self._port, external_name=self._name)
-            if not rs[0].is_success():
+            if not linstor.Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError('Could not create resource definition {}: {}'
                                            .format(self, rs[0]))
             ors = rs[0].object_refs
@@ -295,7 +296,7 @@ class Resource(object):
                                                              linstor.SizeCalc.UNIT_KiB)
                 rs = self._lin.volume_dfn_create(self._linstor_name, size_kib, k, v._minor,
                                                  encrypt=False, storage_pool=self.placement.storage_pool)
-                if not rs[0].is_success():
+                if not linstor.Linstor.all_api_responses_no_error(rs):
                     raise linstor.LinstorError('Could not create volume definition {n}/{k}: {e}'
                                                .format(n=self, k=k, e=rs[0]))
                 self.volumes[k]._rsc_name = self._linstor_name
@@ -454,9 +455,9 @@ class Resource(object):
             replicas_on_different=None,
             diskless_on_remaining=self.placement.diskless_on_remaining)
 
-        if not rs[0].is_success():
+        if not Linstor.all_api_responses_no_error(rs):
             raise linstor.LinstorError('Could not autoplace resource {}: {}'
-                                       .format(self, rs[0]))
+                                       .format(self, Linstor.filter_api_call_response_errors(rs)[0]))
         return True
 
     @_update_volumes
@@ -516,15 +517,17 @@ class Resource(object):
                     storage_pool=sp
                 )
             ])
-            if not rs[0].is_success():
-                raise linstor.LinstorError('Could not create resource {} on node {} as diskless={}: {}'
-                                           .format(self, node_name, diskless, rs[0]))
+            if not Linstor.all_api_responses_no_error(rs):
+                raise linstor.LinstorError(
+                    'Could not create resource {} on node {} as diskless={}: {}'
+                    .format(self, node_name, diskless, Linstor.filter_api_call_response_errors(rs)[0]))
         elif is_diskless != diskless:
             rs = self._lin.resource_toggle_disk(node_name, self._linstor_name,
                                                 diskless=diskless, storage_pool=sp)
-            if not rs[0].is_success():
-                raise linstor.LinstorError('Could not toggle disk for resource {} on node {} to diskless={}: {}'
-                                           .format(self, node_name, diskless, rs[0]))
+            if not Linstor.all_api_responses_no_error(rs):
+                raise linstor.LinstorError(
+                    'Could not toggle disk for resource {} on node {} to diskless={}: {}'
+                    .format(self, node_name, diskless, Linstor.filter_api_call_response_errors(rs)[0]))
         return True
 
     def snapshot_create(self, name):
@@ -539,8 +542,9 @@ class Resource(object):
 
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             rs = lin.snapshot_create(node_names=[], rsc_name=self._linstor_name, snapshot_name=name, async_msg=False)
-            if not rs[0].is_success():
-                raise linstor.LinstorError('Could not create snapshot {}: {}'.format(name, rs[0].message))
+            if not Linstor.all_api_responses_no_error(rs):
+                raise linstor.LinstorError('Could not create snapshot {}: {}'
+                                           .format(name, Linstor.filter_api_call_response_errors(rs)[0].message))
         return True
 
     def snapshot_delete(self, name):
@@ -555,8 +559,10 @@ class Resource(object):
 
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             rs = lin.snapshot_delete(rsc_name=self._linstor_name, snapshot_name=name)
-            if not rs[0].is_success():
-                raise linstor.LinstorError('Could not delete snapshot {}: {}'.format(name, rs[0].message))
+            if not Linstor.all_api_responses_no_error(rs):
+                raise linstor.LinstorError('Could not delete snapshot {}: {}'.format(
+                    name,
+                    Linstor.filter_api_call_response_errors(rs)[0].message))
         return True
 
     def snapshot_rollback(self, name):
@@ -574,8 +580,11 @@ class Resource(object):
 
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             rs = lin.snapshot_rollback(rsc_name=self._linstor_name, snapshot_name=name)
-            if not rs[0].is_success():
-                raise linstor.LinstorError('Could not rollback to snapshot {}: {}'.format(name, rs[0].message))
+            if not Linstor.all_api_responses_no_error(rs):
+                raise linstor.LinstorError('Could not rollback to snapshot {}: {}'.format(
+                    name,
+                    Linstor.filter_api_call_response_errors(rs)[0].message)
+                )
         return True
 
     def restore_from_snapshot(self, snapshot_name, resource_name_to):
@@ -592,9 +601,10 @@ class Resource(object):
 
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             rs = lin.resource_dfn_create(resource_name_to, resource_group=self.resource_group_name)
-            if not rs[0].is_success():
-                raise linstor.LinstorError("Could not resource definition '{r}' for snapshot restore: {err}"
-                                           .format(r=resource_name_to, err=rs[0].message))
+            if not Linstor.all_api_responses_no_error(rs):
+                raise linstor.LinstorError(
+                    "Could not resource definition '{r}' for snapshot restore: {err}"
+                    .format(r=resource_name_to, err=Linstor.filter_api_call_response_errors(rs)[0].message))
 
             rs = lin.snapshot_volume_definition_restore(
                 from_resource=self._linstor_name,
@@ -602,10 +612,15 @@ class Resource(object):
                 to_resource=resource_name_to
             )
 
-            if not rs[0].is_success():
+            if not Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError(
                     "Could not restore volume definition '{rd}' from snapshot {sn} to resource definition '{tr}': {err}"
-                    .format(rd=self._linstor_name, sn=snapshot_name, tr=resource_name_to, err=rs[0].message)
+                    .format(
+                        rd=self._linstor_name,
+                        sn=snapshot_name,
+                        tr=resource_name_to,
+                        err=Linstor.filter_api_call_response_errors(rs)[0].message
+                    )
                 )
 
             rs = lin.snapshot_resource_restore(
@@ -615,10 +630,15 @@ class Resource(object):
                 to_resource=resource_name_to
             )
 
-            if not rs[0].is_success():
+            if not Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError(
                     "Could not restore resource '{rd}' from snapshot {sn} to resource definition '{tr}': {err}"
-                    .format(rd=self.name, sn=snapshot_name, tr=resource_name_to, err=rs[0].message)
+                    .format(
+                        rd=self.name,
+                        sn=snapshot_name,
+                        tr=resource_name_to,
+                        err=Linstor.filter_api_call_response_errors(rs)[0].message
+                    )
                 )
 
         return Resource(resource_name_to, ",".join(self.client.uri_list))
@@ -721,9 +741,9 @@ class Resource(object):
             if socket.gethostname() == node_name:  # deleted on myself
                 reinit = True
 
-        if not rs[0].is_success():
+        if not Linstor.all_api_responses_no_error(rs):
             raise linstor.LinstorError('Could not delete resource {} on node {}: {}'
-                                       .format(self, node_name, rs[0]))
+                                       .format(self, node_name, Linstor.filter_api_call_response_errors(rs)[0]))
         if reinit:
             self._volumes = _VolumeDict()
 
@@ -759,10 +779,14 @@ class Resource(object):
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
         proxy_enable_replies = self._lin.drbd_proxy_enable(self._linstor_name, node_name_a, node_name_b)
-        proxy_enable_reply = proxy_enable_replies[0]
-        if not proxy_enable_reply.is_success():
-            raise linstor.LinstorError('Could not enable drbd-proxy for resource {} between {} and {}: {}'
-                                       .format(self, node_name_a, node_name_b, proxy_enable_reply))
+        if not Linstor.all_api_responses_no_error(proxy_enable_replies):
+            raise linstor.LinstorError(
+                'Could not enable drbd-proxy for resource {} between {} and {}: {}'.format(
+                    self,
+                    node_name_a,
+                    node_name_b,
+                    Linstor.filter_api_call_response_errors(proxy_enable_replies)[0])
+            )
         return True
 
     def drbd_proxy_disable(self, node_name_a, node_name_b):
@@ -770,8 +794,13 @@ class Resource(object):
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
         proxy_disable_replies = self._lin.drbd_proxy_disable(self._linstor_name, node_name_a, node_name_b)
-        proxy_disable_reply = proxy_disable_replies[0]
-        if not proxy_disable_reply.is_success():
-            raise linstor.LinstorError('Could not disable drbd-proxy for resource {} between {} and {}: {}'
-                                       .format(self, node_name_a, node_name_b, proxy_disable_reply))
+        if not Linstor.all_api_responses_no_error(proxy_disable_replies):
+            raise linstor.LinstorError(
+                'Could not disable drbd-proxy for resource {} between {} and {}: {}'.format(
+                    self,
+                    node_name_a,
+                    node_name_b,
+                    Linstor.filter_api_call_response_errors(proxy_disable_replies)
+                )
+            )
         return True

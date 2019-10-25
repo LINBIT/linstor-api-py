@@ -428,6 +428,17 @@ class Linstor(object):
         return [reply for reply in replies if isinstance(reply, ApiCallResponse) or isinstance(reply, ApiCallResponse)]
 
     @classmethod
+    def filter_api_call_response_errors(cls, replies):
+        """
+        Filters api call responses and only returns errors contained in the replies list.
+
+        :param list[ApiCallResponse] replies: list of ApiCallResponses
+        :return: List only containing error responses
+        :rtype: [ApiCallResponse]
+        """
+        return [reply for reply in replies if reply.is_error()]
+
+    @classmethod
     def return_if_failure(cls, replies_):
         """
         Returns None if any of the replies is no success.
