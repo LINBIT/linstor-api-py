@@ -388,6 +388,7 @@ class StoragePoolDriver(object):
     SwordfishInitiator = "SWORDFISH_INITIATOR"
     FILE = "FILE"
     FILEThin = "FILE_THIN"
+    SPDK = "SPDK"
 
     @staticmethod
     def list():
@@ -400,7 +401,8 @@ class StoragePoolDriver(object):
             StoragePoolDriver.SwordfishTarget,
             StoragePoolDriver.SwordfishInitiator,
             StoragePoolDriver.FILE,
-            StoragePoolDriver.FILEThin
+            StoragePoolDriver.FILEThin,
+            StoragePoolDriver.SPDK
         ]
 
     @classmethod
@@ -446,9 +448,12 @@ class StoragePoolDriver(object):
                 StoragePoolDriver.FILEThin]:
             return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_FILE_DIRECTORY: driver_pool_name}
 
+        if storage_driver == StoragePoolDriver.SPDK:
+            return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP: driver_pool_name}
+
         raise LinstorError(
             "Unknown storage driver '{drv}', known drivers: "
-            "lvm, lvmthin, zfs, swordfish, diskless".format(drv=storage_driver)
+            "lvm, lvmthin, zfs, swordfish, diskless, spdk".format(drv=storage_driver)
         )
 
     @classmethod
@@ -476,6 +481,9 @@ class StoragePoolDriver(object):
         if storage_driver_enum == StoragePoolDriver.ZFSThin:
             return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_ZPOOLTHIN, '')
 
+        if storage_driver_enum == StoragePoolDriver.SPDK:
+            return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, '')
+
         return ''
 
 
@@ -487,7 +495,8 @@ class StoragePool(RESTMessageResponse):
         "ZFS": "ZfsDriver",
         "ZFS_THIN": "ZfsThinDriver",
         "SWORDFISH_TARGET": "SwordfishTargetDriver",
-        "SWORDFISH_INITIATOR": "SwordfishInitiatorDriver"
+        "SWORDFISH_INITIATOR": "SwordfishInitiatorDriver",
+        "SPDK": "SpdkDriver"
     }
 
     def __init__(self, rest_data):
