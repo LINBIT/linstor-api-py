@@ -1,3 +1,13 @@
+python-linstor (1.0.6-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * linstorapi: fix modify passphrase
+
+  [ Rainer Laschober ]
+  * Add methods to access storage_providers and resource_layers and their  [...]
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 07 Nov 2019 13:05:07 +0100
+
 python-linstor (1.0.5-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
