@@ -2199,7 +2199,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_CRYPT_PASS,
-            "POST", "/v1/encryption/passphrase",
+            "PUT", "/v1/encryption/passphrase",
             body
         )
 
