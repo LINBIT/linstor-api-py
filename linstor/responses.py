@@ -168,6 +168,17 @@ class ApiCallResponse(RESTMessageResponse):
     def __hash__(self):
         return hash((self.ret_code, self.message))
 
+    def __str__(self):
+        st_str = "SUCC"
+        if self.is_error():
+            st_str = "ERRO"
+        elif self.is_info():
+            st_str = "INFO"
+        elif self.is_warning():
+            st_str = "WARN"
+
+        return st_str + ":" + self.message
+
 
 class ErrorReport(RESTMessageResponse):
     def __init__(self, data):
