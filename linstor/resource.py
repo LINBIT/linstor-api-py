@@ -478,12 +478,16 @@ class Resource(object):
                 diskless=True
             )
         ])
-        rsc_create_reply = rsc_create_replies[0]
-        if rsc_create_reply.is_success() or rsc_create_reply.is_error(code=FAIL_EXISTS_RSC):
+
+        if Linstor.all_api_responses_no_error(rsc_create_replies):
             return True
+        else:
+            error_replies = Linstor.filter_api_call_response_errors(rsc_create_replies)
+            if len(error_replies) == 1 and error_replies[0].is_error(code=FAIL_EXISTS_RSC):
+                return True
 
         raise linstor.LinstorError('Could not activate resource {} on node {}: {}'
-                                   .format(self, node_name, rsc_create_reply))
+                                   .format(self, node_name, ";".join([str(x) for x in rsc_create_replies])))
 
     # no decorator, calles delete
     def deactivate(self, node_name):
