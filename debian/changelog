@@ -1,3 +1,11 @@
+python-linstor (1.0.7-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * responses: Add ApiCallResponse.__str__ method
+  * resource: fix reply handling in activate() method
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 14 Nov 2019 14:34:31 +0100
+
 python-linstor (1.0.6-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
