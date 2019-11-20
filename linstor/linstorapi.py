@@ -45,7 +45,7 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class ResourceData(object):
-    def __init__(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, layer_list=None):
+    def __init__(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, layer_list=None, drbd_diskless=False, nvme_initiator=False):
         """
         :param str node_name: The node on which to place the resource
         :param str rsc_name: The resource definition to place
@@ -60,6 +60,8 @@ class ResourceData(object):
         self._storage_pool = storage_pool
         self._node_id = node_id
         self._layer_list = layer_list
+        self._drbd_diskless = drbd_diskless
+        self._nvme_initiator = nvme_initiator
 
     @property
     def node_name(self):
@@ -84,6 +86,14 @@ class ResourceData(object):
     @property
     def layer_list(self):
         return self._layer_list
+
+    @property
+    def drbd_diskless(self):
+        return self._drbd_diskless
+
+    @property
+    def nvme_initiator(self):
+        return self._nvme_initiator
 
 
 class Linstor(object):
@@ -1096,6 +1106,7 @@ class Linstor(object):
         """
         return {
             'drbd',
+            'writecache',
             'luks',
             'nvme',
             'storage'
@@ -1697,17 +1708,28 @@ class Linstor(object):
                 }
             }
 
+            rsc_data["resource"]["flags"] = []
+
             if rsc.storage_pool:
                 rsc_data["resource"]["props"] = {apiconsts.KEY_STOR_POOL_NAME: rsc.storage_pool}
 
             if rsc.diskless:
-                rsc_data["resource"]["flags"] = [apiconsts.FLAG_DISKLESS]
+                rsc_data["resource"]["flags"] += [apiconsts.FLAG_DISKLESS]
+
+            if rsc.drbd_diskless:
+                rsc_data["resource"]["flags"] += [apiconsts.FLAG_DRBD_DISKLESS]
+
+            if rsc.nvme_initiator:
+                rsc_data["resource"]["flags"] += [apiconsts.FLAG_NVME_INITIATOR]
 
             if rsc.node_id is not None:
                 rsc_data["drbd_node_id"] = rsc.node_id
 
             if rsc.layer_list:
                 rsc_data["layer_list"] = rsc.layer_list
+
+            if not rsc_data["resource"]["flags"]:
+                del rsc_data["resource"]["flags"]
 
             body.append(rsc_data)
 
