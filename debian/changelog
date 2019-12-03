@@ -1,3 +1,16 @@
+python-linstor (1.0.8-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * linstorapi: added drbd_diskless and nvme_initiator to ResourceData
+
+  [ Rene Peinthor ]
+  * linstor-common: update
+
+  [ Tomasz Bykowski ]
+  * Added initial support for SPDK
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 03 Dec 2019 12:06:06 +0100
+
 python-linstor (1.0.7-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
