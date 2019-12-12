@@ -663,9 +663,6 @@ class Linstor(object):
 
         return self._rest_request(apiconsts.API_CRT_NODE, "POST", "/v1/nodes", body)
 
-    def node_create_swordfish_target(self, node_name, storage_service):
-        raise NotImplementedError()
-
     def node_modify(self, node_name, node_type=None, property_dict=None, delete_props=None):
         """
         Modify the properties of a given node.

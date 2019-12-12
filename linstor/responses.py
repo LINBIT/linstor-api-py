@@ -218,7 +218,6 @@ class NodeType(object):
     SATELLITE = apiconsts.VAL_NODE_TYPE_STLT
     COMBINED = apiconsts.VAL_NODE_TYPE_CMBD
     AUXILIARY = apiconsts.VAL_NODE_TYPE_AUX
-    SWORDFISH_TARGET = apiconsts.VAL_NODE_TYPE_SWFISH_TARGET
 
 
 class NetInterface(RESTMessageResponse):
@@ -384,8 +383,6 @@ class StoragePoolDriver(object):
     ZFS = "ZFS"
     ZFSThin = "ZFS_THIN"
     Diskless = "DISKLESS"
-    SwordfishTarget = "SWORDFISH_TARGET"
-    SwordfishInitiator = "SWORDFISH_INITIATOR"
     FILE = "FILE"
     FILEThin = "FILE_THIN"
     SPDK = "SPDK"
@@ -398,8 +395,6 @@ class StoragePoolDriver(object):
             StoragePoolDriver.ZFS,
             StoragePoolDriver.ZFSThin,
             StoragePoolDriver.Diskless,
-            StoragePoolDriver.SwordfishTarget,
-            StoragePoolDriver.SwordfishInitiator,
             StoragePoolDriver.FILE,
             StoragePoolDriver.FILEThin,
             StoragePoolDriver.SPDK
@@ -408,16 +403,12 @@ class StoragePoolDriver(object):
     @classmethod
     def diskless_driver(cls):
         return [
-            StoragePoolDriver.Diskless,
-            StoragePoolDriver.SwordfishInitiator
+            StoragePoolDriver.Diskless
         ]
 
     @staticmethod
     def storage_driver_pool_to_props(storage_driver, driver_pool_name):
-        if storage_driver in [
-                StoragePoolDriver.Diskless,
-                StoragePoolDriver.SwordfishTarget,
-                StoragePoolDriver.SwordfishInitiator]:
+        if storage_driver in [StoragePoolDriver.Diskless]:
             return {}
 
         if not driver_pool_name:
@@ -453,7 +444,7 @@ class StoragePoolDriver(object):
 
         raise LinstorError(
             "Unknown storage driver '{drv}', known drivers: "
-            "lvm, lvmthin, zfs, swordfish, diskless, spdk".format(drv=storage_driver)
+            "lvm, lvmthin, zfs, diskless, spdk".format(drv=storage_driver)
         )
 
     @classmethod
@@ -494,8 +485,6 @@ class StoragePool(RESTMessageResponse):
         "LVM_THIN": "LvmThinDriver",
         "ZFS": "ZfsDriver",
         "ZFS_THIN": "ZfsThinDriver",
-        "SWORDFISH_TARGET": "SwordfishTargetDriver",
-        "SWORDFISH_INITIATOR": "SwordfishInitiatorDriver",
         "SPDK": "SpdkDriver"
     }
 
