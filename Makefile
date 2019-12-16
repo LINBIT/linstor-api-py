@@ -1,6 +1,6 @@
 GIT = git
 INSTALLFILES=.installfiles
-PYTHON = python2
+PYTHON ?= python3
 override GITHEAD := $(shell test -e .git && $(GIT) rev-parse HEAD)
 
 U := $(shell $(PYTHON) ./setup.py versionup2date >/dev/null 2>&1; echo $$?;)

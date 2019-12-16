@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """
     linstor - management of distributed DRBD9 resources
     Copyright (C) 2013 - 2018  LINBIT HA-Solutions GmbH
@@ -93,5 +93,5 @@ setup(
     cmdclass={
         "versionup2date": CheckUpToDate
     },
-    test_suite="tests"
+    test_suite="linstor_tests"
 )
