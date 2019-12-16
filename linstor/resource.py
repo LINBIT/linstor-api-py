@@ -475,7 +475,7 @@ class Resource(object):
             linstor.ResourceData(
                 node_name,
                 self._linstor_name,
-                drbd_diskless=True
+                diskless=True
             )
         ])
 
@@ -517,7 +517,7 @@ class Resource(object):
                 linstor.ResourceData(
                     node_name,
                     self._linstor_name,
-                    drbd_diskless=diskless,
+                    diskless=diskless,
                     storage_pool=sp
                 )
             ])
