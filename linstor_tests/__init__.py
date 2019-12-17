@@ -7,13 +7,6 @@ _std_tests = [
 ]
 
 
-def load_tests(loader, tests, pattern):
-    suite = unittest.TestSuite()
-    loaded_tests = loader.loadTestsFromNames(_std_tests)
-    suite.addTest(loaded_tests)
-    return suite
-
-
 def load_all():
     suite = unittest.TestSuite()
     loaded_tests = unittest.defaultTestLoader.loadTestsFromNames(_std_tests)
