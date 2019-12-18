@@ -1584,7 +1584,8 @@ class Linstor(object):
             volume_nr=None,
             minor_nr=None,
             encrypt=False,
-            storage_pool=None
+            storage_pool=None,
+            gross=False
     ):
         """
         Create a new volume definition on the controller.
@@ -1595,10 +1596,11 @@ class Linstor(object):
         :param int minor_nr: Minor number to use.
         :param bool encrypt: Encrypt created volumes from this volume definition.
         :param storage_pool: Storage pool this volume definition will use.
+        :param bool gross: Specified size should be interpreted as gross size.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        body = {"volume_definition": {"size_kib": size}}
+        body = {"volume_definition": {"size_kib": size, "flags": []}}
 
         if minor_nr is not None:
             body["drbd_minor_number"] = minor_nr
@@ -1607,10 +1609,16 @@ class Linstor(object):
             body["volume_definition"]["volume_number"] = volume_nr
 
         if encrypt:
-            body["volume_definition"]["flags"] = [apiconsts.FLAG_ENCRYPTED]
+            body["volume_definition"]["flags"] += [apiconsts.FLAG_ENCRYPTED]
+
+        if gross:
+            body["volume_definition"]["flags"] += [apiconsts.FLAG_GROSS_SIZE]
 
         if storage_pool:
             body["volume_definition"]["props"] = {apiconsts.KEY_STOR_POOL_NAME: storage_pool}
+
+        if not body["volume_definition"]["flags"]:
+            del body["volume_definition"]["flags"]
 
         return self._rest_request(
             apiconsts.API_CRT_VLM_DFN,
@@ -1618,7 +1626,15 @@ class Linstor(object):
             body
         )
 
-    def volume_dfn_modify(self, rsc_name, volume_nr, set_properties=None, delete_properties=None, size=None):
+    def volume_dfn_modify(
+            self,
+            rsc_name,
+            volume_nr,
+            set_properties=None,
+            delete_properties=None,
+            size=None,
+            gross=False
+    ):
         """
         Modify properties of the given volume definition.
 
@@ -1627,10 +1643,12 @@ class Linstor(object):
         :param dict[str, str] set_properties: Dict containing key, value pairs for new values.
         :param list[str] delete_properties: List of properties to delete
         :param int size: New size of the volume definition in kibibytes.
+        :param bool gross: Specified size should be interpreted as gross size.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         body = {}
+
         if size:
             body["size_kib"] = size
 
@@ -1639,6 +1657,10 @@ class Linstor(object):
 
         if delete_properties:
             body["delete_props"] = delete_properties
+
+        if gross:
+            self._require_version("1.0.12", msg="Modify volume-definition with gross size not supported.")
+            body["flags"] = [apiconsts.FLAG_GROSS_SIZE]
 
         return self._rest_request(
             apiconsts.API_MOD_VLM_DFN,
