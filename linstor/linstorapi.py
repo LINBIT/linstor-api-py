@@ -1321,6 +1321,23 @@ class Linstor(object):
             body
         )
 
+    def resource_group_qmvs(self, rsc_grp_name):
+        """
+        Queries maximum volume size from the given resource group
+
+        This is basically the same as the qmvs on controller level, but
+        this API reads all auto-place settings from the given resource group.
+
+        :param str rsc_grp_name: Name of the resource group to fetch the query filters
+        """
+        self._require_version("1.0.12", msg="Query max volume size on resource group API not supported by server")
+
+        return self._rest_request(
+            apiconsts.API_QRY_MAX_VLM_SIZE,
+            "GET",
+            "/v1/resource-groups/" + rsc_grp_name + "/query-max-volume-size"
+        )
+
     def volume_group_create(
             self,
             resource_grp_name,
