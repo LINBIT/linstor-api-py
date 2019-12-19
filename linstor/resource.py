@@ -36,9 +36,17 @@ class _Utils(object):
 class _Client(object):
     def __init__(self, uris, timeout=300, keep_alive=False):
         # external properties
-        self.uri_list = linstor.MultiLinstor.controller_uri_list(uris)  # type: list[str]
+        self._uri_list = linstor.MultiLinstor.controller_uri_list(uris)  # type: list[str]
         self.timeout = timeout
         self.keep_alive = keep_alive
+
+    @property
+    def uri_list(self):
+        return self._uri_list
+
+    @uri_list.setter
+    def uri_list(self, uri_list):
+        raise linstor.LinstorReadOnlyAfterSetError()
 
 
 class _Placement(object):
@@ -232,18 +240,21 @@ class Resource(object):
         return "Resource({n}, {h})".format(n=self, h=self.client.uri_list)
 
     @classmethod
-    def from_resource_group(cls, linstor_controllers, resource_group_name, resource_name, vlm_sizes):
+    def from_resource_group(cls, uri, resource_group_name, resource_name, vlm_sizes,
+                            timeout=300, keep_alive=False):
         """
         Spawns a new resource definition from the given resource group.
 
-        :param str linstor_controllers: string of possible linstor controllers, feeded to .controller_uri_list
+        :param str uri: A list of controller addresses.
+         e.g: ``linstor://localhost,10.0.0.2``, ``linstor+ssl://localhost,linstor://192.168.0.1``
         :param str resource_group_name: Name of the resource group
         :param str resource_name: Name of the new resource definition
         :param list[str] vlm_sizes: String list of volume sizes e.g. ['128Mib', '1G']
         :return: Resource object of the newly created resource definition
         :rtype: Resource
         """
-        with linstor.MultiLinstor(linstor.MultiLinstor.controller_uri_list(linstor_controllers)) as lin:
+        c = _Client(uri)
+        with linstor.MultiLinstor(c.uri_list, timeout, keep_alive) as lin:
             result = lin.resource_group_spawn(
                 resource_group_name,
                 resource_name,
@@ -258,7 +269,7 @@ class Resource(object):
                     )
                 )
 
-            return Resource(resource_name, uri=linstor_controllers)
+            return Resource(resource_name, uri=uri)
         return None
 
     def _set_properties(self):

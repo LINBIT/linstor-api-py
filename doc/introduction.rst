@@ -37,25 +37,32 @@ There are 2 error classes that will or can be thrown from a :py:class:`~.Linstor
 
     Linstor error indicating a network/connection error.
 
+Code Samples Using the High-Level ResourceGroup API
+---------------------------------------------------
 
-Code Samples Using the High-Level Resource API
-----------------------------------------------
-
-In this section we describe methods that are typically used by plugin developers.
+In this section we describe methods that are typically used by plugin developers. Using resource groups is the
+prefered way.
 
 Create a resource N-times redundant
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A code sample on how to create a resource "foo", with a size of 20MiB 3-times redundant.
-Usually that code is executed in a "create" call in a plugin.
+A code sample on how to create a resource "foo", with a size of 20MiB. This first creates (or reuses) a
+resource group named threeSSD, that uses a fast SSD pool and places resources 3-times redundant.  Usually that
+code is executed in a "create" call in a plugin.
 
 .. code-block:: python
 
   import linstor
-  foo = linstor.Resource('foo', uri='linstor://192.168.0.42')  # by default uri is localhost
-  foo.volumes[0] = linstor.Volume('20 MiB')
-  foo.placement.redundancy = 3
-  foo.autoplace()
+  ssd_grp = linstor.ResourceGroup('threeSSD', uri='linstor://192.168.0.42')  # by default uri is localhost
+  ssd_grp.redundancy = 3  # only if used for the first time
+  ssd_grp.storage_pool = 'myssdpool'  # only if used for the first time
+  foo = ssd_grp.create_resource('foo', ['20 MiB'])
+
+Code Samples Using the High-Level Resource API
+----------------------------------------------
+
+In this section we describe methods that are typically used by plugin developers after a resource is created
+from a resource group, or if a resource already exists.
 
 Resizing an existing resource/volume
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -63,7 +70,7 @@ Resizing an existing resource/volume
 .. code-block:: python
 
   import linstor
-  foo = linstor.Resource('foo')
+  foo = linstor.Resource('foo')  # or from a .create_resource() of a resource group
   foo.volumes[0].size = linstor.Volume('30 MiB')
   # resize again
   foo.volumes[0].size += 10 * 1024 * 1024
