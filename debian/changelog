@@ -1,3 +1,22 @@
+python-linstor (1.0.9-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * doc: update sphinx doc
+  * linstorapi: physical-device create add storage pool create support
+  * linstorapi: remove swordfish support
+  * resource: fix incompatibility with older linstor-servers
+  * unittest: rework loading of unittests
+  * use python3 per default
+
+  [ Gabor Hernadi ]
+  * Added gross flag for vlmDfn (create and modify)
+  * Added api call to rsc-grp qmvs
+
+  [ Roland Kammerer ]
+  * high-level API: add ResourceGroup object
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 14 Jan 2020 07:42:25 +0000
+
 python-linstor (1.0.8-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
