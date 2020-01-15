@@ -280,8 +280,8 @@ class Linstor(object):
     def _decode_response_data(cls, response):
         data = response.read()
         if response.getheader("Content-Encoding", "text") == "gzip":
-            return zlib.decompress(data, zlib.MAX_WBITS | 16)
-        return data
+            return zlib.decompress(data, zlib.MAX_WBITS | 16).decode()
+        return data.decode()
 
     def _require_version(self, required_version, msg="REST action not supported by server"):
         """
