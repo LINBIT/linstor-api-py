@@ -270,6 +270,13 @@ class ResourceGroup(object):
         r.client.timeout = self.client.timeout
         return r
 
+    def query_max_volume_size(self):
+        """
+        Queries maximum volume size from the given resource group and returns all possible candidates
+        """
+        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            return lin.resource_group_qmvs(self._name)
+
     def _modify_or_create(self, what="modify"):
         with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
             fn = None
