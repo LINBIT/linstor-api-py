@@ -1342,7 +1342,8 @@ class Linstor(object):
             self,
             resource_grp_name,
             volume_nr=None,
-            property_dict=None
+            property_dict=None,
+            gross=False
     ):
         """
         Create a volume group.
@@ -1350,6 +1351,7 @@ class Linstor(object):
         :param str resource_grp_name: Name of the resource group.
         :param int volume_nr: Volume number to set, might be None.
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param bool gross: Specified size should be interpreted as gross size.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1362,6 +1364,10 @@ class Linstor(object):
         if property_dict:
             body["props"] = property_dict
 
+        if gross:
+            self._require_version("1.0.13", msg="Gross-size not supported by server")
+            body["flags"] = [apiconsts.FLAG_GROSS_SIZE]
+
         return self._rest_request(
             apiconsts.API_CRT_VLM_GRP,
             "POST", "/v1/resource-groups/" + str(resource_grp_name) + "/volume-groups",
@@ -1373,7 +1379,8 @@ class Linstor(object):
             resource_grp_name,
             volume_nr,
             property_dict=None,
-            delete_props=None):
+            delete_props=None,
+            gross=None):
         """
         Modify properties of the given volume group.
 
@@ -1381,6 +1388,7 @@ class Linstor(object):
         :param int volume_nr: Volume number to edit.
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
+        :param Optional[bool] gross: Specified size should be interpreted as gross size, False will use net-size again.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1392,6 +1400,11 @@ class Linstor(object):
 
         if delete_props:
             body["delete_props"] = delete_props
+
+        if gross is not None:
+            self._require_version("1.0.13", msg="Modify volume-group with gross size not supported.")
+            if gross:
+                body["flags"] = [apiconsts.FLAG_GROSS_SIZE] if gross else ["-" + apiconsts.FLAG_GROSS_SIZE]
 
         return self._rest_request(
             apiconsts.API_MOD_VLM_GRP,
@@ -1650,7 +1663,7 @@ class Linstor(object):
             set_properties=None,
             delete_properties=None,
             size=None,
-            gross=False
+            gross=None
     ):
         """
         Modify properties of the given volume definition.
@@ -1660,7 +1673,7 @@ class Linstor(object):
         :param dict[str, str] set_properties: Dict containing key, value pairs for new values.
         :param list[str] delete_properties: List of properties to delete
         :param int size: New size of the volume definition in kibibytes.
-        :param bool gross: Specified size should be interpreted as gross size.
+        :param Optional[bool] gross: Specified size should be interpreted as gross size, False will use net-size again.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1675,9 +1688,10 @@ class Linstor(object):
         if delete_properties:
             body["delete_props"] = delete_properties
 
-        if gross:
-            self._require_version("1.0.12", msg="Modify volume-definition with gross size not supported.")
-            body["flags"] = [apiconsts.FLAG_GROSS_SIZE]
+        if gross is not None:
+            self._require_version("1.0.13", msg="Modify volume-definition with gross size not supported.")
+            if gross:
+                body["flags"] = [apiconsts.FLAG_GROSS_SIZE] if gross else ["-" + apiconsts.FLAG_GROSS_SIZE]
 
         return self._rest_request(
             apiconsts.API_MOD_VLM_DFN,

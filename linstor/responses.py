@@ -1047,6 +1047,16 @@ class VolumeGroup(RESTMessageResponse):
         """
         return self._rest_data.get("props", {})
 
+    @property
+    def flags(self):
+        """
+        Volume group flags.
+
+        :return: Flags list
+        :rtype:  list[str]
+        """
+        return self._rest_data.get("flags", [])
+
 
 class VolumeGroupResponse(RESTMessageResponse):
     def __init__(self, rest_data):
