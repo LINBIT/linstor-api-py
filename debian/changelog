@@ -1,3 +1,14 @@
+python-linstor (1.0.11-1) experimental; urgency=medium
+
+  [ Roland Kammerer ]
+  * high-level API: expose query_max_volume_size in RG
+
+  [ Rene Peinthor ]
+  * decode: utf-8 has to be specified for py2
+  * support gross-size in volume groups
+
+ -- Rene Peinthor <peinthor@gmail.com>  Mon, 27 Jan 2020 13:18:33 +0000
+
 python-linstor (1.0.10-1) experimental; urgency=medium
 
   * fix json parsing in python3 < 3.6
