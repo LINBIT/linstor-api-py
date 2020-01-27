@@ -2774,7 +2774,9 @@ class MultiLinstor(Linstor):
                 conn_errors.append(lne)
 
         if len(conn_errors) == len(self._ctrl_host_list):
-            raise LinstorNetworkError("Unable to connect to any of the given controller hosts.", conn_errors)
+            raise LinstorNetworkError(
+                "Unable to connect to any of the given controller hosts: " + str(self._ctrl_host_list),
+                conn_errors)
 
     @classmethod
     def controller_uri_list(cls, controller_list):
