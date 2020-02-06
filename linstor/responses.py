@@ -501,14 +501,29 @@ class StoragePool(RESTMessageResponse):
 
     @property
     def node_name(self):
+        """
+        Node name where the storage pool is used
+        :return: node name
+        :rtype: str
+        """
         return self._rest_data["node_name"]
 
     @property
     def driver(self):
+        """
+        Provider kind string
+        :return: provider kind string
+        :rtype: str
+        """
         return self.provider_kind
 
     @property
     def provider_kind(self):
+        """
+        Provider kind string
+        :return: provider kind string
+        :rtype: str
+        """
         return self._rest_data.get("provider_kind")
 
     @property
@@ -551,12 +566,27 @@ class StoragePool(RESTMessageResponse):
         return self.static_traits.get("SupportsSnapshots", "false") == "true" if sup_snaps is None else sup_snaps
 
     def is_thin(self):
+        """
+        Checks if pool is thin
+        :return: True if it is a thin pool
+        :rtype: bool
+        """
         return self.static_traits.get("Provisioning", "") == "Thin"
 
     def is_fat(self):
+        """
+        Checks if pool is fat
+        :return: True if it is a fat pool
+        :rtype: bool
+        """
         return self.static_traits.get("Provisioning", "") == "Fat"
 
     def is_diskless(self):
+        """
+        Checks if pool is diskless
+        :return: True if it is a diskless pool
+        :rtype: bool
+        """
         return self.provider_kind in StoragePoolDriver.diskless_driver()
 
     @property
