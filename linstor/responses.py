@@ -255,19 +255,6 @@ class NetInterface(RESTMessageResponse):
 
 
 class Node(RESTMessageResponse):
-    CONNECTION_STATUS_MAP = {
-        "OFFLINE": 0,
-        "CONNECTED": 1,
-        "ONLINE": 2,
-        "VERSION_MISMATCH": 3,
-        "FULL_SYNC_FAILED": 4,
-        "AUTHENTICATION_ERROR": 5,
-        "UNKNOWN": 6,
-        "HOSTNAME_MISMATCH": 7,
-        "OTHER_CONTROLLER": 8,
-        "NO_STLT_CONN": 9
-    }
-
     def __init__(self, rest_data):
         super(Node, self).__init__(rest_data)
 
@@ -281,7 +268,9 @@ class Node(RESTMessageResponse):
 
     @property
     def connection_status(self):
-        return self._rest_data.get("connection_status", "Unknown")
+        return self._rest_data.get(
+            "connection_status",
+            apiconsts.ConnectionStatus.OFFLINE.name)
 
     @property
     def net_interfaces(self):
@@ -311,7 +300,8 @@ class Node(RESTMessageResponse):
     def data_v0(self):
         d = dict(self._rest_data)
         d["props"] = [{"key": x, "value": self.props[x]} for x in self.props]
-        d["connection_status"] = self.CONNECTION_STATUS_MAP.get(self._rest_data["connection_status"], 6)
+        d["connection_status"] = apiconsts.ConnectionStatus[
+            self._rest_data.get("connection_status", apiconsts.ConnectionStatus.UNKNOWN.name)].value
         d["net_interfaces"] = [x.data_v0 for x in self.net_interfaces]
         return d
 

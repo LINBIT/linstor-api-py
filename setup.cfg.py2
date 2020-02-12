@@ -5,3 +5,6 @@ packager = LINSTOR Team <drbd-user@lists.linbit.com>
 vendor = LINBIT HA-Solutions GmbH
 build-requires =
   python2-setuptools
+  python-enum34
+requires =
+  python-enum34

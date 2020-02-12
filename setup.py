@@ -85,7 +85,9 @@ setup(
     maintainer="LINBIT HA-Solutions GmbH",
     maintainer_email="drbd-user@lists.linbit.com",
     license="GPLv3",
-    # install_requires=[],
+    extras_require={
+        ":python_version<'3'": ['enum34'],
+    },
     packages=[
         'linstor'
     ],
