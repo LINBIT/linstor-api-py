@@ -640,7 +640,7 @@ class KeyValueStoresResponse(RESTMessageResponse):
         :return: List with all names of instances
         :rtype: list[str]
         """
-        return [x.name for x in self._rest_data["key_value_store"]]
+        return [x['name'] for x in self._rest_data]
 
     def instance(self, name):
         """
@@ -650,9 +650,9 @@ class KeyValueStoresResponse(RESTMessageResponse):
         :return: KeyValueStore object of the instance, if none found an empty is created
         :rtype: KeyValueStore
         """
-        kv = [x for x in self._rest_data["key_value_store"] if x.name == name]
+        kv = [x for x in self._rest_data if x['name'] == name]
         kv = kv[0] if kv else {}
-        return KeyValueStore(name, {x.key: x.value for x in kv.props})
+        return KeyValueStore(name, kv.get('props', {}))
 
 
 class KeyValueStore(object):

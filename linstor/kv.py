@@ -80,7 +80,7 @@ class KV(dict):
                 raise linstor.LinstorError('Could not delete kv({}): {}'.format(k, rs[0]))
 
     @classmethod
-    def _valid_string(s):
+    def _valid_string(cls, s):
         if isinstance(s, str):
             return True
 
@@ -184,7 +184,7 @@ class KV(dict):
     def items(self):
         for k, v in super(KV, self).items():
             if k.startswith(self.namespace):
-                yield (self._key_ns_del(k), v)
+                yield self._key_ns_del(k), v
 
     def keys(self):
         return self.__iter__()
