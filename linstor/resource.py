@@ -241,7 +241,7 @@ class Resource(object):
 
     @classmethod
     def from_resource_group(cls, uri, resource_group_name, resource_name, vlm_sizes,
-                            timeout=300, keep_alive=False):
+                            timeout=300, keep_alive=False, definitions_only=False):
         """
         Spawns a new resource definition from the given resource group.
 
@@ -250,6 +250,9 @@ class Resource(object):
         :param str resource_group_name: Name of the resource group
         :param str resource_name: Name of the new resource definition
         :param list[str] vlm_sizes: String list of volume sizes e.g. ['128Mib', '1G']
+        :param int timeout: client library timeout
+        :param bool keep_alive: keep client connection alive
+        :param bool definitions_only: only spawn definitions
         :return: Resource object of the newly created resource definition
         :rtype: Resource
         """
@@ -258,7 +261,8 @@ class Resource(object):
             result = lin.resource_group_spawn(
                 resource_group_name,
                 resource_name,
-                vlm_sizes
+                vlm_sizes,
+                definitions_only=definitions_only
             )
             if not linstor.Linstor.all_api_responses_no_error(result):
                 raise linstor.LinstorError(
