@@ -1,3 +1,12 @@
+python-linstor (1.0.13-1) experimental; urgency=medium
+
+  * responses: add more storagepool docstrings
+  * keyvaluestore: fix incorrect api access
+  * use new const enum type
+  * resource: allow to only spawn definitions
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 03 Mar 2020 14:35:23 +0000
+
 python-linstor (1.0.11-1) experimental; urgency=medium
 
   [ Roland Kammerer ]
