@@ -1170,13 +1170,75 @@ class ResourceState(RESTMessageResponse):
         return d
 
 
+class DrbdConnection(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(DrbdConnection, self).__init__(rest_data)
+
+    @property
+    def connected(self):
+        return self._rest_data["connected"]
+
+    @property
+    def message(self):
+        return self._rest_data.get("message")
+
+
+class DrbdResource(RESTMessageResponse):
+    def __init__(self, data):
+        super(DrbdResource, self).__init__(data)
+
+    @property
+    def node_id(self):
+        """
+        Get DRBD node id
+        :return: node id
+        :rtype: int
+        """
+        return self._rest_data.get("node_id")
+
+    @property
+    def peer_slots(self):
+        """
+        Get DRBD peer slots
+        :return: peer slot count
+        :rtype: int
+        """
+        return self._rest_data.get("peer_slots")
+
+    @property
+    def al_stripes(self):
+        """
+        Get DRBD activity log stripes
+        :return: al_stripes
+        :rtype: int
+        """
+        return self._rest_data.get("al_stripes")
+
+    @property
+    def al_size(self):
+        """
+        Get DRBD activity log size
+        :return: al size
+        :rtype: int
+        """
+        return self._rest_data.get("al_size")
+
+    @property
+    def connections(self):
+        """
+        Connections dict of this DRBD Resource.
+
+        :return: A node to DrbdConnection dict
+        :rtype: dict[str, DrbdConnection]
+        """
+        return {k: DrbdConnection(v) for k, v in self._rest_data.get("connections", {}).items()}
+
+    # TODO other fields
+
+
 class ResourceLayerData(RESTMessageResponse):
     def __init__(self, data):
         super(ResourceLayerData, self).__init__(data)
-
-    @property
-    def id(self):
-        return self._rest_data["id"]
 
     @property
     def name_suffix(self):
@@ -1191,7 +1253,23 @@ class ResourceLayerData(RESTMessageResponse):
         """
         return [ResourceLayerData(x) for x in self._rest_data.children]
 
-    # TODO payload
+    @property
+    def type(self):
+        return self._rest_data["type"]
+
+    @property
+    def drbd_resource(self):
+        """
+        Gets the DRBD resource layer data if layer data is DRBD, otherwise None.
+
+        :return: None if it isn't a drbd resource, otherwise the DrbdResource object
+        :rtype: Optional[DrbdResource]
+        """
+        if self.type == "DRBD":
+            return DrbdResource(self._rest_data["drbd"])
+        return None
+
+    # TODO other layer objects
 
 
 class VolumeLayerData(RESTMessageResponse):
