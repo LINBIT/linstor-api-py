@@ -296,11 +296,11 @@ class Linstor(object):
                 "; needed " + required_version
             )
 
-    def _api_version_smaller(self, version):
+    def api_version_smaller(self, version):
         """
 
         :param str version: semantic version string
-        :return: True if server versionis smaller than given version
+        :return: True if server version is smaller than given version
         :rtype: bool
         """
         return self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(version)
@@ -1535,7 +1535,7 @@ class Linstor(object):
         :return: A ResourceDefinitionResponse object
         :rtype: list[RESTMessageResponse]
         """
-        if self._api_version_smaller("1.0.10"):
+        if self.api_version_smaller("1.0.10"):
             rsc_dfns_resp = self._rest_request(apiconsts.API_LST_RSC_DFN, "GET", "/v1/resource-definitions")
 
             if rsc_dfns_resp:
