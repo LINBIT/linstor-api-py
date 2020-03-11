@@ -376,6 +376,7 @@ class StoragePoolDriver(object):
     FILE = "FILE"
     FILEThin = "FILE_THIN"
     SPDK = "SPDK"
+    OPENFLEX_TARGET = "OPENFLEX_TARGET"
 
     @staticmethod
     def list():
@@ -387,7 +388,8 @@ class StoragePoolDriver(object):
             StoragePoolDriver.Diskless,
             StoragePoolDriver.FILE,
             StoragePoolDriver.FILEThin,
-            StoragePoolDriver.SPDK
+            StoragePoolDriver.SPDK,
+            StoragePoolDriver.OPENFLEX_TARGET
         ]
 
     @classmethod
@@ -432,6 +434,11 @@ class StoragePoolDriver(object):
         if storage_driver == StoragePoolDriver.SPDK:
             return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP: driver_pool_name}
 
+        if storage_driver == StoragePoolDriver.OPENFLEX_TARGET:
+            return {
+                apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_OPENFLEX_STOR_POOL: driver_pool_name
+            }
+
         raise LinstorError(
             "Unknown storage driver '{drv}', known drivers: "
             "lvm, lvmthin, zfs, diskless, spdk".format(drv=storage_driver)
@@ -464,6 +471,9 @@ class StoragePoolDriver(object):
 
         if storage_driver_enum == StoragePoolDriver.SPDK:
             return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, '')
+
+        if storage_driver_enum == StoragePoolDriver.OPENFLEX_TARGET:
+            return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_OPENFLEX_STOR_POOL, '')
 
         return ''
 

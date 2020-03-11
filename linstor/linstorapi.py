@@ -111,7 +111,8 @@ class Linstor(object):
         apiconsts.VAL_NODE_TYPE_CTRL,
         apiconsts.VAL_NODE_TYPE_AUX,
         apiconsts.VAL_NODE_TYPE_CMBD,
-        apiconsts.VAL_NODE_TYPE_STLT
+        apiconsts.VAL_NODE_TYPE_STLT,
+        apiconsts.VAL_NODE_TYPE_OPENFLEX_TARGET
     ]
 
     API_SINGLE_NODE_REQ = "API_SINGLE_NODE_REQ"
