@@ -1,4 +1,4 @@
-VERSION = "1.0.13"
+VERSION = "1.0.14"
 
 from .linstorapi import ApiCallResponse, ErrorReport
 from .linstorapi import Linstor, MultiLinstor

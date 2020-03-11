@@ -1,3 +1,13 @@
+python-linstor (1.0.14-1) experimental; urgency=medium
+
+  * linstorapi: make api_version_smaller public
+  * responses: Add DrbdResource layer data object and drbdconnections
+  * resource: report first error not first message
+  * add support for openflex on node and storage pool
+  * node-create: add property dict as param
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 11 Mar 2020 13:21:58 +0000
+
 python-linstor (1.0.13-1) experimental; urgency=medium
 
   * responses: add more storagepool docstrings
