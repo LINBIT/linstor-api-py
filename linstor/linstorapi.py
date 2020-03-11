@@ -616,7 +616,8 @@ class Linstor(object):
             ip,
             com_type=apiconsts.VAL_NETCOM_TYPE_PLAIN,
             port=None,
-            netif_name='default'
+            netif_name='default',
+            property_dict=None
     ):
         """
         Creates a node on the controller.
@@ -627,6 +628,7 @@ class Linstor(object):
         :param str com_type: Communication type of the node.
         :param int port: Port number of the node.
         :param str netif_name: Netinterface name that is created.
+        :param dict[str, str] property_dict: Node properties.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -659,6 +661,9 @@ class Linstor(object):
                 }
             ]
         }
+
+        if property_dict:
+            body["props"] = property_dict
 
         self._require_node_is_active(body["net_interfaces"][0])
 
