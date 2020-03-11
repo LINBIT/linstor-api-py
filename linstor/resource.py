@@ -155,7 +155,7 @@ class Volume(object):
                 rs = lin.volume_dfn_modify(r, v, size=size_kib)
                 if not linstor.Linstor.all_api_responses_no_error(rs):
                     raise linstor.LinstorError('Could not resize Resource/Volume {}/{}: {}'
-                                               .format(r, v, rs[0]))
+                                               .format(r, v, Linstor.filter_api_call_response_errors(rs)[0]))
 
         # if we are here everything is fine
         self._size = size
@@ -170,7 +170,8 @@ class Volume(object):
             r, v = self._rsc_name, self._volume_id
             rs = lin.volume_dfn_delete(r, v)
             if not linstor.Linstor.all_api_responses_no_error(rs):
-                raise linstor.LinstorError('Could not delete Resource/Volume {}/{}: {}'.format(r, v, rs[0]))
+                raise linstor.LinstorError('Could not delete Resource/Volume {}/{}: {}'.format(
+                    r, v, Linstor.filter_api_call_response_errors(rs)[0]))
 
 
 class _VolumeDict(dict):
@@ -269,7 +270,7 @@ class Resource(object):
                     'Could not spawn resource "{}" from resource group "{}": {}'.format(
                         resource_name,
                         resource_group_name,
-                        result[0].message
+                        Linstor.filter_api_call_response_errors(result)[0].message
                     )
                 )
 
@@ -282,7 +283,7 @@ class Resource(object):
         rs = self._lin.resource_dfn_modify(self._linstor_name, props, delete_props=None)
         if not linstor.Linstor.all_api_responses_no_error(rs):
             raise linstor.LinstorError('Could not set DRBD properties for resource {}: {}'
-                                       .format(self, rs[0]))
+                                       .format(self, Linstor.filter_api_call_response_errors(rs)[0]))
 
     def _maybe_create_rd_and_vd(self):
         # resource definition
@@ -290,7 +291,7 @@ class Resource(object):
             rs = self._lin.resource_dfn_create("", self._port, external_name=self._name)
             if not linstor.Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError('Could not create resource definition {}: {}'
-                                           .format(self, rs[0]))
+                                           .format(self, Linstor.filter_api_call_response_errors(rs)[0]))
             ors = rs[0].object_refs
             try:
                 self._linstor_name = ors['RscDfn']
@@ -313,7 +314,7 @@ class Resource(object):
                                                  encrypt=False, storage_pool=self.placement.storage_pool)
                 if not linstor.Linstor.all_api_responses_no_error(rs):
                     raise linstor.LinstorError('Could not create volume definition {n}/{k}: {e}'
-                                               .format(n=self, k=k, e=rs[0]))
+                                               .format(n=self, k=k, e=Linstor.filter_api_call_response_errors(rs)[0]))
                 self.volumes[k]._rsc_name = self._linstor_name
 
     def __update_volumes(self):
