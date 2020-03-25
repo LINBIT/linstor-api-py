@@ -1107,13 +1107,7 @@ class Linstor(object):
         :return: Set of layer names
         :rtype: set[str]
         """
-        return {
-            'drbd',
-            'writecache',
-            'luks',
-            'nvme',
-            'storage'
-        }
+        return {x.value for x in apiconsts.DeviceLayerKind}
 
     @classmethod
     def provider_list(cls):
