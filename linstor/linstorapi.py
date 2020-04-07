@@ -1803,6 +1803,20 @@ class Linstor(object):
             layer_list,
             provider_list
     ):
+        """
+
+        :param dict[Any] body:
+        :param int place_count:
+        :param Optional[str] storage_pool:
+        :param Optional[List[str]] do_not_place_with:
+        :param Optional[str] do_not_place_with_regex:
+        :param Optional[List[str]] replicas_on_same:
+        :param Optional[List[str]] replicas_on_different:
+        :param Optional[bool] diskless_on_remaining:
+        :param Optional[List[str]] layer_list:
+        :param Optional[List[str]] provider_list:
+        :return:
+        """
         if "select_filter" not in body:
             body["select_filter"] = {}
 
@@ -1812,21 +1826,21 @@ class Linstor(object):
         if diskless_on_remaining is not None:
             body["select_filter"]["diskless_on_remaining"] = diskless_on_remaining
 
-        if storage_pool:
+        if storage_pool is not None:
             body["select_filter"]["storage_pool"] = storage_pool
-        if do_not_place_with:
+        if do_not_place_with is not None:
             body["select_filter"]["not_place_with_rsc"] = do_not_place_with
-        if do_not_place_with_regex:
+        if do_not_place_with_regex is not None:
             body["select_filter"]["not_place_with_rsc_regex"] = do_not_place_with_regex
-        if replicas_on_same:
+        if replicas_on_same is not None:
             body["select_filter"]["replicas_on_same"] = replicas_on_same
-        if replicas_on_different:
+        if replicas_on_different is not None:
             body["select_filter"]["replicas_on_different"] = replicas_on_different
 
-        if layer_list:
+        if layer_list is not None:
             body["select_filter"]["layer_stack"] = layer_list
 
-        if provider_list:
+        if provider_list is not None:
             body["select_filter"]["provider_list"] = provider_list
         return body
 
