@@ -1,3 +1,12 @@
+python-linstor (1.0.15-1) experimental; urgency=medium
+
+  * use newer drbdsetup.xml
+  * use new device layer kind enum type
+  * fix unset auto select filters on modify
+  * rsc-grp-spawn: support external name
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 08 Apr 2020 13:57:16 +0000
+
 python-linstor (1.0.14-1) experimental; urgency=medium
 
   * linstorapi: make api_version_smaller public
