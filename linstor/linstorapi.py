@@ -1285,7 +1285,14 @@ class Linstor(object):
             raise LinstorApiCallError(list_res[0])
         raise LinstorError("No list response received.")
 
-    def resource_group_spawn(self, rsc_grp_name, rsc_dfn_name, vlm_sizes, partial=False, definitions_only=False):
+    def resource_group_spawn(
+            self,
+            rsc_grp_name,
+            rsc_dfn_name,
+            vlm_sizes,
+            partial=False,
+            definitions_only=False,
+            external_name=None):
         """
         Spawns resource for the given resource group.
 
@@ -1295,6 +1302,8 @@ class Linstor(object):
         :param bool partial: If false, the length of the vlm_sizes has to match the number of volume-groups or an
                              error is returned.
         :param bool definitions_only: Do not auto place resource, just create the definitions
+        :param Optional[str] external_name: External name to set for the resource definition, if this is specified
+                                            the resource definition name will be ignored
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1314,6 +1323,12 @@ class Linstor(object):
             "partial": partial,
             "definitions_only": definitions_only
         }
+
+        if external_name:
+            self._require_version("1.0.16", msg="Spawn with external name not supported by server")
+            body["resource_definition_name"] = ""
+            body["resource_definition_external_name"] = external_name
+
         return self._rest_request(
             apiconsts.API_SPAWN_RSC_DFN,
             "POST",
