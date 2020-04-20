@@ -2559,35 +2559,52 @@ class Linstor(object):
             "/v1/resource-definitions/" + rsc_name + "/snapshot-rollback/" + snapshot_name
         )
 
-    def snapshot_dfn_list(self):
+    def snapshot_dfn_list(self, filter_by_nodes=None, filter_by_resources=None):
         """
         Request a list of all snapshot definitions known to the controller.
 
+        :param list[str] filter_by_nodes: filter resources by nodes
+        :param list[str] filter_by_resources: filter resources by resource names
         :return: A MsgLstSnapshotDfn proto message containing all information.
         :rtype: list[SnapshotsResponse]
         """
-        rsc_dfns = self.resource_dfn_list()[0]
+        if self.api_version_smaller("1.1.0"):
+            rsc_dfns = self.resource_dfn_list()[0]
 
-        result = []
-        for rsc_dfn in rsc_dfns.resource_definitions:
-            snapshots = self._rest_request(
+            result = []
+            for rsc_dfn in rsc_dfns.resource_definitions:
+                snapshots = self._rest_request(
+                    apiconsts.API_LST_SNAPSHOT_DFN,
+                    "GET", "/v1/resource-definitions/" + rsc_dfn.name + "/snapshots"
+                )
+                if snapshots and isinstance(snapshots[0], SnapshotResponse):
+                    result += snapshots[0]._rest_data
+            return [SnapshotResponse(result)]
+        else:
+            query_params = []
+            if filter_by_nodes:
+                query_params += ["nodes=" + x for x in filter_by_nodes]
+            if filter_by_resources:
+                query_params += ["resources=" + x for x in filter_by_resources]
+            path = "/v1/view/snapshots"
+            if query_params:
+                path += "?" + "&".join(query_params)
+            return self._rest_request(
                 apiconsts.API_LST_SNAPSHOT_DFN,
-                "GET", "/v1/resource-definitions/" + rsc_dfn.name + "/snapshots"
-            )
-            if snapshots and isinstance(snapshots[0], SnapshotResponse):
-                result += snapshots[0]._rest_data
-        return [SnapshotResponse(result)]
+                "GET", path)
 
-    def snapshot_dfn_list_raise(self):
+    def snapshot_dfn_list_raise(self, filter_by_nodes=None, filter_by_resources=None):
         """
         Request a list of all snapshot definitions known to the controller.
 
+        :param list[str] filter_by_nodes: filter resources by nodes
+        :param list[str] filter_by_resources: filter resources by resource names
         :return: A MsgLstSnapshotDfn proto message containing all information.
         :rtype: SnapshotsResponse
         :raises LinstorError: if no response
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        list_res = self.snapshot_dfn_list()
+        list_res = self.snapshot_dfn_list(filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources)
         if list_res:
             if isinstance(list_res[0], SnapshotResponse):
                 return list_res[0]
