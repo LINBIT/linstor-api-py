@@ -809,17 +809,21 @@ class Linstor(object):
         """
         return self._rest_request(apiconsts.API_LST_NET_IF, "GET", "/v1/nodes/" + node_name + "/net-interfaces")
 
-    def node_list(self, filter_by_nodes=None):
+    def node_list(self, filter_by_nodes=None, filter_by_props=None):
         """
         Request a list of all nodes known to the controller.
 
         :param list[str] filter_by_nodes: Filter by nodes.
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties.
         :return: A MsgLstNode proto message containing all information.
         :rtype: list[RESTMessageResponse]
         """
         query_params = []
         if filter_by_nodes:
             query_params += ["nodes=" + x for x in filter_by_nodes]
+
+        if filter_by_props:
+            query_params += ["props=" + x for x in filter_by_props]
 
         path = "/v1/nodes"
         if query_params:
@@ -830,16 +834,18 @@ class Linstor(object):
             path
         )
 
-    def node_list_raise(self, filter_by_nodes=None):
+    def node_list_raise(self, filter_by_nodes=None, filter_by_props=None):
         """
         Request a list of all nodes known to the controller.
 
+        :param list[str] filter_by_nodes: Filter by nodes.
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties.
         :return: Node list response objects
         :rtype: NodeListResponse
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        list_res = self.node_list(filter_by_nodes=filter_by_nodes)
+        list_res = self.node_list(filter_by_nodes=filter_by_nodes, filter_by_props=filter_by_props)
         if list_res:
             if isinstance(list_res[0], NodeListResponse):
                 return list_res[0]
@@ -1049,12 +1055,13 @@ class Linstor(object):
             "/v1/nodes/" + node_name + "/storage-pools/" + storage_pool_name
         )
 
-    def storage_pool_list(self, filter_by_nodes=None, filter_by_stor_pools=None):
+    def storage_pool_list(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_props=None):
         """
         Request a list of all storage pools known to the controller.
 
         :param list[str] filter_by_nodes: Filter storage pools by nodes.
         :param list[str] filter_by_stor_pools: Filter storage pools by storage pool names.
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties.
         :return: A MsgLstStorPool proto message containing all information.
         :rtype: list[RESTMessageResponse]
         """
@@ -1063,6 +1070,8 @@ class Linstor(object):
             query_params += ["nodes=" + x for x in filter_by_nodes]
         if filter_by_stor_pools:
             query_params += ["storage_pools=" + x for x in filter_by_stor_pools]
+        if filter_by_props:
+            query_params += ["props=" + x for x in filter_by_props]
 
         path = "/v1/view/storage-pools"
         if query_params:
@@ -1082,17 +1091,21 @@ class Linstor(object):
 
         return result + errors
 
-    def storage_pool_list_raise(self, filter_by_nodes=None, filter_by_stor_pools=None):
+    def storage_pool_list_raise(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_props=None):
         """
 
         :param Optional[list[str]] filter_by_nodes: node names to filter
         :param Optional[list[str]] filter_by_stor_pools: storage pool names to filter
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties.
         :return: StoragePoolListResponse object
         :rtype: StoragePoolListResponse
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        list_res = self.storage_pool_list(filter_by_nodes=filter_by_nodes, filter_by_stor_pools=filter_by_stor_pools)
+        list_res = self.storage_pool_list(
+            filter_by_nodes=filter_by_nodes,
+            filter_by_stor_pools=filter_by_stor_pools,
+            filter_by_props=filter_by_props)
         if list_res:
             if isinstance(list_res[0], StoragePoolListResponse):
                 return list_res[0]
@@ -1258,10 +1271,12 @@ class Linstor(object):
         self._require_version("1.0.8", msg="Resource group delete not supported by server")
         return self._rest_request(apiconsts.API_DEL_RSC_GRP, "DELETE", "/v1/resource-groups/" + name)
 
-    def resource_group_list_raise(self, filter_by_resource_groups=None):
+    def resource_group_list_raise(self, filter_by_resource_groups=None, filter_by_props=None):
         """
         Request a list of all resource groups known to the controller.
 
+        :param list[str] filter_by_resource_groups: Filter by the given resource group names.
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties.
         :return: A ResourceGroupListResponse object
         :rtype: ResourceGroupResponse
         :raises LinstorError: if apicall error or no data received.
@@ -1272,6 +1287,8 @@ class Linstor(object):
         query_params = []
         if filter_by_resource_groups:
             query_params += ["resource_groups=" + x for x in filter_by_resource_groups]
+        if filter_by_props:
+            query_params += ["props=" + x for x in filter_by_props]
 
         path = "/v1/resource-groups"
         if query_params:
@@ -1541,12 +1558,17 @@ class Linstor(object):
         """
         return self._rest_request(apiconsts.API_DEL_RSC_DFN, "DELETE", "/v1/resource-definitions/" + name)
 
-    def resource_dfn_list(self, query_volume_definitions=True, filter_by_resource_definitions=None):
+    def resource_dfn_list(
+            self,
+            query_volume_definitions=True,
+            filter_by_resource_definitions=None,
+            filter_by_props=None):
         """
         Request a list of all resource definitions known to the controller.
 
         :param bool query_volume_definitions: Query the volume definitions of this resource definition.
         :param list[str] filter_by_resource_definitions: Filter resource definitions by resource definition names.
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties
         :return: A ResourceDefinitionResponse object
         :rtype: list[RESTMessageResponse]
         """
@@ -1571,6 +1593,8 @@ class Linstor(object):
                 query_params += ["resource_definitions=" + x for x in filter_by_resource_definitions]
             if query_volume_definitions:
                 query_params += ["with_volume_definitions=true"]
+            if filter_by_props:
+                query_params += ["props=" + x for x in filter_by_props]
 
             path = "/v1/resource-definitions"
             if query_params:
@@ -1583,10 +1607,17 @@ class Linstor(object):
 
             return resource_definition_res
 
-    def resource_dfn_list_raise(self, query_volume_definitions=True, filter_by_resource_definitions=None):
+    def resource_dfn_list_raise(
+            self,
+            query_volume_definitions=True,
+            filter_by_resource_definitions=None,
+            filter_by_props=None):
         """
         Request a list of all resource definitions known to the controller.
 
+        :param bool query_volume_definitions: Query the volume definitions of this resource definition.
+        :param list[str] filter_by_resource_definitions: Filter resource definitions by resource definition names.
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties
         :return: A ResourceDefinitionResponse object
         :rtype: ResourceDefinitionResponse
         :raises LinstorError: if apicall error or no data received.
@@ -1594,7 +1625,8 @@ class Linstor(object):
         """
         list_res = self.resource_dfn_list(
             query_volume_definitions=query_volume_definitions,
-            filter_by_resource_definitions=filter_by_resource_definitions
+            filter_by_resource_definitions=filter_by_resource_definitions,
+            filter_by_props=filter_by_props
         )
         if list_res:
             if isinstance(list_res[0], ResourceDefinitionResponse):
@@ -2014,37 +2046,50 @@ class Linstor(object):
             apiresp_json["message"] = 'Resource {} not diskless on node {}, not deleted'.format(rsc_name, node_name)
             return [ApiCallResponse(apiresp_json)]
 
-    def resource_list(self, filter_by_nodes=None, filter_by_resources=None):
+    def resource_list(self, filter_by_nodes=None, filter_by_resources=None, filter_by_props=None):
         """
         Request a list of all resources known to the controller.
 
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_resources: filter resources by resource names
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties
+
         :return: A list containing a ResourceResponse object
         :rtype: list[ResourceResponse]
         """
-        return self.volume_list(filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources)
+        return self.volume_list(
+            filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources, filter_by_props=filter_by_props)
 
-    def resource_list_raise(self, filter_by_nodes=None, filter_by_resources=None):
+    def resource_list_raise(self, filter_by_nodes=None, filter_by_resources=None, filter_by_props=None):
         """
         Request a list of all resources known to the controller.
 
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_resources: filter resources by resource names
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties
         :return: A ResourceResponse object
         :rtype: ResourceResponse
         :raises LinstorError: if apicall error or no data received.
         :raises LinstorApiCallError: on an apicall error from controller
         """
-        return self.volume_list_raise(filter_by_nodes=filter_by_nodes, filter_by_resources=filter_by_resources)
+        return self.volume_list_raise(
+            filter_by_nodes=filter_by_nodes,
+            filter_by_resources=filter_by_resources,
+            filter_by_props=filter_by_props)
 
-    def volume_list(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_resources=None):
+    def volume_list(
+            self,
+            filter_by_nodes=None,
+            filter_by_stor_pools=None,
+            filter_by_resources=None,
+            filter_by_props=None):
         """
         Request a list of all volumes known to the controller.
 
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_stor_pools: filter resources by storage pool names
         :param list[str] filter_by_resources: filter resources by resource names
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties
         :return: A list containing a ResourceResponse object
         :rtype: list[RESTMessageResponse]
         """
@@ -2057,6 +2102,8 @@ class Linstor(object):
             query_params += ["storage_pools=" + x for x in filter_by_stor_pools]
         if filter_by_resources:
             query_params += ["resources=" + x for x in filter_by_resources]
+        if filter_by_props:
+            query_params += ["props=" + x for x in filter_by_props]
         path = "/v1/view/resources"
         if query_params:
             path += "?" + "&".join(query_params)
@@ -2072,13 +2119,19 @@ class Linstor(object):
 
         return result + errors
 
-    def volume_list_raise(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_resources=None):
+    def volume_list_raise(
+            self,
+            filter_by_nodes=None,
+            filter_by_stor_pools=None,
+            filter_by_resources=None,
+            filter_by_props=None):
         """
         Request a list of all volumes known to the controller.
 
         :param list[str] filter_by_nodes: filter resources by nodes
         :param list[str] filter_by_stor_pools: filter resources by storage pool names
         :param list[str] filter_by_resources: filter resources by resource names
+        :param Optional[list[str]] filter_by_props: Filter nodes by properties
         :return: A ResourceResponse object
         :rtype: ResourceResponse
         :raises LinstorError: if apicall error or no data received.
@@ -2087,8 +2140,8 @@ class Linstor(object):
         list_res = self.volume_list(
             filter_by_nodes=filter_by_nodes,
             filter_by_stor_pools=filter_by_stor_pools,
-            filter_by_resources=filter_by_resources
-        )
+            filter_by_resources=filter_by_resources,
+            filter_by_props=filter_by_props)
         if list_res:
             if isinstance(list_res[0], ResourceResponse):
                 return list_res[0]
