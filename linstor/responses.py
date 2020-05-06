@@ -297,6 +297,10 @@ class Node(RESTMessageResponse):
         return self._rest_data.get("props", {})
 
     @property
+    def properties(self):
+        return self._rest_data.get("props", {})
+
+    @property
     def data_v0(self):
         d = dict(self._rest_data)
         d["props"] = [{"key": x, "value": self.props[x]} for x in self.props]
