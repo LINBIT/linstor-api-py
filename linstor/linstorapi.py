@@ -1153,7 +1153,7 @@ class Linstor(object):
         :param str name: Name of the resource group to modify.
         :param str description: description for the resource group.
         :param int place_count: Number of placements, on how many different nodes
-        :param str storage_pool: Storage pool to use
+        :param list[str] storage_pool: List of storage pools to use
         :param list[str] do_not_place_with: Do not place with resource names in this list
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
@@ -1175,6 +1175,9 @@ class Linstor(object):
 
         if property_dict:
             body["props"] = property_dict
+
+        if isinstance(storage_pool, str):
+            storage_pool = [storage_pool]
 
         self._set_select_filter_body(
             body,
@@ -1216,7 +1219,7 @@ class Linstor(object):
         :param str name: Name of the resource group to modify.
         :param str description: description for the resource group.
         :param int place_count: Number of placements, on how many different nodes
-        :param str storage_pool: Storage pool to use
+        :param list[str] storage_pool: List of storage pools to use
         :param list[str] do_not_place_with: Do not place with resource names in this list
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
@@ -1234,6 +1237,9 @@ class Linstor(object):
 
         if description is not None:
             body["description"] = description
+
+        if isinstance(storage_pool, str):
+            storage_pool = [storage_pool]
 
         self._set_select_filter_body(
             body,
@@ -1836,9 +1842,8 @@ class Linstor(object):
             body
         )
 
-    @classmethod
     def _set_select_filter_body(
-            cls,
+            self,
             body,
             place_count,
             storage_pool,
@@ -1854,7 +1859,7 @@ class Linstor(object):
 
         :param dict[Any] body:
         :param int place_count:
-        :param Optional[str] storage_pool:
+        :param Optional[List[str]] storage_pool:
         :param Optional[List[str]] do_not_place_with:
         :param Optional[str] do_not_place_with_regex:
         :param Optional[List[str]] replicas_on_same:
@@ -1874,7 +1879,14 @@ class Linstor(object):
             body["select_filter"]["diskless_on_remaining"] = diskless_on_remaining
 
         if storage_pool is not None:
-            body["select_filter"]["storage_pool"] = storage_pool
+            if self.api_version_smaller("1.1.0"):
+                if len(storage_pool) > 1:
+                    raise LinstorArgumentError("linstor-controller version doesn't support multiple storage pools")
+                body["select_filter"]["storage_pool"] = storage_pool[0]
+            else:
+                pool_list = storage_pool if storage_pool and storage_pool[0] else []
+                body["select_filter"]["storage_pool_list"] = pool_list
+
         if do_not_place_with is not None:
             body["select_filter"]["not_place_with_rsc"] = do_not_place_with
         if do_not_place_with_regex is not None:
@@ -1910,7 +1922,7 @@ class Linstor(object):
 
         :param str rsc_name: Name of the resource definition to deploy
         :param int place_count: Number of placements, on how many different nodes
-        :param str storage_pool: Storage pool to use
+        :param list[str] storage_pool: List of storage pools to use
         :param list[str] do_not_place_with: Do not place with resource names in this list
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
@@ -1925,6 +1937,9 @@ class Linstor(object):
         body = {
             "diskless_on_remaining": diskless_on_remaining
         }
+
+        if isinstance(storage_pool, str):
+            storage_pool = [storage_pool]
 
         self._set_select_filter_body(
             body,

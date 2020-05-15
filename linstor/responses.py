@@ -944,6 +944,15 @@ class SelectFilter(RESTMessageResponse):
         return self._rest_data.get("storage_pool")
 
     @property
+    def storage_pool_list(self):
+        """
+        Returns the list of storage pools used
+        :return: storage pool list
+        :rtype: List[str]
+        """
+        return self._rest_data.get("storage_pool_list", [self.storage_pool] if self.storage_pool else [])
+
+    @property
     def not_place_with_rsc(self):
         return self._rest_data.get("not_place_with_rsc")
 
@@ -972,8 +981,8 @@ class SelectFilter(RESTMessageResponse):
         if self.place_count:
             fields.append("PlaceCount: " + str(self.place_count))
 
-        if self.storage_pool:
-            fields.append("StoragePool: " + str(self.storage_pool))
+        if self.storage_pool or self.storage_pool_list:
+            fields.append("StoragePool(s): " + ", ".join(self.storage_pool_list))
 
         if "diskless_on_remaining" in self._rest_data:
             fields.append("DisklessOnRemaining: " + str(self.diskless_on_remaining))
