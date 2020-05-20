@@ -1,3 +1,10 @@
+python-linstor (1.1.1-1) experimental; urgency=medium
+
+  * api: support storage-pool list argument
+  * gitlab-ci: use xmlrunner and create junit reports
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 20 May 2020 10:56:37 +0000
+
 python-linstor (1.1.0-1) experimental; urgency=medium
 
   * linstor-api: use new /view/snapshots
