@@ -1176,7 +1176,7 @@ class Linstor(object):
         if property_dict:
             body["props"] = property_dict
 
-        if isinstance(storage_pool, str):
+        if storage_pool is not None and not isinstance(storage_pool, list):
             storage_pool = [storage_pool]
 
         self._set_select_filter_body(
@@ -1238,7 +1238,7 @@ class Linstor(object):
         if description is not None:
             body["description"] = description
 
-        if isinstance(storage_pool, str):
+        if storage_pool is not None and not isinstance(storage_pool, list):
             storage_pool = [storage_pool]
 
         self._set_select_filter_body(
@@ -1335,10 +1335,8 @@ class Linstor(object):
         for size in vlm_sizes:
             if isinstance(size, int):
                 vlm_sizes_int.append(size)
-            elif isinstance(size, str):
-                vlm_sizes_int.append(self.parse_volume_size_to_kib(size))
             else:
-                raise LinstorError("Volume size has no valid type: " + str(size))
+                vlm_sizes_int.append(self.parse_volume_size_to_kib(size))
 
         body = {
             "resource_definition_name": rsc_dfn_name,
@@ -1938,7 +1936,7 @@ class Linstor(object):
             "diskless_on_remaining": diskless_on_remaining
         }
 
-        if isinstance(storage_pool, str):
+        if storage_pool is not None and not isinstance(storage_pool, list):
             storage_pool = [storage_pool]
 
         self._set_select_filter_body(
