@@ -10,6 +10,7 @@ import zlib
 import ssl
 import base64
 import re
+import shutil
 from datetime import datetime
 from distutils.version import StrictVersion
 
@@ -31,9 +32,9 @@ except ImportError:
     from urllib.parse import urlencode
 
 try:
-    from httplib import HTTPConnection, HTTPSConnection, BadStatusLine
+    from httplib import HTTPConnection, HTTPSConnection, BadStatusLine, HTTPResponse
 except ImportError:
-    from http.client import HTTPConnection, HTTPSConnection, BadStatusLine
+    from http.client import HTTPConnection, HTTPSConnection, BadStatusLine, HTTPResponse
 
 import linstor.sharedconsts as apiconsts
 
@@ -306,7 +307,7 @@ class Linstor(object):
         """
         return self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(version)
 
-    def _rest_request(self, apicall, method, path, body=None, reconnect=True):
+    def _rest_request_base(self, apicall, method, path, body=None, reconnect=True):
         """
 
         :param str apicall: linstor apicall strid
@@ -314,7 +315,7 @@ class Linstor(object):
         :param str path: object path on the server
         :param Union[dict[str,Any], list[Any] body: body data
         :return:
-        :rtype: list[Union[ApiCallRESTResponse, ResourceResponse]]
+        :rtype: HTTPResponse
         """
         if self._mode_curl:
             self.__output_curl_command(method, path, body)
@@ -336,37 +337,81 @@ class Linstor(object):
             raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=self._ctrl_host, err=err))
 
         try:
-            response = self._rest_conn.getresponse()
-
-            if response.status < 400:
-                return self.__convert_rest_response(apicall, response, path)
-            else:
-                error_data_raw = self._decode_response_data(response)
-                if error_data_raw:
-                    try:
-                        error_data = json.loads(error_data_raw)
-                    except ValueError as ve:
-                        raise LinstorError(
-                            "Unable to parse REST json data: " + str(ve) + "\n"
-                            "Request-Uri: " + path
-                        )
-                    return [ApiCallResponse(x) for x in error_data]
-                raise LinstorError("REST api call method '{m}' to resource '{p}' returned status {s} with no data."
-                                   .format(m=method, p=path, s=response.status))
+            return self._rest_conn.getresponse()
         except socket.timeout:
             raise LinstorTimeoutError("Socket timeout, no data received for more than {t}s.".format(t=self._timeout))
         except socket.error as err:
             if self._keep_alive and reconnect:
                 self.connect()
-                return self._rest_request(apicall, method, path, body, reconnect=False)
+                return self._rest_request_base(apicall, method, path, body, reconnect=False)
             else:
                 raise LinstorNetworkError("Error reading response from {hp}: {err}".format(hp=self._ctrl_host, err=err))
         except BadStatusLine:  # python2 raises BadStatusLine on connection closed
             if self._keep_alive and reconnect:
                 self.connect()
-                return self._rest_request(apicall, method, path, body, reconnect=False)
+                return self._rest_request_base(apicall, method, path, body, reconnect=False)
             else:
                 raise
+
+    def _handle_response_error(self, response, method, path):
+        error_data_raw = self._decode_response_data(response)
+        if error_data_raw:
+            try:
+                error_data = json.loads(error_data_raw)
+            except ValueError as ve:
+                raise LinstorError(
+                    "Unable to parse REST json data: " + str(ve) + "\n"
+                                                                   "Request-Uri: " + path
+                )
+            return [ApiCallResponse(x) for x in error_data]
+        raise LinstorError("REST api call method '{m}' to resource '{p}' returned status {s} with no data."
+                           .format(m=method, p=path, s=response.status))
+
+    def _rest_request(self, apicall, method, path, body=None, reconnect=True):
+        """
+
+        :param str apicall: linstor apicall strid
+        :param str method: One of GET, POST, PUT, DELETE, OPTIONS
+        :param str path: object path on the server
+        :param Union[dict[str,Any], list[Any] body: body data
+        :return:
+        :rtype: list[Union[ApiCallRESTResponse, ResourceResponse]]
+        """
+        response = None
+        try:
+            response = self._rest_request_base(apicall, method, path, body, reconnect)
+
+            if response.status < 400:
+                return self.__convert_rest_response(apicall, response, path)
+            else:
+                return self._handle_response_error(response, method, path)
+        finally:
+            if response:
+                response.close()
+
+    def _rest_request_download(self, apicall, method, path, body=None, reconnect=True, to_file=None):
+        response = None
+        try:
+            response = self._rest_request_base(apicall, method, path, body, reconnect)
+
+            if response.status < 400:
+                save_file = "linstor.out"
+                if to_file:
+                    save_file = to_file
+                else:
+                    content_disp = response.getheader('content-disposition')
+                    # TODO do prober rfc6266 header field parsing
+                    filename = re.findall(r"attachment;\s*filename\s*=\s*(\S+)", content_disp)
+                    save_file = filename[0] if filename else save_file
+                with open(save_file, "wb+") as f:
+                    shutil.copyfileobj(response, f)
+                return [ApiCallResponse.from_json(
+                    {"ret_code": 0, "message": "File saved to: " + save_file, "obj_refs": {"path": save_file}})]
+            else:
+                return self._handle_response_error(response, method, path)
+        finally:
+            if response:
+                response.close()
 
     def __convert_rest_response(self, apicall, response, path):
         resp_data = self._decode_response_data(response)
@@ -2853,6 +2898,53 @@ class Linstor(object):
             "POST",
             "/v1/physical-storage/" + node_name,
             body
+        )
+
+    def sos_report_create(
+            self,
+            since=None):
+        """
+        Api call to create a SOS report on the controller node.
+
+        :param Optional[datetime] since: used to limit journalctl messages
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.2.0", msg="SOS API not supported by server")
+        query_params = {}
+        if since:
+            query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
+
+        query_str = urlencode(query_params)
+        return self._rest_request(
+            apiconsts.API_REQ_SOS_REPORT,
+            "GET",
+            "/v1/sos-report?" + query_str
+        )
+
+    def sos_report_download(
+            self,
+            since=None,
+            to_file=None):
+        """
+        Create and download a sos report from the controller node.
+
+        :param Optional[datetime] since: used to limit journalctl messages
+        :param Optional[str] to_file: path where to store the sos report, if None server given filename will be used.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.2.0", msg="SOS API not supported by server")
+        query_params = {}
+        if since:
+            query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
+
+        query_str = urlencode(query_params)
+        return self._rest_request_download(
+            apiconsts.API_REQ_SOS_REPORT,
+            "GET",
+            "/v1/sos-report/download?" + query_str,
+            to_file=to_file
         )
 
     def stats(self):
