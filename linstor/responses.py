@@ -206,6 +206,39 @@ class ErrorReport(RESTMessageResponse):
         return self._rest_data.get("node_name")
 
     @property
+    def module(self):
+        return self._rest_data.get("module", "")
+
+    @property
+    def version(self):
+        return self._rest_data.get("version", "")
+
+    @property
+    def peer(self):
+        return self._rest_data.get("peer", "")
+
+    @property
+    def exception(self):
+        return self._rest_data.get("exception", "")
+
+    @property
+    def exception_message(self):
+        return self._rest_data.get("exception_message", "")
+
+    @property
+    def origin_file(self):
+        return self._rest_data.get("origin_file", "")
+
+    @property
+    def origin_line(self):
+        """
+
+        :return: origin line of the exception
+        :rtype: Optional[int]
+        """
+        return int(self._rest_data["origin_line"]) if "origin_line" in self._rest_data else None
+
+    @property
     def data_v0(self):
         d = self._rest_data
         d["node_names"] = d["node_name"]
