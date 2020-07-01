@@ -114,7 +114,7 @@ class ApiCallResponse(RESTMessageResponse):
 
     @property
     def message(self):
-        return self._rest_data["message"]
+        return self._rest_data.get("message")
 
     @property
     def cause(self):
