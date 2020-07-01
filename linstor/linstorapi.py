@@ -1692,7 +1692,9 @@ class Linstor(object):
         :return: dict containing matching keys
         :raises LinstorError: if resource can not be found
         """
-        rsc_dfn_list_replies = self.resource_dfn_list([rsc_name])
+        rsc_dfn_list_replies = self.resource_dfn_list(
+            query_volume_definitions=False,
+            filter_by_resource_definitions=[rsc_name])
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
             raise LinstorError('Could not list resource definitions, or they are empty')
 
