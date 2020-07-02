@@ -2924,10 +2924,13 @@ class Linstor(object):
             query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
 
         query_str = urlencode(query_params)
+        path = "/v1/sos-report"
+        if query_str:
+            path += "?" + query_str
         return self._rest_request(
             apiconsts.API_REQ_SOS_REPORT,
             "GET",
-            "/v1/sos-report?" + query_str
+            path
         )
 
     def sos_report_download(
@@ -2948,10 +2951,13 @@ class Linstor(object):
             query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
 
         query_str = urlencode(query_params)
+        path = "/v1/sos-report/download"
+        if query_str:
+            path += "?" + query_str
         return self._rest_request_download(
             apiconsts.API_REQ_SOS_REPORT,
             "GET",
-            "/v1/sos-report/download?" + query_str,
+            path,
             to_file=to_file
         )
 
