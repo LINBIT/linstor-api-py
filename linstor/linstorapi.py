@@ -2722,6 +2722,28 @@ class Linstor(object):
             "/v1/resource-definitions/" + rsc_name + "/snapshot-rollback/" + snapshot_name
         )
 
+    def snapshot_ship(self, from_node, to_node, rsc_name):
+        """
+        Roll a resource back to a snapshot state.
+
+        :param str rsc_name: Name of the resource.
+        :param str from_node: Snapshot source node.
+        :param str to_node: Snapshot target node.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.2.0")
+        body = {
+            "from_node": from_node,
+            "to_node": to_node
+        }
+        return self._rest_request(
+            apiconsts.API_SHIP_SNAPSHOT,
+            "POST",
+            "/v1/resource-definitions/" + rsc_name + "/snapshot-shipping",
+            body
+        )
+
     def snapshot_dfn_list(self, filter_by_nodes=None, filter_by_resources=None):
         """
         Request a list of all snapshot definitions known to the controller.
