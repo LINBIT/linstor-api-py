@@ -314,12 +314,12 @@ class Linstor(object):
         :param str method: One of GET, POST, PUT, DELETE, OPTIONS
         :param str path: object path on the server
         :param Union[dict[str,Any], list[Any] body: body data
-        :return:
-        :rtype: HTTPResponse
+        :return: HTTP response object, except --curl is set, then None
+        :rtype: Optional[HTTPResponse]
         """
         if self._mode_curl:
             self.__output_curl_command(method, path, body)
-            return []
+            return None
 
         try:
             headers = {}
@@ -381,6 +381,9 @@ class Linstor(object):
         try:
             response = self._rest_request_base(apicall, method, path, body, reconnect)
 
+            if response is None:  # --curl
+                return []
+
             if response.status < 400:
                 return self.__convert_rest_response(apicall, response, path)
             else:
@@ -393,6 +396,9 @@ class Linstor(object):
         response = None
         try:
             response = self._rest_request_base(apicall, method, path, body, reconnect)
+
+            if response is None:  # --curl
+                return []
 
             if response.status < 400:
                 save_file = "linstor.out"
