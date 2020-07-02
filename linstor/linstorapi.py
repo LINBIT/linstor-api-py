@@ -2126,6 +2126,36 @@ class Linstor(object):
             apiresp_json["message"] = 'Resource {} not diskless on node {}, not deleted'.format(rsc_name, node_name)
             return [ApiCallResponse(apiresp_json)]
 
+    def resource_activate(self, node_name, rsc_name):
+        """
+        Activate a resource on the given node.
+
+        :param str node_name: node name of the resource
+        :param str rsc_name: resource name
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.2.0")
+        return self._rest_request(
+            apiconsts.API_ACTIVATE_RSC,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/activate"
+        )
+
+    def resource_deactivate(self, node_name, rsc_name):
+        """
+        De-activate a resource on the given node.
+
+        :param str node_name: node name of the resource
+        :param str rsc_name: resource name
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.2.0")
+        return self._rest_request(
+            apiconsts.API_DEACTIVATE_RSC,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/deactivate"
+        )
+
     def resource_list(self, filter_by_nodes=None, filter_by_resources=None, filter_by_props=None):
         """
         Request a list of all resources known to the controller.
