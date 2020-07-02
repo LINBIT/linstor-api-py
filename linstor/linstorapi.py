@@ -483,7 +483,7 @@ class Linstor(object):
         """
         Filters api call responses from Controller replies.
 
-        :param list[ProtoMessageResponse] replies: controller reply list
+        :param list[ApiCallResponse] replies: controller reply list
         :return: Returns all only ApiCallResponses from replies or empty list.
         :rtype: [ApiCallResponse]
         """
@@ -990,7 +990,7 @@ class Linstor(object):
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
-        :return: A list containing ApiCallResponses or ProtoMessageResponse (with MsgRspMaxVlmSizes)
+        :return: A list containing ApiCallResponses (with MsgRspMaxVlmSizes)
         :rtype: Union[list[ApiCallResponse], list[RESTMessageResponse]]
         """
         body = {
