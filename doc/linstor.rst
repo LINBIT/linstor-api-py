@@ -1,13 +1,6 @@
 linstor package
 ===============
 
-Subpackages
------------
-
-.. toctree::
-
-    linstor.protobuf_to_dict
-
 Submodules
 ----------
 
@@ -39,6 +32,14 @@ linstor.linstorapi module
 -------------------------
 
 .. automodule:: linstor.linstorapi
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+linstor.responses module
+-------------------------
+
+.. automodule:: linstor.responses
     :members:
     :undoc-members:
     :show-inheritance:

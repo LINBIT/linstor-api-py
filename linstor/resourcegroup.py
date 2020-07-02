@@ -262,7 +262,7 @@ class ResourceGroup(object):
         :param str resource_name: Name of the resource to create.
         :param list[str] vlm_sizes: Volume definitions to spawn
         :return: Resource object of the newly created resource definition
-        :rtype: Resource
+        :rtype: linstor.resource.Resource
         """
         r = Resource.from_resource_group(self._uri, self._name, resource_name, vlm_sizes,
                                          timeout=self.client.timeout, keep_alive=self.client.keep_alive)

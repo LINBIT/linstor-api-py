@@ -254,8 +254,8 @@ class Resource(object):
         :param int timeout: client library timeout
         :param bool keep_alive: keep client connection alive
         :param bool definitions_only: only spawn definitions
-        :return: Resource object of the newly created resource definition
-        :rtype: Resource
+        :return: linstor.resource.Resource object of the newly created resource definition
+        :rtype: linstor.resource.Resource
         """
         c = _Client(uri)
         with linstor.MultiLinstor(c.uri_list, timeout, keep_alive) as lin:
@@ -614,7 +614,7 @@ class Resource(object):
         :param snapshot_name: Snapshot name to use for restoration.
         :param resource_name_to: Name of the new resource.
         :return: A new resource object restored from the snapshot.
-        :rtype: Resource
+        :rtype: linstor.resource.Resource
         """
         if self._linstor_name is None:
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
