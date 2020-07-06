@@ -1574,7 +1574,7 @@ class Linstor(object):
             body
         )
 
-    def resource_dfn_modify(self, name, property_dict, delete_props=None, peer_slots=None):
+    def resource_dfn_modify(self, name, property_dict, delete_props=None, peer_slots=None, resource_group=None):
         """
         Modify properties of the given resource definition.
 
@@ -1582,6 +1582,7 @@ class Linstor(object):
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
         :param int peer_slots: peer slot count for new resources of this resource dfn
+        :param Optional[str] resource_group: Change resource group to the given name
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1595,6 +1596,9 @@ class Linstor(object):
 
         if delete_props:
             body["delete_props"] = delete_props
+
+        if resource_group:
+            body["resource_group"] = resource_group
 
         return self._rest_request(
             apiconsts.API_MOD_RSC_DFN,
