@@ -1053,7 +1053,17 @@ class Linstor(object):
             body["free_space_mgr_name"] = shared_space
 
         # set driver device pool properties
-        body["props"] = StoragePoolDriver.storage_driver_pool_to_props(storage_driver, driver_pool_name)
+        if storage_driver not in [StoragePoolDriver.Diskless]:
+            if not driver_pool_name:
+                raise LinstorError(
+                    "Driver '{drv}' needs a driver pool name.".format(drv=storage_driver)
+                )
+
+            if self.api_version_smaller("1.2.0"):
+                body["props"] = StoragePoolDriver.storage_driver_pool_to_props(storage_driver, driver_pool_name)
+            else:
+                body["props"] = {
+                    apiconsts.NAMESPC_STORAGE_DRIVER + "/" + apiconsts.KEY_STOR_POOL_NAME: driver_pool_name}
 
         if property_dict:
             body["props"].update(property_dict)

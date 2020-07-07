@@ -491,6 +491,9 @@ class StoragePoolDriver(object):
         :return: If found the storage pool value, else ''
         :rtype: str
         """
+        if apiconsts.NAMESPC_STORAGE_DRIVER + '/StorPoolName' in props:
+            return props[apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_NAME]
+
         storage_driver_enum = storage_driver
         if storage_driver_enum == StoragePoolDriver.LVM:
             return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, '')
