@@ -46,7 +46,17 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class ResourceData(object):
-    def __init__(self, node_name, rsc_name, diskless=False, storage_pool=None, node_id=None, layer_list=None, drbd_diskless=False, nvme_initiator=False):
+    def __init__(
+            self,
+            node_name,
+            rsc_name,
+            diskless=False,
+            storage_pool=None,
+            node_id=None,
+            layer_list=None,
+            drbd_diskless=False,
+            nvme_initiator=False,
+            active=True):
         """
         :param str node_name: The node on which to place the resource
         :param str rsc_name: The resource definition to place
@@ -63,6 +73,7 @@ class ResourceData(object):
         self._layer_list = layer_list
         self._drbd_diskless = drbd_diskless
         self._nvme_initiator = nvme_initiator
+        self._active = active
 
     @property
     def node_name(self):
@@ -95,6 +106,10 @@ class ResourceData(object):
     @property
     def nvme_initiator(self):
         return self._nvme_initiator
+
+    @property
+    def active(self):
+        return self._active
 
 
 class Linstor(object):
@@ -1889,6 +1904,9 @@ class Linstor(object):
 
             if rsc.nvme_initiator:
                 rsc_data["resource"]["flags"] += [apiconsts.FLAG_NVME_INITIATOR]
+
+            if not rsc.active:
+                rsc_data["resource"]["flags"] += [apiconsts.FLAG_RSC_INACTIVE]
 
             if rsc.node_id is not None:
                 rsc_data["drbd_node_id"] = rsc.node_id
