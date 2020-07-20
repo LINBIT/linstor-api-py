@@ -1576,6 +1576,17 @@ class Resource(RESTMessageResponse):
         return None
 
     @property
+    def create_datetime(self):
+        """
+
+        :return: Creation datetime of this resource
+        :rtype: Optional[datetime]
+        """
+        if "create_timestamp" in self._rest_data:
+            return datetime.fromtimestamp(self._rest_data["create_timestamp"]/1000)
+        return None
+
+    @property
     def data_v0(self):
         return {
             "name": self.name,
@@ -1714,6 +1725,44 @@ class SnapshotVolumeDefinition(RESTMessageResponse):
         }
 
 
+class Snapshot(RESTMessageResponse):
+    def __init__(self, data):
+        super(Snapshot, self).__init__(data)
+
+    @property
+    def name(self):
+        return self._rest_data.get("snapshot_name")
+
+    @property
+    def node_name(self):
+        return self._rest_data.get("node_name")
+
+    @property
+    def flags(self):
+        """
+        Resource flags as string list.
+
+        :return: Resource definition flags as string list
+        :rtype: list[str]
+        """
+        return self._rest_data.get("flags", [])
+
+    @property
+    def create_datetime(self):
+        """
+
+        :return: Creation datetime of this resource
+        :rtype: Optional[datetime]
+        """
+        if "create_timestamp" in self._rest_data:
+            return datetime.fromtimestamp(self._rest_data["create_timestamp"]/1000)
+        return None
+
+    @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
+
+
 class SnapshotDefinition(RESTMessageResponse):
     def __init__(self, data):
         super(SnapshotDefinition, self).__init__(data)
@@ -1754,6 +1803,10 @@ class SnapshotDefinition(RESTMessageResponse):
     @property
     def snapshot_volume_definitions(self):
         return [SnapshotVolumeDefinition(x) for x in self._rest_data.get("volume_definitions", [])]
+
+    @property
+    def snapshots(self):
+        return [Snapshot(x) for x in self._rest_data.get("snapshots", [])]
 
     @property
     def data_v0(self):
