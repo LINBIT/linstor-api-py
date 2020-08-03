@@ -1,3 +1,26 @@
+python-linstor (1.2.0-1) experimental; urgency=medium
+
+  * add sos-report support
+  * responses-errorreport: add new fields
+  * use latest linstor-common
+  * linstorapi: fix resource_dfn_props_list filtering
+  * responses: survive apicalls without a message
+  * linstorapi: fix curl mode on requests
+  * sos-report: better query arg concat
+  * linstorapi: remove last traces of ProtoMessageResponse
+  * doc: fix docstrings and sphinx docs
+  * linstorapi: support modify resource group on resource definition
+  * use single StorDriver/StorPoolName property for newer API
+  * linstor-common: update, use property infos
+  * linstorapi: add resource activate/deactivate
+  * linstorapi: add snapshot_ship method
+  * linstorapi/rsc-create: add inactive flag
+  * responses: add Snapshot class and Resource.create_datetime()
+  * linstor-common: use rebased master/snapshot-shipping
+  * linstor-common: use input file modification date for copyright range
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 03 Aug 2020 10:16:09 +0000
+
 python-linstor (1.1.2-1) experimental; urgency=medium
 
   * linstorapi: python2.7 fix str type checks
