@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-import linstor
+import linstor.linstorapi
 from linstor.resource import _Client
 
 

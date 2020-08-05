@@ -2,7 +2,7 @@
 ResourceGroup module
 """
 
-import linstor
+import linstor.errors
 from linstor.resource import _Client, Resource
 
 

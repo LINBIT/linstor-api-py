@@ -14,15 +14,17 @@ import shutil
 from datetime import datetime
 from distutils.version import StrictVersion
 
-from .errors import LinstorError, LinstorNetworkError, LinstorTimeoutError, LinstorApiCallError, LinstorArgumentError
-from .responses import ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
-from .responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
-from .responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
-from .responses import RESTMessageResponse, SnapshotResponse, ControllerProperties, ResourceConnection
-from .responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
-from .responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
-from . import VERSION
-from .size_calc import SizeCalc
+from linstor.version import VERSION
+import linstor.sharedconsts as apiconsts
+from linstor.errors import LinstorError, LinstorNetworkError, LinstorTimeoutError
+from linstor.errors import LinstorApiCallError, LinstorArgumentError
+from linstor.responses import ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
+from linstor.responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
+from linstor.responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
+from linstor.responses import RESTMessageResponse, SnapshotResponse, ControllerProperties, ResourceConnection
+from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
+from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
+from linstor.size_calc import SizeCalc
 
 try:
     from urlparse import urlparse
@@ -36,7 +38,6 @@ try:
 except ImportError:
     from http.client import HTTPConnection, HTTPSConnection, BadStatusLine, HTTPResponse
 
-import linstor.sharedconsts as apiconsts
 
 API_VERSION_MIN = "1.0.4"
 API_VERSION = API_VERSION_MIN

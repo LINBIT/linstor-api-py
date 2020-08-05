@@ -1,5 +1,6 @@
-import linstor
 import os
+
+from linstor.linstorapi import MultiLinstor
 
 try:
     from configparser import ConfigParser
@@ -51,4 +52,4 @@ class Config(object):
             cfg = Config.get_section(section, config_file_name)
             controllers = cfg.get('controllers', fallback)
 
-        return linstor.MultiLinstor.controller_uri_list(controllers)
+        return MultiLinstor.controller_uri_list(controllers)

@@ -33,7 +33,7 @@ def get_version():
     :return: semantic version string
     :rtype: str
     """
-    with open('linstor/__init__.py') as linstor_init:
+    with open('linstor/version.py') as linstor_init:
         for line in linstor_init:
             if line.startswith('VERSION'):
                 m = re.search(r'"(.*)"', line)

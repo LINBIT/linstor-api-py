@@ -2,13 +2,14 @@
 Resource module
 """
 
-import linstor
 import socket
 import sys
 from functools import wraps
+
+import linstor.linstorapi
 from linstor.sharedconsts import FAIL_EXISTS_RSC, FLAG_DISKLESS
 from linstor.responses import ResourceDefinitionResponse, ResourceResponse
-from linstor import Linstor
+from linstor.linstorapi import Linstor
 
 PYTHON2 = True
 if sys.version_info > (3, 0):
