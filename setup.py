@@ -21,7 +21,9 @@
 import os
 import sys
 import re
+import subprocess
 from setuptools import setup, Command
+from setuptools.command.build_py import build_py
 
 
 def get_version():
@@ -73,6 +75,15 @@ class CheckUpToDate(Command):
             return True
 
 
+class BuildPyCommand(build_py):
+    """
+    Run make gensrc before doing build.
+    """
+    def run(self):
+        subprocess.check_call(["make", "gensrc"])
+        build_py.run(self)
+
+
 setup(
     name="python-linstor",
     version=get_version(),
@@ -93,7 +104,8 @@ setup(
     ],
     # package_data={},
     cmdclass={
-        "versionup2date": CheckUpToDate
+        "versionup2date": CheckUpToDate,
+        "build_py": BuildPyCommand
     },
     test_suite="linstor_tests"
 )
