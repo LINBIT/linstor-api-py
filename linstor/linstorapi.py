@@ -23,7 +23,7 @@ from linstor.responses import NodeListResponse, KeyValueStoresResponse, KeyValue
 from linstor.responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
 from linstor.responses import RESTMessageResponse, SnapshotResponse, ControllerProperties, ResourceConnection
 from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
-from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
+from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList, SnapshotShippingResponse
 from linstor.size_calc import SizeCalc
 
 try:
@@ -144,6 +144,7 @@ class Linstor(object):
         apiconsts.API_LST_RSC: ResourceResponse,
         apiconsts.API_LST_VLM: VolumeResponse,
         apiconsts.API_LST_SNAPSHOT_DFN: SnapshotResponse,
+        apiconsts.API_LST_SNAPSHOT_SHIPPINGS: SnapshotShippingResponse,
         apiconsts.API_REQ_ERROR_REPORTS: ErrorReport,
         apiconsts.API_LST_CTRL_PROPS: ControllerProperties,
         apiconsts.API_REQ_RSC_CONN_LIST: ResourceConnectionsResponse,
@@ -2763,13 +2764,45 @@ class Linstor(object):
             body
         )
 
+    def snapshot_shipping_list(self,
+                      filter_by_nodes=None,
+                      filter_by_resources=None,
+                      filter_by_snapshots=None,
+                      filter_by_status=None):
+        """
+        Request a list of all snapshot shippings known to the controller.
+
+        :param list[str] filter_by_nodes: filter resources by nodes
+        :param list[str] filter_by_resources: filter resources by resource names
+        :param list[str] filter_by_snapshots: filter shippings by snapshot names
+        :param list[str] filter_by_status: filter shippings by status
+        :return: A MsgLstSnapshotDfn proto message containing all information.
+        :rtype: list[SnapshotShippingResponse]
+        """
+        self._require_version("1.3.0")
+        query_params = []
+        if filter_by_nodes:
+            query_params += ["nodes=" + x for x in filter_by_nodes]
+        if filter_by_resources:
+            query_params += ["resources=" + x for x in filter_by_resources]
+        if filter_by_snapshots:
+            query_params += ["snapshots=" + x for x in filter_by_snapshots]
+        if filter_by_status:
+            query_params += ["status=" + x for x in filter_by_status]
+        path = "/v1/view/snapshot-shippings"
+        if query_params:
+            path += "?" + "&".join(query_params)
+        return self._rest_request(
+            apiconsts.API_LST_SNAPSHOT_SHIPPINGS,
+            "GET", path)
+
     def snapshot_dfn_list(self, filter_by_nodes=None, filter_by_resources=None):
         """
         Request a list of all snapshot definitions known to the controller.
 
-        :param list[str] filter_by_nodes: filter resources by nodes
-        :param list[str] filter_by_resources: filter resources by resource names
-        :return: A MsgLstSnapshotDfn proto message containing all information.
+        :param list[str] filter_by_nodes: filter snapshots by nodes
+        :param list[str] filter_by_resources: filter snapshots by resource names
+        :return: A LstSnapshotDfn REST response containing all information.
         :rtype: list[SnapshotsResponse]
         """
         if self.api_version_smaller("1.1.0"):
