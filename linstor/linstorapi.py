@@ -2894,6 +2894,48 @@ class Linstor(object):
 
         return result
 
+    def error_report_delete(
+            self,
+            nodes=None,
+            since=None,
+            to=None,
+            exception=None,
+            version=None,
+            ids=None):
+        """
+        Deletes error-reports on the linstor cluster, filtered by the given parameters
+
+        :param list[str] nodes: Only delete error-reports from this nodes, if None or empty all
+        :param datetime since: Start datetime from when to delete
+        :param datetime to: Until datetime to delete
+        :param str exception: Delete error reports matching this exception string
+        :param str version: Delete error reports matching this version string
+        :param list[str] ids: Error report ids to delete
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.4.0", msg="Error report delete API not supported by server")
+
+        body = {}
+
+        if nodes:
+            body["nodes"] = nodes
+
+        if since:
+            body["since"] = int(time.mktime(since.timetuple()) * 1000)
+        if to:
+            body["to"] = int(time.mktime(to.timetuple()) * 1000)
+
+        if exception:
+            body["exception"] = exception
+
+        if version:
+            body["version"] = version
+
+        if ids:
+            body["ids"] = ids
+
+        return self._rest_request(apiconsts.API_DEL_ERROR_REPORTS, "PATCH", "/v1/error-reports", body)
+
     def keyvaluestore_modify(self, instance_name, property_dict=None, delete_props=None):
         """
         Modify the properties of a given key value store instance.
