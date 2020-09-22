@@ -700,17 +700,19 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        if node_type not in self._node_types:
+        node_type_lower = node_type.lower()
+        if node_type_lower not in [nt.lower() for nt in self._node_types]:
             raise LinstorError(
                 "Unknown node type '{nt}'. Known types are: {kt}".format(nt=node_type, kt=", ".join(self._node_types))
             )
 
         if port is None:
-            if com_type == apiconsts.VAL_NETCOM_TYPE_PLAIN:
+            com_lower = com_type.lower()
+            if com_lower == apiconsts.VAL_NETCOM_TYPE_PLAIN.lower():
                 port = apiconsts.DFLT_CTRL_PORT_PLAIN \
-                    if node_type == apiconsts.VAL_NODE_TYPE_CTRL else apiconsts.DFLT_STLT_PORT_PLAIN
-            elif com_type == apiconsts.VAL_NETCOM_TYPE_SSL:
-                if node_type == apiconsts.VAL_NODE_TYPE_STLT:
+                    if node_type_lower == apiconsts.VAL_NODE_TYPE_CTRL.lower() else apiconsts.DFLT_STLT_PORT_PLAIN
+            elif com_lower == apiconsts.VAL_NETCOM_TYPE_SSL.lower():
+                if node_type_lower == apiconsts.VAL_NODE_TYPE_STLT.lower():
                     port = apiconsts.DFLT_STLT_PORT_SSL
                 else:
                     port = apiconsts.DFLT_CTRL_PORT_SSL
