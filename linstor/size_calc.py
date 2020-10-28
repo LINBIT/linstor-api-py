@@ -58,6 +58,14 @@ class SizeCalc(object):
     UNITS_LIST_STR = ', '.join([unit_str for unit_str, _ in UNITS_MAP.values()])
 
     @classmethod
+    def unit_to_str(cls, unit):
+        for u_key in cls.UNITS_MAP:
+            u = cls.UNITS_MAP[u_key]
+            if u[1] == unit:
+                return u_key
+        return ''
+
+    @classmethod
     def parse_unit(cls, value):
         """
         Parses the given value as a computer size + unit.
