@@ -1,3 +1,10 @@
+python-linstor (1.4.1-1) experimental; urgency=medium
+
+  * size_calc: Add unit_to_str method
+  * update to latest linstor-common
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 09 Nov 2020 08:20:59 +0000
+
 python-linstor (1.4.0-1) experimental; urgency=medium
 
   * linstorapi: add error_report_delete method
