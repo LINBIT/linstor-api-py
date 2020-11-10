@@ -1080,7 +1080,8 @@ class Linstor(object):
             storage_driver,
             driver_pool_name,
             shared_space=None,
-            property_dict=None
+            property_dict=None,
+            external_locking=False
     ):
         """
         Creates a new storage pool on the given node.
@@ -1092,6 +1093,7 @@ class Linstor(object):
         :param Optional[str] driver_pool_name: Name of the pool the storage driver should use on the node.
         :param Optional[str] shared_space: Name of a shared space, if used.
         :param Optional[dict] property_dict: Initial properties for the storage pool.
+        :param bool external_locking: if the pool uses external locking.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1105,6 +1107,8 @@ class Linstor(object):
 
         if shared_space:
             body["free_space_mgr_name"] = shared_space
+        if external_locking:
+            body["external_locking"] = True
 
         # set driver device pool properties
         if storage_driver not in [StoragePoolDriver.Diskless]:
