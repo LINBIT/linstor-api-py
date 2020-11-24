@@ -351,7 +351,11 @@ class Linstor(object):
                 headers=headers
             )
         except socket.error as err:
-            raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=self._ctrl_host, err=err))
+            if self._keep_alive and reconnect:
+                self.connect()
+                return self._rest_request_base(apicall, method, path, body, reconnect=False)
+            else:
+                raise LinstorNetworkError("Unable to send request to {hp}: {err}".format(hp=self._ctrl_host, err=err))
 
         try:
             return self._rest_conn.getresponse()
