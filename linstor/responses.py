@@ -2055,3 +2055,12 @@ class PhysicalStorageList(RESTMessageResponse):
     @property
     def physical_devices(self):
         return [PhysicalDevice(x) for x in self._rest_data]
+
+
+class SpaceReport(RESTMessageResponse):
+    def __init__(self, data):
+        super(SpaceReport, self).__init__(data)
+
+    @property
+    def report(self):
+        return self._rest_data["reportText"]

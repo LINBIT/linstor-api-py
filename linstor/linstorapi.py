@@ -24,6 +24,7 @@ from linstor.responses import ResourceResponse, VolumeDefinitionResponse, Volume
 from linstor.responses import RESTMessageResponse, SnapshotResponse, ControllerProperties, ResourceConnection
 from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList, SnapshotShippingResponse
+from linstor.responses import SpaceReport
 from linstor.size_calc import SizeCalc
 
 try:
@@ -153,6 +154,7 @@ class Linstor(object):
         apiconsts.API_LST_KVS: KeyValueStoresResponse,
         apiconsts.API_VERSION: ControllerVersion,
         apiconsts.API_LST_PHYS_STOR: PhysicalStorageList,
+        apiconsts.API_RPT_SPC: SpaceReport,
         API_SINGLE_NODE_REQ: ResourceConnection
     }
 
@@ -3125,6 +3127,22 @@ class Linstor(object):
             "GET",
             path,
             to_file=to_file
+        )
+
+    def space_reporting_query(self):
+        """
+        Acquire the hashed space reporting string for commercial customers.
+
+        :return: Space reporting object from controller
+        :rtype: list[SpaceReport]
+        """
+        self._require_version("1.5.0", msg="Space reporting API not supported by server")
+
+        path = "/v1/space-report"
+        return self._rest_request(
+            apiconsts.API_RPT_SPC,
+            "GET",
+            path
         )
 
     def stats(self):
