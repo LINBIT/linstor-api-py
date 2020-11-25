@@ -11,6 +11,7 @@ import ssl
 import base64
 import re
 import shutil
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from distutils.version import StrictVersion
 
@@ -379,14 +380,25 @@ class Linstor(object):
     def _handle_response_error(self, response, method, path):
         error_data_raw = self._decode_response_data(response)
         if error_data_raw:
-            try:
-                error_data = json.loads(error_data_raw)
-            except ValueError as ve:
-                raise LinstorError(
-                    "Unable to parse REST json data: " + str(ve) + "\n"
-                                                                   "Request-Uri: " + path
-                )
-            return [ApiCallResponse(x) for x in error_data]
+            if response.getheader("Content-Type", "text").startswith('application/json'):
+                try:
+                    error_data = json.loads(error_data_raw)
+                except ValueError as ve:
+                    raise LinstorError(
+                        "Unable to parse REST json data: " + str(ve) + "\n"
+                                                                       "Request-Uri: " + path
+                    )
+                return [ApiCallResponse(x) for x in error_data]
+            else:
+                # try to get an error message from html
+                root = ET.fromstring(error_data_raw)
+                # get head error message
+                error_msg = "Request failed."
+                for child in root.find("body"):
+                    if "header" in child.attrib.get("class"):
+                        error_msg = child.text
+                        break
+                raise LinstorError("HTTP-Status({s})/{err}".format(s=response.status, err=error_msg))
         raise LinstorError("REST api call method '{m}' to resource '{p}' returned status {s} with no data."
                            .format(m=method, p=path, s=response.status))
 
