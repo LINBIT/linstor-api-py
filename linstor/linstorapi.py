@@ -1287,7 +1287,9 @@ class Linstor(object):
             replicas_on_different=replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
-            provider_list=provider_list
+            provider_list=provider_list,
+            additional_place_count=0,
+            diskless_type=None
         )
 
         return self._rest_request(
@@ -1342,6 +1344,7 @@ class Linstor(object):
         self._set_select_filter_body(
             body,
             place_count=place_count,
+            additional_place_count=None, # rsc_grps will never ask for "additional" resources
             storage_pool=storage_pool,
             do_not_place_with=do_not_place_with,
             do_not_place_with_regex=do_not_place_with_regex,
@@ -1349,7 +1352,8 @@ class Linstor(object):
             replicas_on_different=replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
-            provider_list=provider_list
+            provider_list=provider_list,
+            diskless_type=None # rsc_grps will never ask to place diskless resources
         )
 
         if property_dict:
@@ -1958,12 +1962,14 @@ class Linstor(object):
             replicas_on_different,
             diskless_on_remaining,
             layer_list,
-            provider_list
+            provider_list,
+            additional_place_count,
+            diskless_type
     ):
         """
 
         :param dict[Any] body:
-        :param int place_count:
+        :param Optional[int] place_count:
         :param Optional[List[str]] storage_pool:
         :param Optional[List[str]] do_not_place_with:
         :param Optional[str] do_not_place_with_regex:
@@ -1972,6 +1978,7 @@ class Linstor(object):
         :param Optional[bool] diskless_on_remaining:
         :param Optional[List[str]] layer_list:
         :param Optional[List[str]] provider_list:
+        :param Optional[int] additional_place_count:
         :return:
         """
         if "select_filter" not in body:
@@ -1979,6 +1986,12 @@ class Linstor(object):
 
         if place_count is not None:
             body["select_filter"]["place_count"] = place_count
+
+        if additional_place_count is not None:
+            body["select_filter"]["additional_place_count"] = additional_place_count
+
+        if diskless_type:
+            body["select_filter"]["diskless_type"] = diskless_type
 
         if diskless_on_remaining is not None:
             body["select_filter"]["diskless_on_remaining"] = diskless_on_remaining
@@ -2020,13 +2033,16 @@ class Linstor(object):
             diskless_on_remaining=False,
             async_msg=False,
             layer_list=None,
-            provider_list=None
+            provider_list=None,
+            additional_place_count=None,
+            diskless_type=None
     ):
         """
         Auto places(deploys) a resource to the amount of place_count.
 
         :param str rsc_name: Name of the resource definition to deploy
-        :param int place_count: Number of placements, on how many different nodes
+        :param optional[int] place_count: Number of placements to reach, on how many different nodes.
+            either place_count or additional_place_count must be present
         :param list[str] storage_pool: List of storage pools to use
         :param list[str] do_not_place_with: Do not place with resource names in this list
         :param str do_not_place_with_regex: A regex string that rules out resources
@@ -2036,6 +2052,8 @@ class Linstor(object):
         :param bool async_msg: True to return without waiting for the action to complete on the satellites
         :param list[str] layer_list: Define layers for the resource
         :param list[str] provider_list: Filter provider kinds
+        :param optional[int] additional_place_count: Number of additional placements.
+            either place_count or additional_place_count must be present
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2056,7 +2074,9 @@ class Linstor(object):
             replicas_on_different=replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
-            provider_list=provider_list
+            provider_list=provider_list,
+            additional_place_count=additional_place_count,
+            diskless_type=diskless_type
         )
 
         if layer_list:
