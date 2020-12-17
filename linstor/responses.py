@@ -418,6 +418,7 @@ class StoragePoolDriver(object):
     FILEThin = "FILE_THIN"
     SPDK = "SPDK"
     OPENFLEX_TARGET = "OPENFLEX_TARGET"
+    EXOS = "EXOS"
 
     @staticmethod
     def list():
@@ -430,7 +431,8 @@ class StoragePoolDriver(object):
             StoragePoolDriver.FILE,
             StoragePoolDriver.FILEThin,
             StoragePoolDriver.SPDK,
-            StoragePoolDriver.OPENFLEX_TARGET
+            StoragePoolDriver.OPENFLEX_TARGET,
+            StoragePoolDriver.EXOS
         ]
 
     @classmethod
@@ -910,7 +912,6 @@ class ResourceDefinition(RESTMessageResponse):
         :rtype: list[VolumeDefinition]
         """
         return [VolumeDefinition(x) for x in self._rest_data.get("volume_definitions", [])]
-
 
     @property
     def resource_group_name(self):
@@ -2068,3 +2069,167 @@ class SpaceReport(RESTMessageResponse):
     @property
     def report(self):
         return self._rest_data["reportText"]
+
+
+class ExosDefaults(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosDefaults, self).__init__(rest_data)
+
+    @property
+    def username(self):
+        return self._rest_data.get("username")
+
+    @property
+    def username_env(self):
+        return self._rest_data.get("username_env")
+
+    @property
+    def password(self):
+        return self._rest_data.get("password")
+
+    @property
+    def password_env(self):
+        return self._rest_data.get("password_env")
+
+
+class ExosEnclosure(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosEnclosure, self).__init__(rest_data)
+
+    @property
+    def name(self):
+        return self._rest_data["name"]
+
+    @property
+    def ctrl_a_ip(self):
+        return self._rest_data.get("ctrl_a_ip")
+
+    @property
+    def ctrl_b_ip(self):
+        return self._rest_data.get("ctrl_b_ip")
+
+    @property
+    def health(self):
+        return self._rest_data["health"]
+
+    @property
+    def health_reason(self):
+        return self._rest_data["health_reason"]
+
+
+class ExosListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosListResponse, self).__init__(rest_data)
+
+    @property
+    def exos_enclosures(self):
+        """
+        Returns a list with all EXOS enclosures.
+
+        :return: The enclosure list.
+        :rtype: list[ExosEnclosure]
+        """
+        return [ExosEnclosure(x) for x in self._rest_data]
+
+    def exos_enclosure(self, encl_name):
+        """
+        Returns the specified enclosure from the list of enclosures.
+
+        :param str encl_name: EXOS enclosure name
+        :return: ExosEnclosure object of the enclosure, or None
+        :rtype: ExosEnclosure
+        """
+        for encl in self.exos_enclosures:
+            if encl.name == encl_name:
+                return encl
+        return None
+
+
+class ExosEnclosureEvent(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosEnclosureEvent, self).__init__(rest_data)
+
+    @property
+    def severity(self):
+        return self._rest_data["severity"]
+
+    @property
+    def event_id(self):
+        return self._rest_data["event_id"]
+
+    @property
+    def controller(self):
+        return self._rest_data["controller"]
+
+    @property
+    def time_stamp(self):
+        return self._rest_data["time_stamp"]
+
+    @property
+    def time_stamp_numeric(self):
+        return self._rest_data["time_stamp_numeric"]
+
+    @property
+    def message(self):
+        return self._rest_data["message"]
+
+    @property
+    def additional_information(self):
+        return self._rest_data["additional_information"]
+
+    @property
+    def recommended_action(self):
+        return self._rest_data["recommended_action"]
+
+
+class ExosEnclosureEventListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosEnclosureEventListResponse, self).__init__(rest_data)
+
+    @property
+    def exos_events(self):
+        """
+        Returns a list with the most current EXOS events.
+
+        :return: The event list.
+        :rtype: list[ExosEnclosureEvent]
+        """
+        return [ExosEnclosureEvent(x) for x in self._rest_data]
+
+
+class ExosExecResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosExecResponse, self).__init__(rest_data)
+
+
+class ExosMapResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosMapResponse, self).__init__(rest_data)
+
+    @property
+    def node_name(self):
+        return self._rest_data['node_name']
+
+    @property
+    def enclosure_name(self):
+        return self._rest_data['enclosure_name']
+
+    @property
+    def connections(self):
+        return self._rest_data['connections']
+
+
+class ExosMapListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExosMapListResponse, self).__init__(rest_data)
+
+    @property
+    def exos_connections(self):
+        """
+        Returns a list with currently active Linstor node <-> EXOS
+        controller connections.
+
+        :return: The map list.
+        :rtype: list[ExosMapResponse]
+        """
+        return [ExosMapResponse(x) for x in self._rest_data]
