@@ -815,6 +815,16 @@ class Linstor(object):
             replies += self._rest_request(apiconsts.API_NODE_RECONNECT, "PUT", "/v1/nodes/" + node_name + "/reconnect")
         return replies
 
+    def node_restore(self, node_name):
+        """
+        Restores an evicted node.
+
+        :param str node_name: Node name to restore
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        return self._rest_request(apiconsts.API_NODE_RESTORE, "PUT", "/v1/nodes/" + node_name + "/restore")
+
     def netinterface_create(self, node_name, interface_name, ip, port=None, com_type=None, is_active=False):
         """
         Create a netinterface for a given node.
