@@ -1,3 +1,15 @@
+python-linstor (1.6.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * responses-node: add flags property
+  * linstor-common: update
+  * linstorapi: add node_restore
+
+  [ Gabor Hernadi ]
+  * linstorapi: add diskless placement and relative count to auto-placer
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Fri, 18 Dec 2020 08:51:14 +0000
+
 python-linstor (1.4.2-1) experimental; urgency=medium
 
   * linstorapi: retry request sending on socket.error
