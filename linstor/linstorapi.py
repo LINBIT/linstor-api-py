@@ -1690,7 +1690,7 @@ class Linstor(object):
         :param list[str] filter_by_resource_definitions: Filter resource definitions by resource definition names.
         :param Optional[list[str]] filter_by_props: Filter nodes by properties
         :return: A ResourceDefinitionResponse object
-        :rtype: list[RESTMessageResponse]
+        :rtype: list[ResourceDefinitionResponse]
         """
         if self.api_version_smaller("1.0.10"):
             rsc_dfns_resp = self._rest_request(apiconsts.API_LST_RSC_DFN, "GET", "/v1/resource-definitions")
