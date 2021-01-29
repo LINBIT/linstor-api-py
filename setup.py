@@ -92,10 +92,21 @@ setup(
     url='https://www.linbit.com',
     author="Robert Altnoeder <robert.altnoeder@linbit.com>, Roland Kammerer <roland.kammerer@linbit.com>" +
            ", Rene Peinthor <rene.peinthor@linbit.com>",
-    author_email="roland.kammerer@linbit.com",
+    author_email="rene.peinthor@linbit.com",
     maintainer="LINBIT HA-Solutions GmbH",
     maintainer_email="drbd-user@lists.linbit.com",
     license="GPLv3",
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+    ],
     extras_require={
         ":python_version<'3'": ['enum34'],
     },
