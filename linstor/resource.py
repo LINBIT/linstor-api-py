@@ -77,7 +77,7 @@ class Volume(object):
         # internal
         self._volume_id = None
         self._rsc_name = None
-        self._client_ref = None
+        self._client_ref = None  # type: Optional[linstor.Linstor]
         self._assignments = []
 
     def __repr__(self):
@@ -150,9 +150,7 @@ class Volume(object):
 
             size_kib = linstor.SizeCalc.convert_round_up(size, linstor.SizeCalc.UNIT_B,
                                                          linstor.SizeCalc.UNIT_KiB)
-            with linstor.MultiLinstor(self._client_ref.uri_list,
-                                      self._client_ref.timeout,
-                                      self._client_ref.keep_alive) as lin:
+            with self._client_ref as lin:
                 rs = lin.volume_dfn_modify(r, v, size=size_kib)
                 if not linstor.Linstor.all_api_responses_no_error(rs):
                     raise linstor.LinstorError('Could not resize Resource/Volume {}/{}: {}'
@@ -165,9 +163,7 @@ class Volume(object):
     def _delete(self):
         if self._rsc_name is None:  # this volume was created, but never deployed, no linstor action.
             return
-        with linstor.MultiLinstor(self._client_ref.uri_list,
-                                  self._client_ref.timeout,
-                                  self._client_ref.keep_alive) as lin:
+        with self._client_ref as lin:
             r, v = self._rsc_name, self._volume_id
             rs = lin.volume_dfn_delete(r, v)
             if not linstor.Linstor.all_api_responses_no_error(rs):
@@ -199,12 +195,14 @@ class Resource(object):
     :param str name: The name of the DRBD resource.
     :param str uri: A list of controller addresses.
      e.g: ``linstor://localhost,10.0.0.2``, ``linstor+ssl://localhost,linstor://192.168.0.1``
+    :param linstor.Linstor existing_client: Instead of creating  a new client based on the controller addresses,
+     use this pre-configured client object.
     """
     def _update_volumes(f):
         @wraps(f)
         def wrapper(self, *args, **kwargs):
             ret = None
-            with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            with self._get_connection() as lin:
                 self._lin = lin
                 self._maybe_create_rd_and_vd()
                 ret = f(self, *args, **kwargs)
@@ -213,7 +211,7 @@ class Resource(object):
             return ret
         return wrapper
 
-    def __init__(self, name, uri='linstor://localhost'):
+    def __init__(self, name, uri='linstor://localhost', existing_client=None):
         # external properties
         self._name = name  # the user facing name, what linstor calls the "external name"
         self._port = None
@@ -227,11 +225,11 @@ class Resource(object):
         self._allow_two_primaries = False
 
         # internal
-        self._lin = None  # used to pass in an existing client (e.g,, _update_volumes)
         self._assignments = {}
         self._linstor_name = None
+        self._existing_client = existing_client
 
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             self._lin = lin
             self.__update_volumes()
 
@@ -243,7 +241,7 @@ class Resource(object):
 
     @classmethod
     def from_resource_group(cls, uri, resource_group_name, resource_name, vlm_sizes,
-                            timeout=300, keep_alive=False, definitions_only=False):
+                            timeout=300, keep_alive=False, definitions_only=False, existing_client=None):
         """
         Spawns a new resource definition from the given resource group.
 
@@ -255,11 +253,17 @@ class Resource(object):
         :param int timeout: client library timeout
         :param bool keep_alive: keep client connection alive
         :param bool definitions_only: only spawn definitions
+        :param linstor.Linstor existing_client: Client to associate with the resource
         :return: linstor.resource.Resource object of the newly created resource definition
         :rtype: linstor.resource.Resource
         """
-        c = _Client(uri)
-        with linstor.MultiLinstor(c.uri_list, timeout, keep_alive) as lin:
+        if existing_client:
+            client = existing_client
+        else:
+            c = _Client(uri)
+            client = linstor.MultiLinstor(c.uri_list, timeout, keep_alive)
+
+        with client as lin:
             result = lin.resource_group_spawn(
                 resource_group_name,
                 resource_name,
@@ -275,8 +279,13 @@ class Resource(object):
                     )
                 )
 
-            return Resource(resource_name, uri=uri)
+            return Resource(resource_name, uri=uri, existing_client=existing_client)
         return None
+
+    def _get_connection(self):
+        if self._existing_client:
+            return self._existing_client
+        return linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive)
 
     def _set_properties(self):
         dp = 'yes' if self._allow_two_primaries else 'no'
@@ -342,7 +351,7 @@ class Resource(object):
                         self.volumes[vlm_nr] = Volume(None)
                     self.volumes[vlm_nr]._volume_id = vlm_nr
                     self.volumes[vlm_nr]._rsc_name = self._linstor_name
-                    self.volumes[vlm_nr]._client_ref = self.client
+                    self.volumes[vlm_nr]._client_ref = self._get_connection()
                     size_b = linstor.SizeCalc.convert_round_up(vlm_dfn.size, linstor.SizeCalc.UNIT_KiB,
                                                                linstor.SizeCalc.UNIT_B)
                     self.volumes[vlm_nr]._size = size_b
@@ -394,7 +403,7 @@ class Resource(object):
 
         self._allow_two_primaries = value
         if self.defined:
-            with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+            with self._get_connection() as lin:
                 self._lin = lin
                 self._set_properties()
 
@@ -561,7 +570,7 @@ class Resource(object):
         if self._linstor_name is None:
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rs = lin.snapshot_create(node_names=[], rsc_name=self._linstor_name, snapshot_name=name, async_msg=False)
             if not Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError('Could not create snapshot {}: {}'
@@ -578,7 +587,7 @@ class Resource(object):
         if self._linstor_name is None:
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rs = lin.snapshot_delete(rsc_name=self._linstor_name, snapshot_name=name)
             if not Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError('Could not delete snapshot {}: {}'.format(
@@ -599,7 +608,7 @@ class Resource(object):
         if self._linstor_name is None:
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rs = lin.snapshot_rollback(rsc_name=self._linstor_name, snapshot_name=name)
             if not Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError('Could not rollback to snapshot {}: {}'.format(
@@ -620,7 +629,7 @@ class Resource(object):
         if self._linstor_name is None:
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rs = lin.resource_dfn_create(resource_name_to, resource_group=self.resource_group_name)
             if not Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError(
@@ -662,7 +671,7 @@ class Resource(object):
                     )
                 )
 
-        return Resource(resource_name_to, ",".join(self.client.uri_list))
+        return Resource(resource_name_to, ",".join(self.client.uri_list), existing_client=self._existing_client)
 
     def diskless(self, node_name):
         """
@@ -743,7 +752,7 @@ class Resource(object):
         :return: True if storage pool used is thin.
         :rtype: bool
         """
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             stor_pool_list = lin.storage_pool_list_raise(None, filter_by_stor_pools=[self.volumes[0].storage_pool_name])
             return stor_pool_list.storage_pools[0].is_thin()
 
@@ -785,7 +794,7 @@ class Resource(object):
         if self._linstor_name is None:
             return True  # resource doesn't exist
 
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             self._lin = lin
 
             if snapshots and node_name is None:  # only remove snapshots if resource definition will be deleted

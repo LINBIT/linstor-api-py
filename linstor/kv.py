@@ -38,25 +38,32 @@ class KV(dict):
     :param str uri: A list of controller addresses.
     :param bool rw_to_linstor: If set to False, entries are not written to LINSTOR. It can be used to use
      the KV as a name spaced dict() only, or for debugging.
+    :param linstor.Linstor existing_client: Instead of creating  a new client based on the controller addresses,
+     use this pre-configured client object.
     """
-    def __init__(self, name, namespace='/', cached=True, uri='linstor://localhost', rw_to_linstor=True):
+    def __init__(self, name, namespace='/', cached=True, uri='linstor://localhost', rw_to_linstor=True,
+                 existing_client=None):
         assert cached, 'Currently we only allow "cached" KeyValueStores'
         assert cached or rw_to_linstor, 'KV has to be "cached" and/or "rw_to_linstor"'
         super(KV, self).__init__()
         self._name = name
         self._cached = cached
         self.client = _Client(uri)
+        self._existing_client = existing_client
         self._rw_to_linstor = rw_to_linstor
         self._import()
         self._set_ns(namespace)
+
+    def _get_connection(self):
+        if self._existing_client:
+            return self._existing_client
+        return linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive)
 
     # keys are expected to be expanded
     def _set_linstor_kv(self, k, v):
         if not self._rw_to_linstor:
             return
-        with linstor.MultiLinstor(self.client.uri_list,
-                                  self.client.timeout,
-                                  self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rs = lin.keyvaluestore_modify(self._name, property_dict={k: v}, delete_props=None)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not set kv({}:{}): {}'.format(k, v, rs[0]))
@@ -72,9 +79,7 @@ class KV(dict):
             delete_props = list(k)  # allows e.g., tuples
         else:
             delete_props = [k]
-        with linstor.MultiLinstor(self.client.uri_list,
-                                  self.client.timeout,
-                                  self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rs = lin.keyvaluestore_modify(self._name, property_dict=None, delete_props=delete_props)
             if not rs[0].is_success():
                 raise linstor.LinstorError('Could not delete kv({}): {}'.format(k, rs[0]))
@@ -108,9 +113,7 @@ class KV(dict):
     def _import(self):
         d = {}
         if self._rw_to_linstor:
-            with linstor.MultiLinstor(self.client.uri_list,
-                                      self.client.timeout,
-                                      self.client.keep_alive) as lin:
+            with self._get_connection() as lin:
                 d = {'/'+k: v for k, v in lin.keyvaluestore_list(self._name).properties.items()}
 
         super(KV, self).clear()

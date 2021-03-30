@@ -7,10 +7,11 @@ from linstor.resource import _Client, Resource
 
 
 class ResourceGroup(object):
-    def __init__(self, name, uri='linstor://localhost'):
+    def __init__(self, name, uri='linstor://localhost', existing_client=None):
         self._name = name
         self._uri = uri
         self.client = _Client(uri)
+        self._existing_client = existing_client
 
         self._description = None
         self._redundancy = None
@@ -28,6 +29,11 @@ class ResourceGroup(object):
         self._nr_volumes_default = 1
 
         self._update_or_create()
+
+    def _get_connection(self):
+        if self._existing_client:
+            return self._existing_client
+        return linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive)
 
     @property
     def name(self):
@@ -174,7 +180,7 @@ class ResourceGroup(object):
         if want < 1:
             raise linstor.LinstorError("A resource group needs at least one volume group")
 
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             # inc/dec per interation to keep correct count if we fail in the middle
             if have < want:  # increase
                 for v in range(have, want):
@@ -251,7 +257,7 @@ class ResourceGroup(object):
         """
         Deletes the ResourceGroup
         """
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             lin.resource_group_delete(self._name)
         return True
 
@@ -274,11 +280,11 @@ class ResourceGroup(object):
         """
         Queries maximum volume size from the given resource group and returns all possible candidates
         """
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             return lin.resource_group_qmvs(self._name)
 
     def _modify_or_create(self, what="modify"):
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             fn = None
             if what == "create":
                 fn = lin.resource_group_create
@@ -301,7 +307,7 @@ class ResourceGroup(object):
         return True
 
     def _update(self):
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rgs = lin.resource_group_list_raise(filter_by_resource_groups=[self._name]).resource_groups
             rg = rgs[0]
             self._name = rg.name
@@ -323,7 +329,7 @@ class ResourceGroup(object):
         return True
 
     def _update_or_create(self):
-        with linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive) as lin:
+        with self._get_connection() as lin:
             rgs = lin.resource_group_list_raise(filter_by_resource_groups=[self._name]).resource_groups
             if len(rgs) == 0:  # does not exist yet
                 self._modify_or_create("create")

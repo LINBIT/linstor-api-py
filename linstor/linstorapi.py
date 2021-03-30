@@ -123,6 +123,8 @@ class Linstor(object):
     The controller host address has to be specified as linstor url.
     e.g: ``linstor://localhost``, ``linstor+ssl://localhost``
 
+    Note: This client is not thread-safe, only one request can be in flight at a time.
+
     :param str ctrl_host: Linstor uri to the controller e.g. ``linstor://192.168.0.1``
     :param bool keep_alive: Tries to keep the connection alive
     """
@@ -177,6 +179,7 @@ class Linstor(object):
         self._keyfile = None
         self._cafile = None
         self._allow_insecure = False
+        self._times_entered = 0
 
         self._http_headers = {
             "User-Agent": "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN),
@@ -188,11 +191,15 @@ class Linstor(object):
         self.disconnect()
 
     def __enter__(self):
-        self.connect()  # raises exception if error
+        if self._times_entered == 0:
+            self.connect()  # raises exception if error
+        self._times_entered += 1
         return self
 
     def __exit__(self, type, value, traceback):
-        self.disconnect()
+        self._times_entered -= 1
+        if self._times_entered == 0:
+            self.disconnect()
 
     @property
     def username(self):
@@ -3199,11 +3206,14 @@ class Linstor(object):
 
 class MultiLinstor(Linstor):
     def __init__(self, ctrl_host_list, timeout=300, keep_alive=False):
-        """
+        """A Linstor client that tries connecting to a list of controllers
 
-        :param list[str] ctrl_host_list:
-        :param timeout:
-        :param keep_alive:
+        This is intended to support high availability deployments with multiple Controllers, with only one controller
+        active at a time.
+
+        :param list[str] ctrl_host_list: The list of controller uris. See linstor.Linstor for the exact format
+        :param timeout: connection timeout. See linstor.Linstor
+        :param keep_alive: See linstor.Linstor
         """
         super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive)
         self._ctrl_host_list = ctrl_host_list  # type: List[str]
