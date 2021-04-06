@@ -1270,7 +1270,8 @@ class Linstor(object):
             diskless_on_remaining=None,
             layer_list=None,
             provider_list=None,
-            property_dict=None
+            property_dict=None,
+            diskless_storage_pool=None
     ):
         """
         Create resource group with values.
@@ -1287,6 +1288,7 @@ class Linstor(object):
         :param list[str] layer_list: Define layers for the resource
         :param list[str] provider_list: Filter provider kinds
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1316,7 +1318,8 @@ class Linstor(object):
             layer_list=layer_list,
             provider_list=provider_list,
             additional_place_count=0,
-            diskless_type=None
+            diskless_type=None,
+            diskless_storage_pool=diskless_storage_pool
         )
 
         return self._rest_request(
@@ -1339,7 +1342,8 @@ class Linstor(object):
             layer_list=None,
             provider_list=None,
             property_dict=None,
-            delete_props=None):
+            delete_props=None,
+            diskless_storage_pool=None):
         """
         Modify the given resource group.
 
@@ -1356,6 +1360,7 @@ class Linstor(object):
         :param list[str] provider_list: Filter provider kinds
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
+        :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1380,7 +1385,8 @@ class Linstor(object):
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
             provider_list=provider_list,
-            diskless_type=None # rsc_grps will never ask to place diskless resources
+            diskless_type=None,  # rsc_grps will never ask to place diskless resources
+            diskless_storage_pool=diskless_storage_pool
         )
 
         if property_dict:
@@ -1991,7 +1997,8 @@ class Linstor(object):
             layer_list,
             provider_list,
             additional_place_count,
-            diskless_type
+            diskless_type,
+            diskless_storage_pool
     ):
         """
 
@@ -2006,6 +2013,7 @@ class Linstor(object):
         :param Optional[List[str]] layer_list:
         :param Optional[List[str]] provider_list:
         :param Optional[int] additional_place_count:
+        :param Optional[List[str]] storage_pool_diskless_list:
         :return:
         """
         if "select_filter" not in body:
@@ -2031,6 +2039,10 @@ class Linstor(object):
             else:
                 pool_list = storage_pool if storage_pool and storage_pool[0] else []
                 body["select_filter"]["storage_pool_list"] = pool_list
+
+        if diskless_storage_pool is not None:
+            self._require_version("1.7.0")
+            body["select_filter"]["storage_pool_diskless_list"] = diskless_storage_pool
 
         if do_not_place_with is not None:
             body["select_filter"]["not_place_with_rsc"] = do_not_place_with
@@ -2062,7 +2074,8 @@ class Linstor(object):
             layer_list=None,
             provider_list=None,
             additional_place_count=None,
-            diskless_type=None
+            diskless_type=None,
+            diskless_storage_pool=None
     ):
         """
         Auto places(deploys) a resource to the amount of place_count.
@@ -2081,6 +2094,8 @@ class Linstor(object):
         :param list[str] provider_list: Filter provider kinds
         :param optional[int] additional_place_count: Number of additional placements.
             either place_count or additional_place_count must be present
+        :param optional[str] diskless_type: Either apiconst.FLAG_DRBD_DISKLESS or apiconst.FLAG_NVME_INITIATOR
+        :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2103,7 +2118,8 @@ class Linstor(object):
             layer_list=layer_list,
             provider_list=provider_list,
             additional_place_count=additional_place_count,
-            diskless_type=diskless_type
+            diskless_type=diskless_type,
+            diskless_storage_pool=diskless_storage_pool
         )
 
         if layer_list:
