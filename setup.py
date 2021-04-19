@@ -84,22 +84,30 @@ class BuildPyCommand(build_py):
         build_py.run(self)
 
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
 setup(
     name="python-linstor",
     version=get_version(),
     description="Linstor python api",
-    long_description="Python linstor api interface",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url='https://www.linbit.com',
+    project_urls={
+        "Source Code": "https://github.com/LINBIT/linstor-api-py",
+        "Documentation": "https://linbit.github.io/linstor-api-py",
+    },
     author="Robert Altnoeder <robert.altnoeder@linbit.com>, Roland Kammerer <roland.kammerer@linbit.com>" +
-           ", Rene Peinthor <rene.peinthor@linbit.com>",
+           ", Rene Peinthor <rene.peinthor@linbit.com>, Moritz Wanzenböck <moritz.wanzenboeck@linbit.com>",
     author_email="rene.peinthor@linbit.com",
     maintainer="LINBIT HA-Solutions GmbH",
     maintainer_email="drbd-user@lists.linbit.com",
-    license="GPLv3",
+    license="LGPLv3",
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
