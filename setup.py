@@ -84,7 +84,7 @@ class BuildPyCommand(build_py):
         build_py.run(self)
 
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
@@ -99,7 +99,7 @@ setup(
         "Documentation": "https://linbit.github.io/linstor-api-py",
     },
     author="Robert Altnoeder <robert.altnoeder@linbit.com>, Roland Kammerer <roland.kammerer@linbit.com>" +
-           ", Rene Peinthor <rene.peinthor@linbit.com>, Moritz Wanzenböck <moritz.wanzenboeck@linbit.com>",
+           ", Rene Peinthor <rene.peinthor@linbit.com>, Moritz Wanzenboeck <moritz.wanzenboeck@linbit.com>",
     author_email="rene.peinthor@linbit.com",
     maintainer="LINBIT HA-Solutions GmbH",
     maintainer_email="drbd-user@lists.linbit.com",
