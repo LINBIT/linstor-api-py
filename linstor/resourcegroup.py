@@ -271,7 +271,8 @@ class ResourceGroup(object):
         :rtype: linstor.resource.Resource
         """
         r = Resource.from_resource_group(self._uri, self._name, resource_name, vlm_sizes,
-                                         timeout=self.client.timeout, keep_alive=self.client.keep_alive)
+                                         timeout=self.client.timeout, keep_alive=self.client.keep_alive,
+                                         existing_client=self._existing_client)
         r.client.keep_alive = self.client.keep_alive
         r.client.timeout = self.client.timeout
         return r
