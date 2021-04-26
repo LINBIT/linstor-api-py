@@ -15,7 +15,7 @@ class ResourceGroup(object):
 
         self._description = None
         self._redundancy = None
-        self._storage_pool = None
+        self._storage_pool_list = None
         self._do_not_place_with = None
         self._do_not_place_with_regex = None
         self._replicas_on_same = None
@@ -87,13 +87,13 @@ class ResourceGroup(object):
         Returns the storage_pool of the ResourceGroup
 
         :return: The storage_pool of a Resource Group.
-        :rtype: str
+        :rtype: str|list[str]
         """
-        return self._storage_pool
+        return self._storage_pool_list
 
     @storage_pool.setter
     def storage_pool(self, storage_pool):
-        self._storage_pool = storage_pool
+        self._storage_pool_list = storage_pool
         return self._modify_or_create("modify")
 
     @property
@@ -295,7 +295,7 @@ class ResourceGroup(object):
             fn(self._name,
                description=self._description,
                place_count=self._redundancy,
-               storage_pool=self._storage_pool,
+               storage_pool=self._storage_pool_list,
                do_not_place_with=self._do_not_place_with,
                do_not_place_with_regex=self._do_not_place_with_regex,
                replicas_on_same=self._replicas_on_same,
@@ -315,7 +315,7 @@ class ResourceGroup(object):
             self._description = rg.description
             sf = rg.select_filter
             self._redundancy = sf.place_count
-            self._storage_pool = sf.storage_pool
+            self._storage_pool_list = sf.storage_pool_list
             self._do_not_place_with = sf.not_place_with_rsc
             self._do_not_place_with_regex = sf.not_place_with_rsc_regex
             self._replicas_on_same = sf.replicas_on_same
