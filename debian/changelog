@@ -1,3 +1,28 @@
+python-linstor (1.7.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * linstorapi: fix expected return type
+  * setup.py: update classifiers
+  * use latest linstor-common
+  * gitlab-ci: trigger linstor-tests on jenkins push
+  * setup.py: make checkuptodate step unicode aware
+
+  [ Moritz "WanzenBug" Wanzenböck ]
+  * gitmodules: unset update strategy
+  * Add option to re-use a client object in high-level API
+  * Relicense as LGPLv3
+  * py2: fix encoding compat
+  * add missing existing_client argument for ResourceGroup
+  * use storage_pool_list in hihg-level resource group
+
+  [ Gabor Hernadi ]
+  * sp-create: added external_locking
+  * linstor-pools: add exos support
+  * RG: add diskless-storpool-list filter
+  * RG,create: only add aditional_count if necessary
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 27 Apr 2021 11:33:44 +0000
+
 python-linstor (1.6.0-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
