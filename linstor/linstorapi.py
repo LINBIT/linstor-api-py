@@ -1317,7 +1317,7 @@ class Linstor(object):
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
             provider_list=provider_list,
-            additional_place_count=0,
+            additional_place_count=None,
             diskless_type=None,
             diskless_storage_pool=diskless_storage_pool
         )
@@ -2022,7 +2022,9 @@ class Linstor(object):
         if place_count is not None:
             body["select_filter"]["place_count"] = place_count
 
-        if additional_place_count is not None:
+        if additional_place_count is not None and additional_place_count != 0:
+            if self.api_version_smaller("1.6.0"):
+                raise LinstorArgumentError("linstor-controller version doesn't support additional place count")
             body["select_filter"]["additional_place_count"] = additional_place_count
 
         if diskless_type:
