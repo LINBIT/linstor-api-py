@@ -22,6 +22,7 @@ import os
 import sys
 import re
 import subprocess
+import codecs
 from setuptools import setup, Command
 from setuptools.command.build_py import build_py
 
@@ -65,7 +66,7 @@ class CheckUpToDate(Command):
     def run(self):
         version = get_version()
         try:
-            with open("debian/changelog") as f:
+            with codecs.open("debian/changelog", encoding='utf8', errors='ignore') as f:
                 firstline = f.readline()
                 if version not in firstline:
                     # returning false is not promoted
