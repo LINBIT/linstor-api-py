@@ -52,3 +52,9 @@ build:
     - make debrelease
     - curl -isSf -u $LINBIT_REGISTRY_USER:$LINBIT_REGISTRY_PASSWORD --upload-file dist/python-linstor-*.tar.gz $LINBIT_REGISTRY_URL/repository/lbbuild-upstream/
     - lbbuildctl build python-linstor --arch amd64 --ci -v "$PYTHON_LINSTOR_VERSION" -l -e LINBIT_REGISTRY_USER=$LINBIT_REGISTRY_USER -e LINBIT_REGISTRY_PASSWORD=$LINBIT_REGISTRY_PASSWORD -e LINBIT_REGISTRY_URL=$LINBIT_REGISTRY_URL -d ubuntu-bionic,ubuntu-focal,rhel7.0,rhel8.0
+
+staging:
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "jenkins"'
+  trigger: linstor/linstor-tests
