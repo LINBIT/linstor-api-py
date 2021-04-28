@@ -35,14 +35,14 @@ functools.wraps = _no_op_wraps
 # -- Project information -----------------------------------------------------
 
 project = 'linstor'
-copyright = '2018, Peinthor Rene'
+copyright = '2018-2021, Peinthor Rene'
 author = 'Peinthor Rene'
 
 import linstor
 # The short X.Y version
-version = linstor.VERSION
+version = linstor.version.VERSION
 # The full version, including alpha/beta/rc tags
-release = linstor.VERSION + '-' + linstor.GITHASH[10:16]
+release = linstor.version.VERSION + '-' + linstor.GITHASH[10:16]
 
 
 # -- General configuration ---------------------------------------------------
