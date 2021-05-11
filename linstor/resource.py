@@ -51,7 +51,7 @@ class _Client(object):
 
 
 class _Placement(object):
-    def __init__(self, redundancy=2):
+    def __init__(self, redundancy=None):
         self.redundancy = redundancy
         self.storage_pool = None
         self.diskless_storage_pool = None
