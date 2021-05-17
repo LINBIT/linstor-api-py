@@ -2114,7 +2114,7 @@ class ExosEnclosure(RESTMessageResponse):
 
     @property
     def health_reason(self):
-        return self._rest_data["health_reason"]
+        return self._rest_data.get("health_reason")
 
 
 class ExosListResponse(RESTMessageResponse):
