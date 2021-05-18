@@ -1,3 +1,15 @@
+python-linstor (1.7.1-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * doc: fix doc generation
+  * linstor-common: use updated drbd options data
+  * resource-hapi: don't set a redundancy default
+
+  [ Gabor Hernadi ]
+  * Exos: Made health_reasons optional
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 18 May 2021 10:45:11 +0000
+
 python-linstor (1.7.0-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
