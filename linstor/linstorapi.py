@@ -2159,6 +2159,35 @@ class Linstor(object):
         return self.resource_auto_place(rsc_name, place_count, storage_pool=storage_pool,
                                         diskless_on_remaining=diskless_on_remaining)
 
+    def resource_make_available(self, node_name, rsc_name, diskful=False, layer_list=None):
+        """
+        Adds a resource on a node if not already deployed.
+
+        To use a specific storage pool add the `StorPoolName` property
+        and use the storage pool name as value.
+        If the `StorPoolName` property is not set, a storage pool will be chosen automatically
+        using the auto-placer.
+
+        :param str node_name: Node name where to make it available
+        :param str rsc_name: Resource name to make available
+        :param bool diskful: If true make the resource diskful.
+        :param list[str] layer_list: Set of layer names to use.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        body = {
+            "diskful": diskful
+        }
+
+        if layer_list:
+            body["layer_list"] = layer_list
+
+        return self._rest_request(
+            apiconsts.API_MAKE_RSC_AVAIL,
+            "POST", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/make-available",
+            body
+        )
+
     def resource_modify(self, node_name, rsc_name, property_dict, delete_props=None):
         """
         Modify properties of a given resource.

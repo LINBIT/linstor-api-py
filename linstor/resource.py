@@ -7,7 +7,7 @@ import sys
 from functools import wraps
 
 import linstor.linstorapi
-from linstor.sharedconsts import FAIL_EXISTS_RSC, FLAG_DISKLESS
+from linstor.sharedconsts import FLAG_DISKLESS
 from linstor.responses import ResourceDefinitionResponse, ResourceResponse
 from linstor.linstorapi import Linstor
 
@@ -487,7 +487,7 @@ class Resource(object):
         return True
 
     @_update_volumes
-    def activate(self, node_name):
+    def activate(self, node_name, diskful=False):
         """
         Makes a resource available at a given host.
 
@@ -495,25 +495,15 @@ class Resource(object):
         created.
 
         :param str node_name: Name of the node
+        :param bool diskful: Make the resource diskful on the node
         :return: True if success, else raises LinstorError
         """
-        rsc_create_replies = self._lin.resource_create([
-            linstor.ResourceData(
-                node_name,
-                self._linstor_name,
-                diskless=True
-            )
-        ])
+        rsc_available_replies = self._lin.resource_make_available(node_name, self._linstor_name, diskful)
 
-        if Linstor.all_api_responses_no_error(rsc_create_replies):
-            return True
-        else:
-            error_replies = Linstor.filter_api_call_response_errors(rsc_create_replies)
-            if len(error_replies) == 1 and error_replies[0].is_error(code=FAIL_EXISTS_RSC):
-                return True
-
-        raise linstor.LinstorError('Could not activate resource {} on node {}: {}'
-                                   .format(self, node_name, ";".join([str(x) for x in rsc_create_replies])))
+        if not Linstor.all_api_responses_no_error(rsc_available_replies):
+            raise linstor.LinstorError('Could not make resource {} available on node {}: {}'
+                                       .format(self, node_name, ";".join([str(x) for x in rsc_available_replies])))
+        return True
 
     # no decorator, calles delete
     def deactivate(self, node_name):
