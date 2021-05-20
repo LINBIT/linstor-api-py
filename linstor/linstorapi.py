@@ -1664,8 +1664,8 @@ class Linstor(object):
 
         :param str name: Name of the resource definition to modify.
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
-        :param list[str] delete_props: List of properties to delete
-        :param int peer_slots: peer slot count for new resources of this resource dfn
+        :param Optional[list[str]] delete_props: List of properties to delete
+        :param Optional[int] peer_slots: peer slot count for new resources of this resource dfn
         :param Optional[str] resource_group: Change resource group to the given name
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
@@ -2086,14 +2086,14 @@ class Linstor(object):
         :param optional[int] place_count: Number of placements to reach, on how many different nodes.
             either place_count or additional_place_count must be present
         :param list[str] storage_pool: List of storage pools to use
-        :param list[str] do_not_place_with: Do not place with resource names in this list
-        :param str do_not_place_with_regex: A regex string that rules out resources
-        :param list[str] replicas_on_same: A list of node property names, their values should match
-        :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param Optional[list[str]] do_not_place_with: Do not place with resource names in this list
+        :param Optional[str] do_not_place_with_regex: A regex string that rules out resources
+        :param Optional[list[str]] replicas_on_same: A list of node property names, their values should match
+        :param Optional[list[str]] replicas_on_different: A list of node property names, their values should not match
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
         :param bool async_msg: True to return without waiting for the action to complete on the satellites
-        :param list[str] layer_list: Define layers for the resource
-        :param list[str] provider_list: Filter provider kinds
+        :param Optional[list[str]] layer_list: Define layers for the resource
+        :param Optional[list[str]] provider_list: Filter provider kinds
         :param optional[int] additional_place_count: Number of additional placements.
             either place_count or additional_place_count must be present
         :param optional[str] diskless_type: Either apiconst.FLAG_DRBD_DISKLESS or apiconst.FLAG_NVME_INITIATOR
@@ -2265,8 +2265,8 @@ class Linstor(object):
         """
         Request a list of all resources known to the controller.
 
-        :param list[str] filter_by_nodes: filter resources by nodes
-        :param list[str] filter_by_resources: filter resources by resource names
+        :param Optional[list[str]] filter_by_nodes: filter resources by nodes
+        :param Optional[list[str]] filter_by_resources: filter resources by resource names
         :param Optional[list[str]] filter_by_props: Filter nodes by properties
 
         :return: A list containing a ResourceResponse object

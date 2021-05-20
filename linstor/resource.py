@@ -532,6 +532,13 @@ class Resource(object):
 
     @_update_volumes
     def _create_or_toggle(self, node_name, diskless):
+        """
+
+        :param str node_name:
+        :param bool diskless:
+        :return: True if it was successful
+        :rtype: bool
+        """
         is_assigned = self.is_assigned(node_name)
         is_diskless = self.is_diskless(node_name)
         sp = self.placement.diskless_storage_pool
