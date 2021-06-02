@@ -1,3 +1,11 @@
+python-linstor (1.7.3-1) experimental; urgency=medium
+
+  * improve docstrings typing
+  * rsc-make-avaible: add api method and use in h-API
+  * common: update
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 02 Jun 2021 07:40:34 +0000
+
 python-linstor (1.7.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
