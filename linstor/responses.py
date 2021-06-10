@@ -1799,7 +1799,7 @@ class SnapshotDefinition(RESTMessageResponse):
         :return:
         :rtype: list[str]
         """
-        return self._rest_data["nodes"]
+        return self._rest_data.get("nodes", [])
 
     @property
     def flags(self):
