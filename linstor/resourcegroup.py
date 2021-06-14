@@ -7,10 +7,10 @@ from linstor.resource import _Client, Resource
 
 
 class ResourceGroup(object):
-    def __init__(self, name, uri='linstor://localhost', existing_client=None):
+    def __init__(self, name, uri='linstor://localhost', existing_client=None, agent_info=""):
         self._name = name
         self._uri = uri
-        self.client = _Client(uri)
+        self.client = _Client(uri, agent_info=agent_info)
         self._existing_client = existing_client
 
         self._description = None
@@ -33,7 +33,8 @@ class ResourceGroup(object):
     def _get_connection(self):
         if self._existing_client:
             return self._existing_client
-        return linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive)
+        return linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive,
+                                    self.client.agent_info)
 
     @property
     def name(self):
@@ -272,9 +273,10 @@ class ResourceGroup(object):
         """
         r = Resource.from_resource_group(self._uri, self._name, resource_name, vlm_sizes,
                                          timeout=self.client.timeout, keep_alive=self.client.keep_alive,
-                                         existing_client=self._existing_client)
+                                         existing_client=self._existing_client, agent_info=self.client.agent_info)
         r.client.keep_alive = self.client.keep_alive
         r.client.timeout = self.client.timeout
+        r.client.agent_info = self.client.agent_info
         return r
 
     def query_max_volume_size(self):

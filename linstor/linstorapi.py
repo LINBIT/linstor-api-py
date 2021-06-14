@@ -170,7 +170,7 @@ class Linstor(object):
     REST_PORT = 3370
     REST_HTTPS_PORT = 3371
 
-    def __init__(self, ctrl_host, timeout=300, keep_alive=False):
+    def __init__(self, ctrl_host, timeout=300, keep_alive=False, agent_info=""):
         self._ctrl_host = ctrl_host
         self._logger = logging.getLogger('Linstor')
         self._timeout = timeout
@@ -187,8 +187,11 @@ class Linstor(object):
         self._allow_insecure = False
         self._times_entered = 0
 
+        user_agent = "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN)
+        if agent_info:
+            user_agent += ": " + agent_info
         self._http_headers = {
-            "User-Agent": "PythonLinstor/{v} (API{a})".format(v=VERSION, a=API_VERSION_MIN),
+            "User-Agent": user_agent,
             "Connection": "keep-alive",
             "Accept-Encoding": "gzip"
         }
@@ -3525,7 +3528,7 @@ class Linstor(object):
 
 
 class MultiLinstor(Linstor):
-    def __init__(self, ctrl_host_list, timeout=300, keep_alive=False):
+    def __init__(self, ctrl_host_list, timeout=300, keep_alive=False, agent_info=""):
         """A Linstor client that tries connecting to a list of controllers
 
         This is intended to support high availability deployments with multiple Controllers, with only one controller
@@ -3533,9 +3536,10 @@ class MultiLinstor(Linstor):
 
         :param list[str] ctrl_host_list: The list of controller uris. See linstor.Linstor for the exact format
         :param timeout: connection timeout. See linstor.Linstor
-        :param keep_alive: See linstor.Linstor
+        :param bool keep_alive: See linstor.Linstor
+        :param str agent_info: This string gets added to the user-agent info
         """
-        super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive)
+        super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive, agent_info)
         self._ctrl_host_list = ctrl_host_list  # type: List[str]
 
     def connect(self):

@@ -35,11 +35,12 @@ class _Utils(object):
 
 
 class _Client(object):
-    def __init__(self, uris, timeout=300, keep_alive=False):
+    def __init__(self, uris, timeout=300, keep_alive=False, agent_info=""):
         # external properties
         self._uri_list = linstor.MultiLinstor.controller_uri_list(uris)  # type: list[str]
         self.timeout = timeout
         self.keep_alive = keep_alive
+        self.agent_info = agent_info
 
     @property
     def uri_list(self):
@@ -241,7 +242,7 @@ class Resource(object):
 
     @classmethod
     def from_resource_group(cls, uri, resource_group_name, resource_name, vlm_sizes,
-                            timeout=300, keep_alive=False, definitions_only=False, existing_client=None):
+                            timeout=300, keep_alive=False, definitions_only=False, existing_client=None, agent_info=""):
         """
         Spawns a new resource definition from the given resource group.
 
@@ -254,6 +255,7 @@ class Resource(object):
         :param bool keep_alive: keep client connection alive
         :param bool definitions_only: only spawn definitions
         :param linstor.Linstor existing_client: Client to associate with the resource
+        :param str agent_info: Info string added to user-agent
         :return: linstor.resource.Resource object of the newly created resource definition
         :rtype: linstor.resource.Resource
         """
@@ -261,7 +263,7 @@ class Resource(object):
             client = existing_client
         else:
             c = _Client(uri)
-            client = linstor.MultiLinstor(c.uri_list, timeout, keep_alive)
+            client = linstor.MultiLinstor(c.uri_list, timeout, keep_alive, agent_info)
 
         with client as lin:
             result = lin.resource_group_spawn(
@@ -285,7 +287,8 @@ class Resource(object):
     def _get_connection(self):
         if self._existing_client:
             return self._existing_client
-        return linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive)
+        return linstor.MultiLinstor(self.client.uri_list, self.client.timeout, self.client.keep_alive,
+                                    self.client.agent_info)
 
     def _set_properties(self):
         dp = 'yes' if self._allow_two_primaries else 'no'
