@@ -1,3 +1,12 @@
+python-linstor (1.8.0-1) experimental; urgency=medium
+
+  * common: lower() new enum values
+  * responses/snapshot: fix empty nodes on snapshot-def
+  * common: use new layer enum
+  * allow setting an additional user-agent string info
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 14 Jun 2021 13:22:09 +0000
+
 python-linstor (1.7.3-1) experimental; urgency=medium
 
   * improve docstrings typing
