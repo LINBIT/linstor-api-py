@@ -417,6 +417,7 @@ class StoragePoolDriver(object):
     FILE = "FILE"
     FILEThin = "FILE_THIN"
     SPDK = "SPDK"
+    REMOTE_SPDK = "REMOTE_SPDK"
     OPENFLEX_TARGET = "OPENFLEX_TARGET"
     EXOS = "EXOS"
 
@@ -431,6 +432,7 @@ class StoragePoolDriver(object):
             StoragePoolDriver.FILE,
             StoragePoolDriver.FILEThin,
             StoragePoolDriver.SPDK,
+            StoragePoolDriver.REMOTE_SPDK,
             StoragePoolDriver.OPENFLEX_TARGET,
             StoragePoolDriver.EXOS
         ]
