@@ -1,3 +1,9 @@
+python-linstor (1.9.0-1) experimental; urgency=medium
+
+  * Added RemoteSpdk consts
+
+ -- Gabor Hernadi <gabor.hernadi@linbit.com>  Mon, 19 Jul 2021 08:28:37 +0000
+
 python-linstor (1.8.0-1) experimental; urgency=medium
 
   * common: lower() new enum values
