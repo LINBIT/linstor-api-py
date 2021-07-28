@@ -2297,3 +2297,152 @@ class CloneStatus(RESTMessageResponse):
         :rtype: apiconsts.CloneStatus
         """
         return apiconsts.CloneStatus(self._rest_data["status"])
+
+
+class S3Remote(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(S3Remote, self).__init__(rest_data)
+
+    @property
+    def remote_name(self):
+        return self._rest_data["remote_name"]
+
+    @property
+    def endpoint(self):
+        return self._rest_data["endpoint"]
+
+    @property
+    def bucket(self):
+        return self._rest_data["bucket"]
+
+    @property
+    def region(self):
+        return self._rest_data["region"]
+
+    @property
+    def access_key(self):
+        return self._rest_data.get("access_key")
+
+    @property
+    def secret_key(self):
+        return self._rest_data.get("secret_key")
+
+
+class LinstorRemote(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(LinstorRemote, self).__init__(rest_data)
+
+    @property
+    def remote_name(self):
+        return self._rest_data["remote_name"]
+
+    @property
+    def url(self):
+        return self._rest_data["url"]
+
+    @property
+    def passphrase(self):
+        return self._rest_data.get("passphrase")
+
+
+class RemoteListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(RemoteListResponse, self).__init__(rest_data)
+
+    @property
+    def s3_remotes(self):
+        """
+
+        :return:
+        :rtype: list[S3Remote]
+        """
+        return [S3Remote(x) for x in self._rest_data.get("s3_remotes", [])]
+
+    @property
+    def linstor_remotes(self):
+        """
+
+        :return:
+        :rtype: list[LinstorRemote]
+        """
+        return [LinstorRemote(x) for x in self._rest_data.get("linstor_remotes", [])]
+
+
+class Backup(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(Backup, self).__init__(rest_data)
+
+    @property
+    def id(self):
+        return self._rest_data.get("id")
+
+    @property
+    def start_time(self):
+        return self._rest_data.get("start_time")
+
+    @property
+    def start_timestamp(self):
+        return self._rest_data.get("start_timestamp")
+
+    @property
+    def finished_time(self):
+        return self._rest_data.get("finished_time")
+
+    @property
+    def finished_timestamp(self):
+        return self._rest_data.get("finished_timestamp")
+
+    @property
+    def origin_rsc_name(self):
+        return self._rest_data.get("origin_rsc")
+
+    @property
+    def based_on(self):
+        return self._rest_data.get("based_on_id")
+
+    @property
+    def success(self):
+        return self._rest_data.get("success")
+
+    @property
+    def shipping(self):
+        return self._rest_data.get("shipping")
+
+    @property
+    def restorable(self):
+        return self._rest_data.get("restorable")
+
+
+class BackupOther(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(BackupOther, self).__init__(rest_data)
+
+    @property
+    def files(self):
+        """
+        Backup file list
+        :return:
+        :rtype: list[str]
+        """
+        return self._rest_data.get("files", [])
+
+
+class BackupListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(BackupListResponse, self).__init__(rest_data)
+
+    @property
+    def linstor(self):
+        """
+        :return:
+        :rtype: list[Backup]
+        """
+        return [Backup(v) for k, v in self._rest_data.get("linstor", {}).items()]
+
+    @property
+    def other(self):
+        """
+        :return:
+        :rtype: list[BackupOther]
+        """
+        return BackupOther(self._rest_data.get("other", {}))

@@ -30,6 +30,7 @@ from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, Physic
 from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
     ExosEnclosureEventListResponse, ExosMapListResponse, ExosDefaults
 from linstor.responses import CloneStarted, CloneStatus
+from linstor.responses import RemoteListResponse, BackupListResponse
 from linstor.size_calc import SizeCalc
 
 try:
@@ -171,6 +172,8 @@ class Linstor(object):
         apiconsts.API_LST_EXOS_DFLTS: ExosDefaults,
         apiconsts.API_CLONE_RSCDFN: CloneStarted,
         apiconsts.API_CLONE_RSCDFN_STATUS: CloneStatus,
+        apiconsts.API_LST_REMOTE: RemoteListResponse,
+        apiconsts.API_LST_BACKUPS: BackupListResponse,
     }
 
     REST_PORT = 3370
@@ -3335,6 +3338,332 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_RPT_SPC,
             "GET",
+            path
+        )
+
+    def backup_list(self, remote_name, resource_name=None):
+        """
+        Lists backups for the given remote.
+
+        :param str remote_name: Name of the remote
+        :param Optional[str] resource_name: Only show backups of the given resource
+        :return:
+        """
+        self._require_version("1.10.0", msg="Backups are not supported by server")
+
+        path = "/v1/remotes/{rn}/backups".format(rn=remote_name)
+        query_params = {}
+        if resource_name:
+            query_params["rsc_name"] = resource_name
+        query_str = urlencode(query_params)
+        if query_str:
+            path += "?" + query_str
+        return self._rest_request(
+            apiconsts.API_LST_BACKUPS,
+            "GET",
+            path
+        )
+
+    def backup_create(self, remote_name, resource_name, incremental=True, node_name=None):
+        self._require_version("1.10.0", msg="Backups are not supported by server")
+
+        path = "/v1/remotes/{rn}/backups".format(rn=remote_name)
+        body = {
+            "rsc_name": resource_name,
+            "incremental": incremental
+        }
+        if node_name:
+            body["node_name"] = node_name
+        return self._rest_request(
+            apiconsts.API_CRT_BACKUP,
+            "POST",
+            path ,
+            body
+        )
+
+    def backup_delete(
+            self,
+            remote_name,
+            bak_id=None,
+            bak_id_prefix=None,
+            cascade=False,
+            time=None,
+            resource_name=None,
+            node_name=None,
+            all_linstor=False,
+            all_local_cluster=False,
+            s3_key=None,
+            dryrun=None
+        ):
+        self._require_version("1.10.0", msg="Backups are not supported by server")
+        params = dict(locals().items())  # copy
+
+        rename = {
+            "bak_id": "id",
+            "bak_id_prefix": "id_prefix",
+            "all_linstor": "all",
+            "s3_key": "s3key"
+        }
+
+        query_params = {}
+        for k, v in params.items():
+            if k not in ["self", "remote_name"]:
+                if v:
+                    key = rename[k] if k in rename else k
+                    query_params[key] = v
+        query_str = urlencode(query_params)
+
+        path = "/v1/remotes/{rn}/backups".format(rn=remote_name)
+        if query_str:
+            path += "?" + query_str
+
+        return self._rest_request(
+            apiconsts.API_DEL_BACKUP,
+            "DELETE",
+            path
+        )
+
+    def backup_restore(
+            self,
+            remote_name,
+            target_node_name,
+            target_resource_name,
+            resource_name=None,
+            bak_id=None,
+            passphrase=None,
+            stor_pool_map=None):
+        self._require_version("1.10.0", msg="Backups are not supported by server")
+
+        path = "/v1/remotes/{rn}/backups/restore".format(rn=remote_name)
+        body = {
+            "node_name": target_node_name,
+            "target_rsc_name": target_resource_name
+        }
+
+        if resource_name:
+            body["src_rsc_name"] = resource_name
+        if bak_id:
+            body["last_backup"] = bak_id
+        if passphrase:
+            body["passphrase"] = passphrase
+        if stor_pool_map:
+            body["stor_pool_map"] = stor_pool_map
+        return self._rest_request(
+            apiconsts.API_RESTORE_BACKUP,
+            "POST",
+            path ,
+            body)
+
+    def backup_abort(
+            self,
+            remote_name,
+            resource_name,
+            restore=None,
+            create=None):
+        self._require_version("1.10.0", msg="Backups are not supported by server")
+
+        path = "/v1/remotes/{rn}/backups/abort".format(rn=remote_name)
+        body = {
+            "rsc_name": resource_name,
+        }
+
+        if restore:
+            body["restore"] = restore
+        if create:
+            body["create"] = create
+        return self._rest_request(
+            apiconsts.API_ABORT_BACKUP,
+            "POST",
+            path ,
+            body
+        )
+
+    def backup_ship(
+            self,
+            remote_name,
+            src_rsc_name,
+            dst_rsc_name,
+            src_node=None,
+            dst_node=None,
+            dst_net_if=None,
+            dst_stor_pool=None,
+            stor_pool_rename=None):
+        self._require_version("1.10.0", msg="Backups are not supported by server")
+
+        path = "/v1/remotes/{rn}/backups/ship".format(rn=remote_name)
+        body = {
+            "src_rsc_name": src_rsc_name,
+            "dst_rsc_name": dst_rsc_name,
+        }
+
+        if src_node:
+            body["src_node_name"] = src_node
+        if dst_node:
+            body["dst_node_name"] = dst_node
+        if dst_net_if:
+            body["dst_net_if_name"] = dst_net_if
+        if dst_stor_pool:
+            body["dst_stor_pool"] = dst_stor_pool
+        if stor_pool_rename:
+            body["stor_pool_rename"] = stor_pool_rename
+
+        return self._rest_request(
+            apiconsts.API_SHIP_BACKUP,
+            "POST",
+            path ,
+            body
+        )
+
+    def remote_list(self):
+        """
+
+        :return:
+        :rtype: RemoteListResponse
+        """
+        self._require_version("1.10.0", msg="Remotes are not supported by server")
+
+        path = "/v1/remotes"
+
+        return self._rest_request(
+            apiconsts.API_LST_REMOTE,
+            "GET",
+            path
+        )
+
+    def remote_create_s3(self, remote_name, endpoint, region, bucket, access_key, secret_key, use_path_style=False):
+        """
+        Create a new s3 remote.
+
+        :param str remote_name: Remote name
+        :param str endpoint:
+        :param str region:
+        :param str bucket:
+        :param str access_key:
+        :param str secret_key:
+        :param bool use_path_style: True if AWS instance uses path style.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.10.0", msg="Remotes are not supported by server")
+
+        body = {
+            "remote_name": remote_name,
+            "endpoint": endpoint,
+            "region": region,
+            "bucket": bucket,
+            "access_key": access_key,
+            "secret_key": secret_key,
+            "use_path_style": use_path_style
+        }
+        return self._rest_request(
+            apiconsts.API_SET_REMOTE,
+            "POST",
+            "/v1/remotes/s3",
+            body
+        )
+
+    def remote_modify_s3(self, remote_name, endpoint=None, region=None, bucket=None, access_key=None, secret_key=None):
+        """
+        Modify an already existing s3 remote.
+
+        :param str remote_name: Remote name
+        :param Optional[str] endpoint:
+        :param Optional[str] region:
+        :param Optional[str] bucket:
+        :param Optional[str] access_key:
+        :param Optional[str] secret_key:
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.10.0", msg="Remotes are not supported by server")
+
+        body = {
+            "remote_name": remote_name,
+        }
+        if endpoint is not None:
+            body["endpoint"] = endpoint
+        if region is not None:
+            body["region"] = region
+        if bucket is not None:
+            body["bucket"] = bucket
+        if access_key is not None:
+            body["access_key"] = access_key
+        if secret_key is not None:
+            body["secret_key"] = secret_key
+
+        return self._rest_request(
+            apiconsts.API_SET_REMOTE,
+            "PUT",
+            "/v1/remotes/s3/" + remote_name,
+            body
+        )
+
+    def remote_create_linstor(self, remote_name, url, passphrase=None, cluster_id=None):
+        """
+        Create a new linstor remote.
+
+        :param str remote_name: Remote name
+        :param str url:
+        :param Optional[str] passphrase:
+        :param Optional[str] cluster_id:
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.10.0", msg="Remotes are not supported by server")
+
+        body = {
+            "remote_name": remote_name,
+            "url": url
+        }
+        if passphrase:
+            body["passphrase"] = passphrase
+        if cluster_id:
+            body["cluster_id"] = cluster_id
+
+        return self._rest_request(
+            apiconsts.API_SET_REMOTE,
+            "POST",
+            "/v1/remotes/linstor",
+            body
+        )
+
+    def remote_modify_linstor(self, remote_name, url=None, passphrase=None, cluster_id=None):
+        """
+        Modify an already existing s3 remote.
+
+        :param str remote_name: Remote name
+        :param Optional[str] url:
+        :param Optional[str] passphrase:
+        :param Optional[str] cluster_id:
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.10.0", msg="Remotes are not supported by server")
+
+        body = {
+            "remote_name": remote_name,
+        }
+        if url is not None:
+            body["url"] = url
+        if passphrase is not None:
+            body["passphrase"] = passphrase
+        if cluster_id:
+            body["cluster_id"] = cluster_id
+
+        return self._rest_request(
+            apiconsts.API_SET_REMOTE,
+            "PUT",
+            "/v1/remotes/linstor/" + remote_name,
+            body
+        )
+
+    def remote_delete(self, remote_name):
+        self._require_version("1.10.0", msg="Remotes are not supported by server")
+
+        path = "/v1/remotes?" + urlencode({"remote_name": remote_name})
+        return self._rest_request(
+            apiconsts.API_SET_REMOTE,
+            "DELETE",
             path
         )
 
