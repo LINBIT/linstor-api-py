@@ -2,11 +2,11 @@ class LinstorError(Exception):
     """
     Linstor basic error class with a message
     """
-    def __init__(self, msg, more_errors=None):
+    def __init__(self, msg, all_errors=None):
         self._msg = msg
-        if more_errors is None:
-            more_errors = []
-        self._errors = more_errors
+        if all_errors is None:
+            all_errors = []
+        self._errors = all_errors
 
     def all_errors(self):
         return self._errors
@@ -42,8 +42,19 @@ class LinstorApiCallError(LinstorError):
     """
     Linstor error from an apicall response.
     """
-    def __init__(self, apicallresponse, more_errors=None):
-        super(LinstorApiCallError, self).__init__(str(apicallresponse), more_errors)
+    def __init__(self, apicallresponse, all_errors=None):
+        """
+
+        :param ApiCallResponse apicallresponse:
+        :param list[ApiCallResponse] all_errors:
+        """
+        super(LinstorApiCallError, self).__init__(str(apicallresponse), all_errors if all_errors else [apicallresponse])
+
+        self._main_error = apicallresponse
+
+    @property
+    def main_error(self):
+        return self._main_error
 
 
 class LinstorArgumentError(LinstorError):

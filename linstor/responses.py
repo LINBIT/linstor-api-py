@@ -65,6 +65,10 @@ class ApiCallResponse(RESTMessageResponse):
         """
         return ApiCallResponse(json_data)
 
+    @classmethod
+    def from_str(cls, message, code=None):
+        return ApiCallResponse({"message": message, "ret_code": apiconsts.FAIL_UNKNOWN_ERROR})
+
     def is_error(self, code=None):
         """
         Returns True if the ApiCallResponse is any error and "code" is unset.

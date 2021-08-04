@@ -327,7 +327,7 @@ class Linstor(object):
 
         :param str required_version: semantic version string
         :return: True if supported
-        :raises: LinstorError if server version is lower than required version
+        :raises LinstorError: if server version is lower than required version
         """
         if self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(required_version):
             raise LinstorError(
@@ -394,7 +394,7 @@ class Linstor(object):
             else:
                 raise
 
-    def _handle_response_error(self, response, method, path):
+    def _handle_response_error(self, response, method, path, raise_error=False):
         error_data_raw = self._decode_response_data(response)
         if error_data_raw:
             if response.getheader("Content-Type", "text").startswith('application/json'):
@@ -405,7 +405,11 @@ class Linstor(object):
                         "Unable to parse REST json data: " + str(ve) + "\n"
                                                                        "Request-Uri: " + path
                     )
-                return [ApiCallResponse(x) for x in error_data]
+                apicallresponses = [ApiCallResponse(x) for x in error_data]
+                if raise_error:
+                    raise LinstorApiCallError(apicallresponses[0], apicallresponses)
+                else:
+                    return apicallresponses
             else:
                 # try to get an error message from html
                 root = ET.fromstring(error_data_raw)
@@ -419,13 +423,14 @@ class Linstor(object):
         raise LinstorError("REST api call method '{m}' to resource '{p}' returned status {s} with no data."
                            .format(m=method, p=path, s=response.status))
 
-    def _rest_request(self, apicall, method, path, body=None, reconnect=True):
+    def _rest_request(self, apicall, method, path, body=None, reconnect=True, raise_error=False):
         """
 
         :param str apicall: linstor apicall strid
         :param str method: One of GET, POST, PUT, DELETE, OPTIONS
         :param str path: object path on the server
         :param Union[dict[str,Any], list[Any] body: body data
+        :param bool raise_error: instead of returning an ApiCallResponse list, raise an LinstorApiCallError
         :return:
         :rtype: list[Union[ApiCallRESTResponse, ResourceResponse]]
         """
@@ -439,7 +444,7 @@ class Linstor(object):
             if response.status < 400:
                 return self.__convert_rest_response(apicall, response, path)
             else:
-                return self._handle_response_error(response, method, path)
+                return self._handle_response_error(response, method, path, raise_error=raise_error)
         finally:
             if response:
                 response.close()
@@ -660,9 +665,9 @@ class Linstor(object):
                     StrictVersion(API_VERSION_MIN) > StrictVersion(self._ctrl_version.rest_api_version):
                 self._rest_conn.close()
                 raise LinstorApiCallError(
-                    "Client doesn't support Controller rest api version: " + self._ctrl_version.rest_api_version +
-                    "; Minimal version needed: " + API_VERSION_MIN
-                )
+                    ApiCallResponse.from_str("Client doesn't support Controller rest api version: " +
+                                             self._ctrl_version.rest_api_version + "; Minimal version needed: " +
+                                             API_VERSION_MIN))
             self._connected = True
         except socket.error as err:
             hosturl = self._ctrl_host
@@ -964,7 +969,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], NodeListResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def node_types(self):
@@ -1238,7 +1243,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], StoragePoolListResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     @classmethod
@@ -1444,7 +1449,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], ResourceGroupResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def resource_group_spawn(
@@ -1622,7 +1627,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], VolumeGroupResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None, resource_group=None):
@@ -1778,7 +1783,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], ResourceDefinitionResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def resource_dfn_props_list(self, rsc_name, filter_by_namespace=''):
@@ -2393,7 +2398,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], ResourceResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def volume_modify(self, node_name, rsc_name, vlm_nr, property_dict, delete_props=None):
@@ -2659,7 +2664,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], ResourceConnectionsResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def resource_conn_node_list_raise(self, rsc_name, node_a, node_b):
@@ -2680,7 +2685,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], ResourceConnection):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def drbd_proxy_enable(self, rsc_name, node_a, node_b, port=None):
@@ -2963,7 +2968,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], SnapshotResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def error_report_list(self, nodes=None, with_content=False, since=None, to=None, ids=None):
@@ -3093,7 +3098,7 @@ class Linstor(object):
         if list_res:
             if isinstance(list_res[0], KeyValueStoresResponse):
                 return list_res[0]
-            raise LinstorApiCallError(list_res[0])
+            raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
     def keyvaluestore_list(self, instance_name):
