@@ -1,9 +1,11 @@
 """
 Linstorapi module
 """
+from __future__ import print_function
 
 import logging
 import socket
+import sys
 import time
 import json
 import zlib
@@ -27,6 +29,7 @@ from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeRespon
 from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList, SnapshotShippingResponse
 from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
     ExosEnclosureEventListResponse, ExosMapListResponse, ExosDefaults
+from linstor.responses import CloneStarted, CloneStatus
 from linstor.size_calc import SizeCalc
 
 try:
@@ -165,7 +168,9 @@ class Linstor(object):
         apiconsts.API_EXOS_ENCLOSURE_EVENTS: ExosEnclosureEventListResponse,
         apiconsts.API_EXOS_EXEC: ExosExecResponse,
         apiconsts.API_EXOS_MAP: ExosMapListResponse,
-        apiconsts.API_LST_EXOS_DFLTS: ExosDefaults
+        apiconsts.API_LST_EXOS_DFLTS: ExosDefaults,
+        apiconsts.API_CLONE_RSCDFN: CloneStarted,
+        apiconsts.API_CLONE_RSCDFN_STATUS: CloneStatus,
     }
 
     REST_PORT = 3370
@@ -1666,6 +1671,79 @@ class Linstor(object):
             "POST", "/v1/resource-definitions",
             body
         )
+
+    def resource_dfn_clone(self, src_name, clone_name, clone_external_name=None):
+        """
+        Sends a clone request to linstor controller.
+
+        :param str src_name: source resource to clone from.
+        :param str clone_name: new resource name of the clone.
+        :param Optional[str] clone_external_name: External name to set for the clone, if this is specified
+                                                  the clone_name will be ignored
+        :return:
+        :rtype: CloneStarted
+        """
+        self._require_version("1.10.0", msg="Resource definition clone API not supported by server")
+
+        body = {
+            "name": clone_name
+        }
+        if clone_external_name:
+            body["external_name"] = clone_external_name
+            del body["name"]
+
+        return self._rest_request(
+            apiconsts.API_CLONE_RSCDFN,
+            "POST", "/v1/resource-definitions/" + src_name + "/clone",
+            body,
+            raise_error=True
+        )[0]
+
+    def resource_dfn_clone_status(self, src_name, clone_name):
+        """
+        Retrieves the current clone status for a resource.
+
+        :param str src_name: source resource name
+        :param str clone_name: cloned resource name
+        :return: CloneStatus of the resource or exception if e.g. not found
+        :rtype: CloneStatus
+        """
+        self._require_version("1.10.0", msg="Resource definition clone API not supported by server")
+
+        ret = self._rest_request(
+            apiconsts.API_CLONE_RSCDFN_STATUS,
+            "GET", "/v1/resource-definitions/" + src_name + "/clone/" + clone_name
+        )[0]
+
+        if isinstance(ret, ApiCallResponse):
+            raise LinstorApiCallError(ret)
+        return ret
+
+    def resource_dfn_clone_wait_complete(self, src_name, clone_name, wait_interval=1.0, timeout=None):
+        """
+        Pools and waits until the given clone resource completed the cloning process.
+
+        :param str src_name: source resource name
+        :param str clone_name: cloned resource name
+        :param float wait_interval: interval between checks as float, default 1 second
+        :param Optional[int] timeout: seconds how long to wait to finish the cloning.
+        :raises LinstorError: If clone status goes to FAILED or not supported
+        :raises LinstorTimeoutError: If cloning didn't complete within timeout
+        :return: True if cloning is done, else an LinstorError exception will be thrown
+        """
+        starttime = int(round(time.time() * 1000))
+        while True:
+            clone_status = self.resource_dfn_clone_status(src_name, clone_name)
+            if clone_status.status == apiconsts.CloneStatus.COMPLETE:
+                return True
+            elif clone_status.status == apiconsts.CloneStatus.FAILED:
+                return False
+            elif clone_status.status != apiconsts.CloneStatus.CLONING:
+                print("Unknown clone status {s}".format(s=clone_status.status), file=sys.stderr)
+
+            if timeout and starttime + timeout * 1000 < int(round(time.time() * 1000)):
+                raise LinstorTimeoutError("{c} resource didn't finish clone in time.".format(c=clone_name))
+            time.sleep(wait_interval)
 
     def resource_dfn_modify(self, name, property_dict, delete_props=None, peer_slots=None, resource_group=None):
         """

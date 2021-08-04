@@ -2239,3 +2239,61 @@ class ExosMapListResponse(RESTMessageResponse):
         :rtype: list[ExosMapResponse]
         """
         return [ExosMapResponse(x) for x in self._rest_data]
+
+
+class CloneStarted(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(CloneStarted, self).__init__(rest_data)
+
+    @property
+    def location(self):
+        """
+        API path for further status updates.
+        :return: e.g. "/v1/resource-definitions/testrsc/clone/clonersc"
+        :rtype: str
+        """
+        return self._rest_data["location"]
+
+    @property
+    def source_name(self):
+        """
+        Name of the source resource.
+
+        :return:
+        :rtype: str
+        """
+        return self._rest_data["source_name"]
+
+    @property
+    def clone_name(self):
+        """
+        Name of the cloned resource.
+
+        :return:
+        :rtype: str
+        """
+        return self._rest_data["clone_name"]
+
+    @property
+    def messages(self):
+        """
+
+        :return:
+        :rtype: list[ApiCallResponse]
+        """
+        return [ApiCallResponse(x) for x in self._rest_data.get("messages", [])]
+
+
+class CloneStatus(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(CloneStatus, self).__init__(rest_data)
+
+    @property
+    def status(self):
+        """
+        Current status of the clone operation.
+
+        :return:
+        :rtype: apiconsts.CloneStatus
+        """
+        return apiconsts.CloneStatus(self._rest_data["status"])
