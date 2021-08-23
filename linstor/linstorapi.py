@@ -1526,6 +1526,33 @@ class Linstor(object):
             "/v1/resource-groups/" + rsc_grp_name + "/query-max-volume-size"
         )
 
+    def resource_group_adjust(
+            self,
+            rsc_grp_name):
+        """
+        Adjusts all resources for the given resource group.
+
+        :param str rsc_grp_name: Name of the resource group to adjust.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.10.0", msg="Resource group API not supported by server")
+
+        body = None  # {}
+
+        if rsc_grp_name:
+            path = "/v1/resource-groups/" + rsc_grp_name + "/adjust"
+        else:
+            path = "/v1/resource-groups/adjustall"
+
+        return self._rest_request(
+            apiconsts.API_SPAWN_RSC_DFN,
+            "POST",
+            path,
+            body
+        )
+
+
     def volume_group_create(
             self,
             resource_grp_name,
