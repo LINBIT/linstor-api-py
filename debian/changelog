@@ -1,3 +1,11 @@
+python-linstor (1.10.0-1) experimental; urgency=medium
+
+  * errors: improve LinstorApiCallError usage
+  * clone-api: add rsc-dfn clone and clone-status commands
+  * BackupShipping: added methods
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Fri, 27 Aug 2021 08:42:15 +0000
+
 python-linstor (1.9.0-1) experimental; urgency=medium
 
   * Added RemoteSpdk consts
