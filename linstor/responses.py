@@ -342,6 +342,10 @@ class Node(RESTMessageResponse):
         return self._rest_data.get("flags", [])
 
     @property
+    def eviction_timestamp(self):
+        return self._rest_data.get("eviction_timestamp")
+
+    @property
     def data_v0(self):
         d = dict(self._rest_data)
         d["props"] = [{"key": x, "value": self.props[x]} for x in self.props]
