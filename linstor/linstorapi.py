@@ -2916,19 +2916,31 @@ class Linstor(object):
             body
         )
 
-    def snapshot_delete(self, rsc_name, snapshot_name):
+    def snapshot_delete(self, rsc_name, snapshot_name, node_names=None):
         """
         Delete a snapshot.
 
         :param str rsc_name: Name of the resource.
         :param str snapshot_name: Name of the snapshot.
+        :param Optional[list[str]] node_names: Nodes to delete given snapshot
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
+
+        query_params = {}
+        if node_names:
+            query_params["nodes"] = node_names
+
+        query_filters_encoded = urlencode(query_params, True)
+        path = "/v1/resource-definitions/{rn}/snapshots/{sn}{af}".format(
+            rn=rsc_name,
+            sn=snapshot_name,
+            af=("?" + query_filters_encoded) if query_filters_encoded else "")
+
         return self._rest_request(
             apiconsts.API_DEL_SNAPSHOT,
             "DELETE",
-            "/v1/resource-definitions/" + rsc_name + "/snapshots/" + snapshot_name
+            path
         )
 
     def snapshot_rollback(self, rsc_name, snapshot_name):
