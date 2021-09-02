@@ -845,15 +845,29 @@ class Linstor(object):
             replies += self._rest_request(apiconsts.API_NODE_RECONNECT, "PUT", "/v1/nodes/" + node_name + "/reconnect")
         return replies
 
-    def node_restore(self, node_name):
+    def node_restore(self, node_name, delete_resources=None, delete_snapshots=None):
         """
         Restores an evicted node.
 
         :param str node_name: Node name to restore
+        :param Optional[bool] delete_resources: Delete resources before reconnecting node
+        :param Optional[bool] delete_snapshots: Delete snapshot before reconnecting node
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        return self._rest_request(apiconsts.API_NODE_RESTORE, "PUT", "/v1/nodes/" + node_name + "/restore")
+        body = {}
+        if delete_resources:
+            self._require_version("1.10.1", msg="Delete resources during restore is not supported by server")
+            body["delete_resources"] = True
+        if delete_snapshots:
+            self._require_version("1.10.1", msg="Delete snapshots during restore is not supported by server")
+            body["delete_snapshots"] = True
+        return self._rest_request(
+            apiconsts.API_NODE_RESTORE,
+            "PUT",
+            "/v1/nodes/" + node_name + "/restore",
+            body if body else None
+        )
 
     def netinterface_create(self, node_name, interface_name, ip, port=None, com_type=None, is_active=False):
         """
