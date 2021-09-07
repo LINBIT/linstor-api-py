@@ -1,3 +1,16 @@
+python-linstor (1.10.1-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * Node: Added eviction_timestamp property
+  * Snapshot,delete: Add optional node_names list
+  * RscGrp: Added adjust command
+  * NodeRestore: Added optional delete_resources and delete_snapshots
+
+  [ Rene Peinthor ]
+  * resource: Add clone method
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 07 Sep 2021 09:29:12 +0000
+
 python-linstor (1.10.0-1) experimental; urgency=medium
 
   * errors: improve LinstorApiCallError usage
