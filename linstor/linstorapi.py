@@ -30,7 +30,7 @@ from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, Physic
 from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
     ExosEnclosureEventListResponse, ExosMapListResponse, ExosDefaults
 from linstor.responses import CloneStarted, CloneStatus
-from linstor.responses import RemoteListResponse, BackupListResponse
+from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.size_calc import SizeCalc
 
 try:
@@ -174,6 +174,7 @@ class Linstor(object):
         apiconsts.API_CLONE_RSCDFN_STATUS: CloneStatus,
         apiconsts.API_LST_REMOTE: RemoteListResponse,
         apiconsts.API_LST_BACKUPS: BackupListResponse,
+        apiconsts.API_BACKUP_INFO: BackupInfoResponse,
     }
 
     REST_PORT = 3370
@@ -3566,6 +3567,32 @@ class Linstor(object):
             path ,
             body
         )
+
+    def backup_info(
+            self,
+            remote_name,
+            resource_name=None,
+            bak_id=None,
+            target_node=None,
+            stor_pool_map=None):
+        self._require_version("1.10.2", msg="Backup info is not supported by server")
+
+        path = "/v1/remotes/{rn}/backups/info".format(rn=remote_name)
+        body = {}
+
+        if resource_name:
+            body["src_rsc_name"] = resource_name
+        if bak_id:
+            body["last_backup"] = bak_id
+        if target_node:
+            body["node_name"] = target_node
+        if stor_pool_map:
+            body["stor_pool_map"] = stor_pool_map
+        return self._rest_request(
+            apiconsts.API_BACKUP_INFO,
+            "POST",
+            path ,
+            body)
 
     def remote_list(self):
         """

@@ -2450,3 +2450,97 @@ class BackupListResponse(RESTMessageResponse):
         :rtype: list[BackupOther]
         """
         return BackupOther(self._rest_data.get("other", {}))
+
+
+class BackupInfoResponse(RESTMessageResponse):
+
+    def __init__(self, rest_data):
+        super(BackupInfoResponse, self).__init__(rest_data)
+
+    @property
+    def rsc(self):
+        return self._rest_data.get("rsc")
+
+    @property
+    def full(self):
+        return self._rest_data.get("full")
+
+    @property
+    def latest(self):
+        return self._rest_data.get("latest")
+
+    @property
+    def count(self):
+        return self._rest_data.get("count")
+
+    @property
+    def dl_size(self):
+        return self._rest_data.get("dl_size_kib")
+
+    @property
+    def alloc_size(self):
+        return self._rest_data.get("alloc_size_kib")
+
+    @property
+    def storpools(self):
+        """
+        :return:
+        :rtype: list[BackupInfoStorPool]
+        """
+        return [BackupInfoStorPool(v) for v in self._rest_data.get("storpools", [])]
+
+
+class BackupInfoStorPool(RESTMessageResponse):
+
+    def __init__(self, rest_data):
+        super(BackupInfoStorPool, self).__init__(rest_data)
+
+    @property
+    def name(self):
+        return self._rest_data.get("name")
+
+    @property
+    def provider_kind(self):
+        return self._rest_data.get("provider_kind")
+
+    @property
+    def target_name(self):
+        return self._rest_data.get("target_name")
+
+    @property
+    def remaining_space(self):
+        return self._rest_data.get("remaining_space_kib")
+
+    @property
+    def volumes(self):
+        """
+        :return:
+        :rtype: list[BackupInfoStorPoolVolume]
+        """
+        return [BackupInfoStorPoolVolume(v) for v in self._rest_data.get("vlms", [])]
+
+
+class BackupInfoStorPoolVolume(RESTMessageResponse):
+
+    def __init__(self, rest_data):
+        super(BackupInfoStorPoolVolume, self).__init__(rest_data)
+
+    @property
+    def name(self):
+        return self._rest_data.get("name")
+
+    @property
+    def layer_type(self):
+        return self._rest_data.get("layer_type")
+
+    @property
+    def dl_size(self):
+        return self._rest_data.get("dl_size_kib")
+
+    @property
+    def alloc_size(self):
+        return self._rest_data.get("alloc_size_kib")
+
+    @property
+    def usable_size(self):
+        return self._rest_data.get("usable_size_kib")
