@@ -3431,7 +3431,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CRT_BACKUP,
             "POST",
-            path ,
+            path,
             body
         )
 
@@ -3505,7 +3505,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_RESTORE_BACKUP,
             "POST",
-            path ,
+            path,
             body)
 
     def backup_abort(
@@ -3528,7 +3528,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_ABORT_BACKUP,
             "POST",
-            path ,
+            path,
             body
         )
 
@@ -3564,7 +3564,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SHIP_BACKUP,
             "POST",
-            path ,
+            path,
             body
         )
 
@@ -3591,7 +3591,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_BACKUP_INFO,
             "POST",
-            path ,
+            path,
             body)
 
     def remote_list(self):
