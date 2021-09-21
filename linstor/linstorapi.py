@@ -3485,7 +3485,8 @@ class Linstor(object):
             resource_name=None,
             bak_id=None,
             passphrase=None,
-            stor_pool_map=None):
+            stor_pool_map=None,
+            download_only=False):
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
         path = "/v1/remotes/{rn}/backups/restore".format(rn=remote_name)
@@ -3502,6 +3503,9 @@ class Linstor(object):
             body["passphrase"] = passphrase
         if stor_pool_map:
             body["stor_pool_map"] = stor_pool_map
+        if download_only:
+            body["download_only"] = download_only
+
         return self._rest_request(
             apiconsts.API_RESTORE_BACKUP,
             "POST",
@@ -3541,7 +3545,8 @@ class Linstor(object):
             dst_node=None,
             dst_net_if=None,
             dst_stor_pool=None,
-            stor_pool_rename=None):
+            stor_pool_rename=None,
+            download_only=False):
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
         path = "/v1/remotes/{rn}/backups/ship".format(rn=remote_name)
@@ -3560,6 +3565,8 @@ class Linstor(object):
             body["dst_stor_pool"] = dst_stor_pool
         if stor_pool_rename:
             body["stor_pool_rename"] = stor_pool_rename
+        if download_only:
+            body["download_only"] = download_only
 
         return self._rest_request(
             apiconsts.API_SHIP_BACKUP,
