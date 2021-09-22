@@ -1,3 +1,14 @@
+python-linstor (1.10.2-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * BackupShipping: Added backup_info API
+
+  [ Rene Peinthor ]
+  * remove useless space
+  * backup: add download_only parameter
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 22 Sep 2021 13:31:45 +0000
+
 python-linstor (1.10.1-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
