@@ -2544,3 +2544,27 @@ class BackupInfoStorPoolVolume(RESTMessageResponse):
     @property
     def usable_size(self):
         return self._rest_data.get("usable_size_kib")
+
+
+class ExternalFile(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ExternalFile, self).__init__(rest_data)
+
+    @property
+    def path(self):
+        return self._rest_data.get("path")
+
+    @property
+    def content(self):
+        return self._rest_data.get("content")
+
+
+class FileResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(FileResponse, self).__init__(rest_data)
+
+    @property
+    def files(self):
+        if isinstance(self._rest_data, list):
+            return [ExternalFile(x) for x in self._rest_data]
+        return ExternalFile(self._rest_data)

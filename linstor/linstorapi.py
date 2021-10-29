@@ -31,14 +31,15 @@ from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
     ExosEnclosureEventListResponse, ExosMapListResponse, ExosDefaults
 from linstor.responses import CloneStarted, CloneStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
+from linstor.responses import FileResponse
 from linstor.size_calc import SizeCalc
 
 try:
     from urlparse import urlparse
-    from urllib import urlencode
+    from urllib import urlencode, quote
 except ImportError:
     from urllib.parse import urlparse
-    from urllib.parse import urlencode
+    from urllib.parse import urlencode, quote
 
 try:
     from httplib import HTTPConnection, HTTPSConnection, BadStatusLine, HTTPResponse
@@ -175,6 +176,7 @@ class Linstor(object):
         apiconsts.API_LST_REMOTE: RemoteListResponse,
         apiconsts.API_LST_BACKUPS: BackupListResponse,
         apiconsts.API_BACKUP_INFO: BackupInfoResponse,
+        apiconsts.API_LST_EXT_FILES: FileResponse,
     }
 
     REST_PORT = 3370
@@ -4024,6 +4026,120 @@ class Linstor(object):
             apiconsts.API_EXOS_MAP,
             "GET",
             "/v1/vendor/seagate/exos/map"
+        )
+
+    def file_list(self):
+        """
+        Lists all external files in the cluster
+
+        :return: A list of external files *without* their contents. Just the
+            "path" property is populated
+        :rtype: FileResponse
+        """
+        self._require_version("1.7.0", msg="External files not supported by server")
+
+        return self._rest_request(
+            apiconsts.API_LST_EXT_FILES,
+            "GET",
+            "/v1/files"
+        )
+
+    def file_show(self, file_name):
+        """
+        Gets information about a single external file, including its content
+
+        :param file_name: The name of the external file. Example: /etc/test.conf
+        :return: A single external file, with both the "path" and "content"
+            properties populated
+        :rtype: FileResponse
+        """
+        self._require_version("1.7.0", msg="External files not supported by server")
+        show_res = self._rest_request(
+            apiconsts.API_LST_EXT_FILES,
+            "GET",
+            "/v1/files/" + quote(file_name, safe="")
+        )
+
+        if show_res:
+            if isinstance(show_res[0], FileResponse):
+                return show_res[0]
+            raise LinstorApiCallError(show_res[0], show_res)
+        raise LinstorError("No list response received.")
+
+    def file_modify(self, file_name, new_content):
+        """
+        Modify the content of an existing external file or create a new external file
+
+        :param file_name: The name of the external file. Example: /etc/test.conf
+        :param new_content: The content of the external file. The old content
+            will be overwritten. The content should be bytes without any specific
+            encoding. The content should not be base64 encoded by the caller.
+        :return: A list of ApiCallResponses
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.7.0", msg="External files not supported by server")
+
+        body = {
+            "path": file_name,
+            "content": base64.b64encode(new_content).decode(),
+        }
+        return self._rest_request(
+            apiconsts.API_SET_EXT_FILE,
+            "PUT",
+            "/v1/files/" + quote(file_name, safe=""),
+            body
+        )
+
+    def file_delete(self, file_name):
+        """
+        Delete an external file. The file will also be undeployed from all resources
+
+        :param file_name: The name of the external file. Example: /etc/test.conf
+        :return: A list of ApiCallResponses
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.7.0", msg="External files not supported by server")
+
+        return self._rest_request(
+            apiconsts.API_DEL_EXT_FILE,
+            "DELETE",
+            "/v1/files/" + quote(file_name, safe="")
+        )
+
+    def file_deploy(self, file_name, rsc_name):
+        """
+        Deploy an external file with a resource. This makes sure that the file
+        is present on every host where there is a replica of the resource.
+
+        :param file_name: The name of the external file. Example: /etc/test.conf
+        :param rsc_name: The name of the resource definition to deploy the file with
+        :return: A list of ApiCallResponses
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.7.0", msg="External files not supported by server")
+
+        return self._rest_request(
+            apiconsts.API_DEPLOY_EXT_FILE,
+            "POST",
+            "/v1/resource-definitions/" + rsc_name + "/files/" + quote(file_name, safe="")
+        )
+
+    def file_undeploy(self, file_name, rsc_name):
+        """
+        Undeploy an external file from a resource. This deletes the file from
+        every node where it was previously deployed.
+
+        :param file_name: The name of the external file. Example: /etc/test.conf
+        :param rsc_name: The name of the resource definition to undeplopy the file from
+        :return: A list of ApiCallResponses
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.7.0", msg="External files not supported by server")
+
+        return self._rest_request(
+            apiconsts.API_UNDEPLOY_EXT_FILE,
+            "DELETE",
+            "/v1/resource-definitions/" + rsc_name + "/files/" + quote(file_name, safe="")
         )
 
 
