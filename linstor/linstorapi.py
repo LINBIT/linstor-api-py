@@ -3459,7 +3459,7 @@ class Linstor(object):
             bak_id=None,
             bak_id_prefix=None,
             cascade=False,
-            time=None,
+            timestamp=None,
             resource_name=None,
             node_name=None,
             all_linstor=False,
