@@ -880,6 +880,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
+        self._require_version("1.12.0", msg="Node evacuate is not supported by server")
         body = {}
         return self._rest_request(
             apiconsts.API_NODE_EVACUATE,
