@@ -1,3 +1,17 @@
+python-linstor (1.12.0-1) experimental; urgency=medium
+
+  [ Christoph Böhmwalder ]
+  * support external files
+
+  [ Gabor Hernadi ]
+  * node evacuate
+  * Node,evac: Add version check
+
+  [ Rene Peinthor ]
+  * backup_delete: fix incorrect parameter
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 09 Dec 2021 07:29:17 +0000
+
 python-linstor (1.10.2-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
