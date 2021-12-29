@@ -62,7 +62,7 @@ test:3.10:
       junit: test-reports/TEST-*.xml
 
 build:
-  stage: build
+  stage: deploy
   image: $LINBIT_DOCKER_REGISTRY/build-helpers:latest
   rules:
     - if: '$CI_COMMIT_BRANCH == "jenkins"'
