@@ -15,6 +15,7 @@ pep8:
   image: pipelinecomponents/flake8
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "jenkins"'
     - if: $CI_COMMIT_BRANCH == 'master'
   before_script:
     - echo noop
@@ -26,6 +27,7 @@ test:2.7:
   image: python:2.7
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "jenkins"'
     - if: $CI_COMMIT_BRANCH == 'master'
   script:
     - pip install enum34 xmlrunner
@@ -40,6 +42,7 @@ test:3.5:
   image: python:3.5
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "jenkins"'
     - if: $CI_COMMIT_BRANCH == 'master'
   script:
     - make gensrc
@@ -53,6 +56,7 @@ test:3.10:
   image: python:3.10
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "jenkins"'
     - if: $CI_COMMIT_BRANCH == 'master'
   script:
     - make gensrc
