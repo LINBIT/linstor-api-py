@@ -14,7 +14,7 @@ class TestUtils(unittest.TestCase):
         self.assertSizeUnit("248GiB", 248, SizeCalc.UNIT_GiB)
         self.assertSizeUnit("248GB", 248, SizeCalc.UNIT_GB)
 
-        self.assertRaises(LinstorError,  SizeCalc.parse_unit, "nosize")
+        self.assertRaises(LinstorError, SizeCalc.parse_unit, "nosize")
 
     def test_size_calc_convert(self):
         self.assertEqual(10485760, SizeCalc.auto_convert("10M", SizeCalc.UNIT_B))

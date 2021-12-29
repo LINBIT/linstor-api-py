@@ -189,7 +189,7 @@ class ResourceGroup(object):
                     self._nr_volumes += 1
             elif have > want:  # decrease
                 for v in range(have, want, -1):
-                    lin.volume_group_delete(self._name, v-1)
+                    lin.volume_group_delete(self._name, v - 1)
                     self._nr_volumes -= 1
             # else ==, done
 

@@ -14,7 +14,6 @@ import base64
 import re
 import shutil
 import xml.etree.ElementTree as ET
-from datetime import datetime
 from distutils.version import StrictVersion
 
 from linstor.version import VERSION
@@ -22,9 +21,9 @@ import linstor.sharedconsts as apiconsts
 from linstor.errors import LinstorError, LinstorNetworkError, LinstorTimeoutError
 from linstor.errors import LinstorApiCallError, LinstorArgumentError
 from linstor.responses import ApiCallResponse, ErrorReport, StoragePoolListResponse, StoragePoolDriver
-from linstor.responses import NodeListResponse, KeyValueStoresResponse, KeyValueStore, ResourceDefinitionResponse
+from linstor.responses import NodeListResponse, KeyValueStoresResponse, ResourceDefinitionResponse
 from linstor.responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
-from linstor.responses import RESTMessageResponse, SnapshotResponse, ControllerProperties, ResourceConnection
+from linstor.responses import SnapshotResponse, ControllerProperties, ResourceConnection
 from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList, SnapshotShippingResponse
 from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
@@ -42,9 +41,9 @@ except ImportError:
     from urllib.parse import urlencode, quote
 
 try:
-    from httplib import HTTPConnection, HTTPSConnection, BadStatusLine, HTTPResponse
+    from httplib import HTTPConnection, HTTPSConnection, BadStatusLine
 except ImportError:
-    from http.client import HTTPConnection, HTTPSConnection, BadStatusLine, HTTPResponse
+    from http.client import HTTPConnection, HTTPSConnection, BadStatusLine
 
 
 API_VERSION_MIN = "1.0.4"
@@ -342,8 +341,8 @@ class Linstor(object):
         """
         if self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(required_version):
             raise LinstorError(
-                msg + ", REST-API-VERSION: " + self._ctrl_version.rest_api_version +
-                "; needed " + required_version
+                msg + ", REST-API-VERSION: " + self._ctrl_version.rest_api_version
+                + "; needed " + required_version
             )
 
     def api_version_smaller(self, version):
@@ -676,9 +675,9 @@ class Linstor(object):
                     StrictVersion(API_VERSION_MIN) > StrictVersion(self._ctrl_version.rest_api_version):
                 self._rest_conn.close()
                 raise LinstorApiCallError(
-                    ApiCallResponse.from_str("Client doesn't support Controller rest api version: " +
-                                             self._ctrl_version.rest_api_version + "; Minimal version needed: " +
-                                             API_VERSION_MIN))
+                    ApiCallResponse.from_str("Client doesn't support Controller rest api version: "
+                                             + self._ctrl_version.rest_api_version + "; Minimal version needed: "
+                                             + API_VERSION_MIN))
             self._connected = True
         except socket.error as err:
             hosturl = self._ctrl_host
@@ -1256,7 +1255,7 @@ class Linstor(object):
             apiconsts.API_LST_STOR_POOL,
             "GET",
             path
-        )  # type: List[StoragePoolListResponse]
+        )  # type: list[StoragePoolListResponse]
 
         result = []
         errors = []
@@ -1427,7 +1426,7 @@ class Linstor(object):
         self._set_select_filter_body(
             body,
             place_count=place_count,
-            additional_place_count=None, # rsc_grps will never ask for "additional" resources
+            additional_place_count=None,  # rsc_grps will never ask for "additional" resources
             storage_pool=storage_pool,
             do_not_place_with=do_not_place_with,
             do_not_place_with_regex=do_not_place_with_regex,
@@ -1585,7 +1584,6 @@ class Linstor(object):
             path,
             body
         )
-
 
     def volume_group_create(
             self,
@@ -1897,7 +1895,7 @@ class Linstor(object):
                 apiconsts.API_LST_RSC_DFN,
                 "GET",
                 path
-            )  # type: List[ResourceDefinitionResponse]
+            )  # type: list[ResourceDefinitionResponse]
 
             return resource_definition_res
 
@@ -2155,16 +2153,16 @@ class Linstor(object):
 
         :param dict[Any] body:
         :param Optional[int] place_count:
-        :param Optional[List[str]] storage_pool:
-        :param Optional[List[str]] do_not_place_with:
+        :param Optional[list[str]] storage_pool:
+        :param Optional[list[str]] do_not_place_with:
         :param Optional[str] do_not_place_with_regex:
-        :param Optional[List[str]] replicas_on_same:
-        :param Optional[List[str]] replicas_on_different:
+        :param Optional[list[str]] replicas_on_same:
+        :param Optional[list[str]] replicas_on_different:
         :param Optional[bool] diskless_on_remaining:
-        :param Optional[List[str]] layer_list:
-        :param Optional[List[str]] provider_list:
+        :param Optional[list[str]] layer_list:
+        :param Optional[list[str]] provider_list:
         :param Optional[int] additional_place_count:
-        :param Optional[List[str]] storage_pool_diskless_list:
+        :param Optional[list[str]] storage_pool_diskless_list:
         :return:
         """
         if "select_filter" not in body:
@@ -2506,7 +2504,7 @@ class Linstor(object):
             apiconsts.API_LST_RSC,
             "GET",
             path
-        )  # type: List[ResourceResponse]
+        )  # type: list[ResourceResponse]
         if resource_resp and isinstance(resource_resp[0], ResourceResponse):
             result += resource_resp
         else:
@@ -2673,7 +2671,7 @@ class Linstor(object):
         cversion_list = self._rest_request(
             apiconsts.API_VERSION,
             "GET", "/v1/controller/version"
-        )  # type: List[ControllerVersion]
+        )  # type: list[ControllerVersion]
 
         if cversion_list:
             cversion = cversion_list[0]
@@ -3042,10 +3040,10 @@ class Linstor(object):
         )
 
     def snapshot_shipping_list(self,
-                      filter_by_nodes=None,
-                      filter_by_resources=None,
-                      filter_by_snapshots=None,
-                      filter_by_status=None):
+                               filter_by_nodes=None,
+                               filter_by_resources=None,
+                               filter_by_snapshots=None,
+                               filter_by_status=None):
         """
         Request a list of all snapshot shippings known to the controller.
 
@@ -3306,7 +3304,7 @@ class Linstor(object):
 
         :param str node_name: Node name where the device pool should be created.
         :param str provider_kind: Pool type to create, ['LVM', 'LVMTHIN', 'ZFS']
-        :param List[str] device_paths: List of full device path on the node.
+        :param list[str] device_paths: List of full device path on the node.
         :param str raid_level: For 'JBOD' only.
         :param Optional[str] pool_name: Pool name
         :param bool vdo_enable: True or False if VDO should be used.
@@ -3466,8 +3464,7 @@ class Linstor(object):
             all_linstor=False,
             all_local_cluster=False,
             s3_key=None,
-            dryrun=None
-        ):
+            dryrun=None):
         self._require_version("1.10.0", msg="Backups are not supported by server")
         params = dict(locals().items())  # copy
 
@@ -3813,7 +3810,7 @@ class Linstor(object):
         :param Optional[str] password: EXOS API password
         :param Optional[str] password_env: Environment variable containing the
             EXOS API password
-        :param Optional[List[str]] unset: Unsets default keys
+        :param Optional[list[str]] unset: Unsets default keys
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -4016,7 +4013,7 @@ class Linstor(object):
         the given enclosure
 
         :param str enclosure_name: Name of the enclosure
-        :param List[str] cmds: EXOS commands to execute
+        :param list[str] cmds: EXOS commands to execute
         :return: Passthrough from the EXOS API
         """
 
@@ -4173,7 +4170,7 @@ class MultiLinstor(Linstor):
         :param str agent_info: This string gets added to the user-agent info
         """
         super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive, agent_info)
-        self._ctrl_host_list = ctrl_host_list  # type: List[str]
+        self._ctrl_host_list = ctrl_host_list  # type: list[str]
 
     def connect(self):
         conn_errors = []

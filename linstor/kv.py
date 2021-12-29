@@ -1,7 +1,11 @@
 #!/usr/bin/env python2
 
+import sys
 import linstor.linstorapi
 from linstor.resource import _Client
+
+if sys.version_info > (3, 0):
+    unicode = str
 
 
 class KV(dict):
@@ -88,14 +92,8 @@ class KV(dict):
     def _valid_string(cls, s):
         if isinstance(s, str):
             return True
-
-        # py2 unicode:
-        try:
+        else:
             return isinstance(s, unicode)
-        except Exception:
-            pass
-
-        return False
 
     @classmethod
     def _normalize_ns(cls, ns):
@@ -114,7 +112,7 @@ class KV(dict):
         d = {}
         if self._rw_to_linstor:
             with self._get_connection() as lin:
-                d = {'/'+k: v for k, v in lin.keyvaluestore_list(self._name).properties.items()}
+                d = {'/' + k: v for k, v in lin.keyvaluestore_list(self._name).properties.items()}
 
         super(KV, self).clear()
         super(KV, self).update(d)
@@ -211,7 +209,7 @@ class KV(dict):
 
         k, v = kv[-1]
         self.__delitem__(k)
-        return (k, v)
+        return k, v
 
     def setdefault(self, k, d=None):
         if self.__contains__(k):

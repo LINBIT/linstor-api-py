@@ -99,8 +99,8 @@ setup(
         "Source Code": "https://github.com/LINBIT/linstor-api-py",
         "Documentation": "https://linbit.github.io/linstor-api-py",
     },
-    author="Robert Altnoeder <robert.altnoeder@linbit.com>, Roland Kammerer <roland.kammerer@linbit.com>" +
-           ", Rene Peinthor <rene.peinthor@linbit.com>, Moritz Wanzenboeck <moritz.wanzenboeck@linbit.com>",
+    author="Robert Altnoeder <robert.altnoeder@linbit.com>, Roland Kammerer <roland.kammerer@linbit.com>"
+           + ", Rene Peinthor <rene.peinthor@linbit.com>, Moritz Wanzenboeck <moritz.wanzenboeck@linbit.com>",
     author_email="rene.peinthor@linbit.com",
     maintainer="LINBIT HA-Solutions GmbH",
     maintainer_email="drbd-user@lists.linbit.com",

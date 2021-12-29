@@ -395,7 +395,7 @@ class NodeListResponse(RESTMessageResponse):
 class FreeSpace(RESTMessageResponse):
     def __init__(self, rest_data):
         super(FreeSpace, self).__init__(rest_data)
-        
+
     @property
     def free_capacity(self):
         return self._rest_data.get("free_capacity")
@@ -405,7 +405,8 @@ class FreeSpace(RESTMessageResponse):
         return self._rest_data.get("total_capacity")
 
     def __str__(self):
-        return "{used}/{total} Kib used".format(used=self.total_capacity-self.free_capacity, total=self.total_capacity)
+        return "{used}/{total} Kib used".format(
+            used=self.total_capacity - self.free_capacity, total=self.total_capacity)
 
     @property
     def data_v0(self):
@@ -1598,7 +1599,7 @@ class Resource(RESTMessageResponse):
         :rtype: Optional[datetime]
         """
         if "create_timestamp" in self._rest_data:
-            return datetime.fromtimestamp(self._rest_data["create_timestamp"]/1000)
+            return datetime.fromtimestamp(self._rest_data["create_timestamp"] / 1000)
         return None
 
     @property
@@ -1770,7 +1771,7 @@ class Snapshot(RESTMessageResponse):
         :rtype: Optional[datetime]
         """
         if "create_timestamp" in self._rest_data:
-            return datetime.fromtimestamp(self._rest_data["create_timestamp"]/1000)
+            return datetime.fromtimestamp(self._rest_data["create_timestamp"] / 1000)
         return None
 
     @property
