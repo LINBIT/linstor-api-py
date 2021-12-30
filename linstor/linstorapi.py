@@ -1734,7 +1734,7 @@ class Linstor(object):
             body
         )
 
-    def resource_dfn_clone(self, src_name, clone_name, clone_external_name=None):
+    def resource_dfn_clone(self, src_name, clone_name, clone_external_name=None, use_zfs_clone=None):
         """
         Sends a clone request to linstor controller.
 
@@ -1742,6 +1742,7 @@ class Linstor(object):
         :param str clone_name: new resource name of the clone.
         :param Optional[str] clone_external_name: External name to set for the clone, if this is specified
                                                   the clone_name will be ignored
+        :param bool use_zfs_clone: Use zfs clone method, which is faster, but has a dependency on the base resource
         :return:
         :rtype: CloneStarted
         """
@@ -1753,6 +1754,12 @@ class Linstor(object):
         if clone_external_name:
             body["external_name"] = clone_external_name
             del body["name"]
+        if use_zfs_clone is not None:
+            does_not_support_opt = self.api_version_smaller("1.12.1")
+            if does_not_support_opt:
+                print("IGNORING use_zfs_clone: not supported by server", file=sys.stderr)
+            if not does_not_support_opt:
+                body["use_zfs_clone"] = use_zfs_clone
 
         return self._rest_request(
             apiconsts.API_CLONE_RSCDFN,

@@ -673,13 +673,14 @@ class Resource(object):
 
         return Resource(resource_name_to, ",".join(self.client.uri_list), existing_client=self._existing_client)
 
-    def clone(self, clone_name, clone_external_name=None, timeout=None):
+    def clone(self, clone_name, clone_external_name=None, timeout=None, use_zfs_clone=None):
         """
         Starts a clone operation on the current resource to the given clone_name.
 
         :param str clone_name: Clone name
         :param Optional[str] clone_external_name: Clone external name
         :param Optional[int] timeout: How long to wait for the clone to finish (secs)
+        :param Optional[bool] use_zfs_clone: use fast zfs clone with snapshot (dependent clone)
         :return: A new resource object with the cloned resource
         :rtype: linstor.resource.Resource
         :raise LinstorError: On errors
@@ -688,7 +689,7 @@ class Resource(object):
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
         with self._get_connection() as lin:
-            c_started = lin.resource_dfn_clone(self._linstor_name, clone_name, clone_external_name)
+            c_started = lin.resource_dfn_clone(self._linstor_name, clone_name, clone_external_name, use_zfs_clone)
 
             if not Linstor.all_api_responses_no_error(c_started.messages):
                 raise linstor.LinstorError(
