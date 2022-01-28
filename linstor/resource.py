@@ -4,6 +4,7 @@ Resource module
 
 import socket
 import sys
+import random
 from functools import wraps
 
 import linstor.linstorapi
@@ -281,7 +282,14 @@ class Resource(object):
                     )
                 )
 
-            return Resource(resource_name, uri=uri, existing_client=existing_client)
+            resource = Resource(resource_name, uri=uri, existing_client=existing_client)
+            if definitions_only:
+                rsc_grp = lin.resource_group_list_raise(filter_by_resource_groups=[resource_group_name])
+                stor_pool = None
+                if rsc_grp.resource_groups[0].select_filter.storage_pool_list:
+                    stor_pool = random.choice(rsc_grp.resource_groups[0].select_filter.storage_pool_list)
+                resource.placement.storage_pool = stor_pool
+            return resource
         return None
 
     def _get_connection(self):
