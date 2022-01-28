@@ -212,11 +212,11 @@ class Resource(object):
             return ret
         return wrapper
 
-    def __init__(self, name, uri='linstor://localhost', existing_client=None):
+    def __init__(self, name, uri='linstor://localhost', existing_client=None, resource_group=None):
         # external properties
         self._name = name  # the user facing name, what linstor calls the "external name"
         self._port = None
-        self._resource_group_name = None  # type: Optional[str]
+        self._resource_group_name = resource_group  # type: Optional[str]
         self.client = _Client(uri)
         self.placement = _Placement()
         self.volumes = _VolumeDict()  # type: dict[int, Volume]
@@ -301,7 +301,8 @@ class Resource(object):
     def _maybe_create_rd_and_vd(self):
         # resource definition
         if not self.defined:
-            rs = self._lin.resource_dfn_create("", self._port, external_name=self._name)
+            rs = self._lin.resource_dfn_create(
+                "", self._port, external_name=self._name, resource_group=self._resource_group_name)
             if not linstor.Linstor.all_api_responses_no_error(rs):
                 raise linstor.LinstorError('Could not create resource definition {}: {}'
                                            .format(self, Linstor.filter_api_call_response_errors(rs)[0]))
