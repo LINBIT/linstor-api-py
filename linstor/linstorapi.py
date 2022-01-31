@@ -28,7 +28,7 @@ from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeRespon
 from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList, SnapshotShippingResponse
 from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
     ExosEnclosureEventListResponse, ExosMapListResponse, ExosDefaults
-from linstor.responses import CloneStarted, CloneStatus
+from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.responses import FileResponse
 from linstor.size_calc import SizeCalc
@@ -172,6 +172,7 @@ class Linstor(object):
         apiconsts.API_LST_EXOS_DFLTS: ExosDefaults,
         apiconsts.API_CLONE_RSCDFN: CloneStarted,
         apiconsts.API_CLONE_RSCDFN_STATUS: CloneStatus,
+        apiconsts.API_RSCDFN_SYNC_STATUS: SyncStatus,
         apiconsts.API_LST_REMOTE: RemoteListResponse,
         apiconsts.API_LST_BACKUPS: BackupListResponse,
         apiconsts.API_BACKUP_INFO: BackupInfoResponse,
@@ -1812,6 +1813,36 @@ class Linstor(object):
 
             if timeout and starttime + timeout * 1000 < int(round(time.time() * 1000)):
                 raise LinstorTimeoutError("{c} resource didn't finish clone in time.".format(c=clone_name))
+            time.sleep(wait_interval)
+
+    def resource_dfn_sync_status(self, rsc_name):
+        """
+        Retrieves the current sync status for a resource.
+
+        :param str rsc_name: resource name
+        :return: SyncStatus of the resource or exception if e.g. not found
+        :rtype: SyncStatus
+        """
+        self._require_version("1.13.0", msg="Resource definition sync-status API not supported by server")
+
+        ret = self._rest_request(
+            apiconsts.API_RSCDFN_SYNC_STATUS,
+            "GET", "/v1/resource-definitions/" + rsc_name + "/sync-status"
+        )[0]
+
+        if isinstance(ret, ApiCallResponse):
+            raise LinstorApiCallError(ret)
+        return ret
+
+    def resource_dfn_wait_synced(self, rsc_name, wait_interval=1.0, timeout=None):
+        starttime = int(round(time.time() * 1000))
+        while True:
+            sync_status = self.resource_dfn_sync_status(rsc_name)
+            if sync_status.synced_on_all:
+                return True
+
+            if timeout and starttime + timeout * 1000 < int(round(time.time() * 1000)):
+                raise LinstorTimeoutError("{c} resource didn't get ready in time.".format(c=rsc_name))
             time.sleep(wait_interval)
 
     def resource_dfn_modify(self, name, property_dict, delete_props=None, peer_slots=None, resource_group=None):

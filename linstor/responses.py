@@ -2304,6 +2304,21 @@ class CloneStatus(RESTMessageResponse):
         return apiconsts.CloneStatus(self._rest_data["status"])
 
 
+class SyncStatus(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(SyncStatus, self).__init__(rest_data)
+
+    @property
+    def synced_on_all(self):
+        """
+        Current sync status of the resource definition.
+
+        :return: True if resource is ready to be e.g. resized
+        :rtype: bool
+        """
+        return self._rest_data["synced_on_all"]
+
+
 class S3Remote(RESTMessageResponse):
     def __init__(self, rest_data):
         super(S3Remote, self).__init__(rest_data)
