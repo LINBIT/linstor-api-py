@@ -3450,12 +3450,13 @@ class Linstor(object):
             path
         )
 
-    def backup_list(self, remote_name, resource_name=None):
+    def backup_list(self, remote_name, resource_name=None, snap_name=None):
         """
         Lists backups for the given remote.
 
         :param str remote_name: Name of the remote
         :param Optional[str] resource_name: Only show backups of the given resource
+        :param Optional[str] snap_name: Only show backups with the given snapshot name
         :return:
         """
         self._require_version("1.10.0", msg="Backups are not supported by server")
@@ -3464,6 +3465,8 @@ class Linstor(object):
         query_params = {}
         if resource_name:
             query_params["rsc_name"] = resource_name
+        if snap_name:
+            query_params["snap_name"] = snap_name
         query_str = urlencode(query_params)
         if query_str:
             path += "?" + query_str
@@ -3473,7 +3476,18 @@ class Linstor(object):
             path
         )
 
-    def backup_create(self, remote_name, resource_name, incremental=True, node_name=None):
+    def backup_create(self, remote_name, resource_name, incremental=True, node_name=None, snap_name=None):
+        """
+        Create a backup at the given remote of the given resource.
+
+        :param str remote_name: Name of the remote
+        :param str resource_name: Name of the resource to back up.
+        :param Optional[bool] incremental: If true, will create an incremental backup if a previous backup is present
+                                           in the remote.
+        :param Optional[str] node_name: Force the backup to be created and send from this node.
+        :param Optional[str] snap_name: Use this name for the local snapshot. If not specified, a name will be created
+                                        based on the timestamp.
+        """
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
         path = "/v1/remotes/{rn}/backups".format(rn=remote_name)
@@ -3483,6 +3497,8 @@ class Linstor(object):
         }
         if node_name:
             body["node_name"] = node_name
+        if snap_name:
+            body["snap_name"] = snap_name
         return self._rest_request(
             apiconsts.API_CRT_BACKUP,
             "POST",
@@ -3540,7 +3556,8 @@ class Linstor(object):
             bak_id=None,
             passphrase=None,
             stor_pool_map=None,
-            download_only=False):
+            download_only=False,
+            snap_name=None):
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
         path = "/v1/remotes/{rn}/backups/restore".format(rn=remote_name)
@@ -3551,6 +3568,8 @@ class Linstor(object):
 
         if resource_name:
             body["src_rsc_name"] = resource_name
+        if snap_name:
+            body["src_snap_name"] = snap_name
         if bak_id:
             body["last_backup"] = bak_id
         if passphrase:
@@ -3635,7 +3654,8 @@ class Linstor(object):
             resource_name=None,
             bak_id=None,
             target_node=None,
-            stor_pool_map=None):
+            stor_pool_map=None,
+            snap_name=None):
         self._require_version("1.10.2", msg="Backup info is not supported by server")
 
         path = "/v1/remotes/{rn}/backups/info".format(rn=remote_name)
@@ -3643,6 +3663,8 @@ class Linstor(object):
 
         if resource_name:
             body["src_rsc_name"] = resource_name
+        if snap_name:
+            body["src_snap_name"] = snap_name
         if bak_id:
             body["last_backup"] = bak_id
         if target_node:

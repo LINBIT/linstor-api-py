@@ -2417,6 +2417,10 @@ class Backup(RESTMessageResponse):
         return self._rest_data.get("origin_rsc")
 
     @property
+    def origin_snap_name(self):
+        return self._rest_data.get("origin_snap")
+
+    @property
     def based_on(self):
         return self._rest_data.get("based_on_id")
 
@@ -2480,6 +2484,10 @@ class BackupInfoResponse(RESTMessageResponse):
     @property
     def full(self):
         return self._rest_data.get("full")
+
+    @property
+    def snap(self):
+        return self._rest_data.get("snap")
 
     @property
     def latest(self):
