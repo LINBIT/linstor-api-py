@@ -434,6 +434,8 @@ class StoragePoolDriver(object):
     REMOTE_SPDK = "REMOTE_SPDK"
     OPENFLEX_TARGET = "OPENFLEX_TARGET"
     EXOS = "EXOS"
+    STORAGE_SPACES = "STORAGE_SPACES"
+    STORAGE_SPACES_THIN = "STORAGE_SPACES_THIN"
 
     @staticmethod
     def list():
@@ -448,7 +450,9 @@ class StoragePoolDriver(object):
             StoragePoolDriver.SPDK,
             StoragePoolDriver.REMOTE_SPDK,
             StoragePoolDriver.OPENFLEX_TARGET,
-            StoragePoolDriver.EXOS
+            StoragePoolDriver.EXOS,
+            StoragePoolDriver.STORAGE_SPACES,
+            StoragePoolDriver.STORAGE_SPACES_THIN
         ]
 
     @classmethod
@@ -496,6 +500,16 @@ class StoragePoolDriver(object):
         if storage_driver == StoragePoolDriver.OPENFLEX_TARGET:
             return {
                 apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_OPENFLEX_STOR_POOL: driver_pool_name
+            }
+
+        if storage_driver == StoragePoolDriver.STORAGE_SPACES:
+            return {
+                apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_STORAGE_SPACES: driver_pool_name
+            }
+
+        if storage_driver == StoragePoolDriver.STORAGE_SPACES_THIN:
+            return {
+                apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_STORAGE_SPACES: driver_pool_name
             }
 
         raise LinstorError(
