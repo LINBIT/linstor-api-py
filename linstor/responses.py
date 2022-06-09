@@ -34,6 +34,11 @@ class RESTMessageResponse(object):
     def data_v1(self):
         return self._rest_data
 
+    @classmethod
+    def _unix_epoch_field_value(cls, unix_epoch_val):
+        dt = datetime.fromtimestamp(unix_epoch_val / 1000)
+        return dt.replace(microsecond=(unix_epoch_val % 1000) * 1000)
+
     def __nonzero__(self):
         return self.__bool__()
 
@@ -2592,3 +2597,167 @@ class FileResponse(RESTMessageResponse):
         if isinstance(self._rest_data, list):
             return [ExternalFile(x) for x in self._rest_data]
         return ExternalFile(self._rest_data)
+
+
+class Schedule(RESTMessageResponse):
+    def __int__(self, rest_data):
+        super(Schedule, self).__init__(rest_data)
+
+    @property
+    def schedule_name(self):
+        return self._rest_data["schedule_name"]
+
+    @property
+    def full_cron(self):
+        return self._rest_data["full_cron"]
+
+    @property
+    def inc_cron(self):
+        return self._rest_data.get("inc_cron")
+
+    @property
+    def keep_local(self):
+        return self._rest_data.get("keep_local")
+
+    @property
+    def keep_remote(self):
+        return self._rest_data.get("keep_remote")
+
+    @property
+    def on_failure(self):
+        return self._rest_data.get("on_failure")
+
+    @property
+    def max_retries(self):
+        return self._rest_data.get("max_retries")
+
+
+class ScheduleListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ScheduleListResponse, self).__init__(rest_data)
+
+    @property
+    def schedules(self):
+        return [Schedule(x) for x in self._rest_data.get("data", [])]
+
+
+class ScheduleResource(RESTMessageResponse):
+    def __int__(self, rest_data):
+        super(ScheduleResource, self).__init__(rest_data)
+
+    @property
+    def resource_name(self):
+        return self._rest_data["rsc_name"]
+
+    @property
+    def remote_name(self):
+        return self._rest_data.get("remote_name")
+
+    @property
+    def schedule_name(self):
+        return self._rest_data.get("schedule_name")
+
+    @property
+    def reason(self):
+        return self._rest_data.get("reason")
+
+    @property
+    def last_snap_time(self):
+        """
+
+        :return:
+        :rtype: datetime
+        """
+        ts = self._rest_data.get("last_snap_time", -1)
+        return None if ts < 0 else self._unix_epoch_field_value(ts)
+
+    @property
+    def last_snap_inc(self):
+        """
+
+        :return:
+        :rtype: bool
+        """
+        return self._rest_data.get("last_snap_inc", False)
+
+    @property
+    def next_exec_time(self):
+        """
+
+        :return:
+        :rtype: datetime
+        """
+        ts = self._rest_data.get("next_exec_time", -1)
+        return None if ts < 0 else self._unix_epoch_field_value(ts)
+
+    @property
+    def next_exec_inc(self):
+        """
+
+        :return:
+        :rtype: bool
+        """
+        return self._rest_data.get("next_exec_inc", False)
+
+    @property
+    def next_planned_full(self):
+        """
+
+        :return:
+        :rtype: datetime
+        """
+        ts = self._rest_data.get("next_planned_full", -1)
+        return None if ts < 0 else self._unix_epoch_field_value(ts)
+
+    @property
+    def next_planned_inc(self):
+        """
+
+        :return:
+        :rtype: datetime
+        """
+        ts = self._rest_data.get("next_planned_inc", -1)
+        return None if ts < 0 else self._unix_epoch_field_value(ts)
+
+
+class ScheduleResourceListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ScheduleResourceListResponse, self).__init__(rest_data)
+
+    @property
+    def schedule_resources(self):
+        return [ScheduleResource(x) for x in self._rest_data.get("data", [])]
+
+
+class ScheduleResourceDetails(RESTMessageResponse):
+    def __int__(self, rest_data):
+        super(ScheduleResourceDetails, self).__init__(rest_data)
+
+    @property
+    def remote_name(self):
+        return self._rest_data["remote_name"]
+
+    @property
+    def schedule_name(self):
+        return self._rest_data["schedule_name"]
+
+    @property
+    def controller(self):
+        return self._rest_data.get("ctrl")
+
+    @property
+    def resource_definition(self):
+        return self._rest_data.get("rsc_dfn")
+
+    @property
+    def resource_group(self):
+        return self._rest_data.get("rsc_grp")
+
+
+class ScheduleResourceDetailsListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(ScheduleResourceDetailsListResponse, self).__init__(rest_data)
+
+    @property
+    def schedule_resources(self):
+        return [ScheduleResourceDetails(x) for x in self._rest_data.get("data", [])]

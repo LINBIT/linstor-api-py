@@ -31,6 +31,7 @@ from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
 from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.responses import FileResponse
+from linstor import responses
 from linstor.size_calc import SizeCalc
 
 try:
@@ -143,6 +144,8 @@ class Linstor(object):
     ]
 
     API_SINGLE_NODE_REQ = "API_SINGLE_NODE_REQ"
+    API_SCHEDULE_BY_RESOURCE_LIST = "ScheduleListByResource"
+    API_SCHEDULE_BY_RESOURCE_LIST_DETAILS = "ScheduleListByResourceDetails"
 
     APICALL2RESPONSE = {
         apiconsts.API_LST_NODE: NodeListResponse,
@@ -177,6 +180,9 @@ class Linstor(object):
         apiconsts.API_LST_BACKUPS: BackupListResponse,
         apiconsts.API_BACKUP_INFO: BackupInfoResponse,
         apiconsts.API_LST_EXT_FILES: FileResponse,
+        apiconsts.API_LST_SCHEDULE: responses.ScheduleListResponse,
+        API_SCHEDULE_BY_RESOURCE_LIST: responses.ScheduleResourceListResponse,
+        API_SCHEDULE_BY_RESOURCE_LIST_DETAILS: responses.ScheduleResourceDetailsListResponse,
     }
 
     REST_PORT = 3370
@@ -3691,11 +3697,79 @@ class Linstor(object):
             path,
             body)
 
+    def backup_schedule_enable(
+            self,
+            remote_name,
+            schedule_name,
+            resource_name=None,
+            resource_group_name=None,
+            preferred_node=None):
+
+        body = {}
+
+        if resource_name:
+            body["rsc_name"] = resource_name
+
+        if resource_group_name:
+            body["grp_name"] = resource_group_name
+
+        if preferred_node:
+            body["node_name"] = preferred_node
+
+        return self._rest_request(
+            "BackupScheduleEnable",
+            "PUT",
+            "/v1/remotes/{rn}/backups/schedule/{sn}/enable".format(rn=remote_name, sn=schedule_name),
+            body)
+
+    def backup_schedule_disable(
+            self,
+            remote_name,
+            schedule_name,
+            resource_name=None,
+            resource_group_name=None):
+
+        body = {}
+
+        if resource_name:
+            body["rsc_name"] = resource_name
+
+        if resource_group_name:
+            body["grp_name"] = resource_group_name
+
+        return self._rest_request(
+            "BackupScheduleDisable",
+            "PUT",
+            "/v1/remotes/{rn}/backups/schedule/{sn}/disable".format(rn=remote_name, sn=schedule_name),
+            body)
+
+    def backup_schedule_delete(
+            self,
+            remote_name,
+            schedule_name,
+            resource_name=None,
+            resource_group_name=None):
+        query_params = {}
+        if resource_name:
+            query_params["rsc_dfn_name"] = resource_name
+
+        if resource_group_name:
+            query_params["rsc_grp_name"] = resource_group_name
+
+        query_str = urlencode(query_params)
+        if query_str:
+            query_str = "?" + query_str
+
+        return self._rest_request(
+            "BackupScheduleDisable",
+            "DELETE",
+            "/v1/remotes/{rn}/backups/schedule/{sn}/delete{q}".format(rn=remote_name, sn=schedule_name, q=query_str))
+
     def remote_list(self):
         """
 
         :return:
-        :rtype: RemoteListResponse
+        :rtype: list[RemoteListResponse]
         """
         self._require_version("1.10.0", msg="Remotes are not supported by server")
 
@@ -4228,6 +4302,142 @@ class Linstor(object):
             apiconsts.API_UNDEPLOY_EXT_FILE,
             "DELETE",
             "/v1/resource-definitions/" + rsc_name + "/files/" + quote(file_name, safe="")
+        )
+
+    def schedule_list(self):
+        """
+        Request a list of all schedules.
+
+        :return: A ScheduleListResponse object
+        :rtype: responses.ScheduleListResponse
+        :raises LinstorError: if apicall error or no data received.
+        :raises LinstorApiCallError: on an apicall error from controller
+        """
+        self._require_version("1.14.0", msg="Schedules not supported by server")
+
+        list_res = self._rest_request(
+            apiconsts.API_LST_SCHEDULE,
+            "GET",
+            "/v1/schedules"
+        )
+
+        if list_res:
+            if isinstance(list_res[0], responses.ScheduleListResponse):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0], list_res)
+        raise LinstorError("No list response received.")
+
+    def schedule_list_by_resource(
+            self,
+            filter_by_resource=None,
+            filter_by_remote=None,
+            filter_by_schedule=None,
+            active_only=False):
+        self._require_version("1.14.0", msg="Schedules not supported by server")
+
+        query_params = {}
+        if filter_by_resource:
+            query_params["rsc"] = filter_by_resource
+
+        if filter_by_remote:
+            query_params["remote"] = filter_by_remote
+
+        if filter_by_schedule:
+            query_params["schedule"] = filter_by_schedule
+
+        if active_only:
+            query_params["active-only"] = active_only
+
+        query_str = urlencode(query_params)
+        if query_str:
+            query_str = "?" + query_str
+
+        return self._rest_request(
+            Linstor.API_SCHEDULE_BY_RESOURCE_LIST,
+            "GET",
+            "/v1/view/schedules-by-resource{q}".format(q=query_str))
+
+    def schedule_list_by_resource_details(self, resource_name):
+        self._require_version("1.14.0", msg="Schedules not supported by server")
+
+        return self._rest_request(
+            Linstor.API_SCHEDULE_BY_RESOURCE_LIST_DETAILS,
+            "GET",
+            "/v1/view/schedules-by-resource/{r}".format(r=resource_name))
+
+    def schedule_create(
+            self,
+            schedule_name,
+            full_cron,
+            keep_local=None,
+            keep_remote=None,
+            on_failure=None,
+            incremental_cron=None,
+            max_retries=None):
+        self._require_version("1.14.0", msg="Schedules not supported by server")
+        body = {
+            "schedule_name": schedule_name,
+            "full_cron": full_cron,
+            "keep_local": keep_local,
+            "keep_remote": keep_remote,
+            "on_failure": on_failure,
+            "max_retries": max_retries,
+        }
+        if incremental_cron:
+            body["inc_cron"] = incremental_cron
+
+        return self._rest_request(
+            apiconsts.API_CRT_SCHEDULE,
+            "POST",
+            "/v1/schedules",
+            body
+        )
+
+    def schedule_modify(
+            self,
+            schedule_name,
+            full_cron=None,
+            keep_local=None,
+            keep_remote=None,
+            on_failure=None,
+            incremental_cron=None,
+            max_retries=None):
+        self._require_version("1.14.0", msg="Schedules not supported by server")
+
+        body = {}
+
+        if full_cron is not None:
+            body["full_cron"] = full_cron
+
+        if keep_local is not None:
+            body["keep_local"] = keep_local
+
+        if keep_remote is not None:
+            body["keep_remote"] = keep_remote
+
+        if on_failure is not None:
+            body["on_failure"] = on_failure
+
+        if incremental_cron is not None:
+            body["inc_cron"] = incremental_cron
+
+        if max_retries is not None:
+            body["max_retries"] = max_retries
+
+        return self._rest_request(
+            apiconsts.API_CRT_SCHEDULE,
+            "PUT",
+            "/v1/schedules/" + schedule_name,
+            body
+        )
+
+    def schedule_delete(self, schedule_name):
+        self._require_version("1.14.0", msg="Schedules not supported by server")
+
+        return self._rest_request(
+            apiconsts.API_CRT_SCHEDULE,
+            "DELETE",
+            "/v1/schedules/" + schedule_name
         )
 
 
