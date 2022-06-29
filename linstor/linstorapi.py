@@ -3403,23 +3403,39 @@ class Linstor(object):
 
     def sos_report_create(
             self,
-            since=None):
+            since=None,
+            nodes=None,
+            rscs=None,
+            exclude=None,
+            include_ctrl=True):
         """
         Api call to create a SOS report on the controller node.
 
         :param Optional[datetime] since: used to limit journalctl messages
+        :param Optional[list[str]] nodes: nodes to include in the report, if None all nodes will be included
+        :param Optional[list[str]] rscs: include nodes with these rscs deployed, if None all nodes will be included
+        :param bool include_ctrl: include files from the ctrl, default is True
+        :return: A list containing ApiCallResponses from the controller.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         self._require_version("1.2.0", msg="SOS API not supported by server")
-        query_params = {}
+        query_params = []
         if since:
-            query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
+            query_params += ["since" + int(time.mktime(since.timetuple()) * 1000)]
+        if nodes:
+            query_params += ["nodes=" + x for x in nodes]
+        if rscs:
+            query_params += ["rscs=" + x for x in rscs]
+        if exclude:
+            query_params += ["exclude=" + x for x in exclude]
+        if not include_ctrl:
+            # can't be None, default is True, so only pass if set to False
+            query_params += ["include-ctrl=false"]
 
-        query_str = urlencode(query_params)
         path = "/v1/sos-report"
-        if query_str:
-            path += "?" + query_str
+        if query_params:
+            path += "?" + "&".join(query_params)
         return self._rest_request(
             apiconsts.API_REQ_SOS_REPORT,
             "GET",
@@ -3429,24 +3445,39 @@ class Linstor(object):
     def sos_report_download(
             self,
             since=None,
-            to_file=None):
+            to_file=None,
+            nodes=None,
+            rscs=None,
+            exclude=None,
+            include_ctrl=True):
         """
         Create and download a sos report from the controller node.
 
         :param Optional[datetime] since: used to limit journalctl messages
         :param Optional[str] to_file: path where to store the sos report, if None server given filename will be used.
+        :param Optional[list[str]] nodes: nodes to include in the report, if None all nodes will be included
+        :param Optional[list[str]] rscs: include nodes with these rscs deployed, if None all nodes will be included
+        :param bool include_ctrl: include files from the ctrl, default is True
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         self._require_version("1.2.0", msg="SOS API not supported by server")
-        query_params = {}
+        query_params = []
         if since:
-            query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
+            query_params += ["since=" + int(time.mktime(since.timetuple()) * 1000)]
+        if nodes:
+            query_params += ["nodes=" + x for x in nodes]
+        if rscs:
+            query_params += ["rscs=" + x for x in rscs]
+        if exclude:
+            query_params += ["exclude=" + x for x in exclude]
+        if not include_ctrl:
+            # can't be None, default is True, so only pass if set to False
+            query_params += ["include-ctrl=false"]
 
-        query_str = urlencode(query_params)
         path = "/v1/sos-report/download"
-        if query_str:
-            path += "?" + query_str
+        if query_params:
+            path += "?" + "&".join(query_params)
         return self._rest_request_download(
             apiconsts.API_REQ_SOS_REPORT,
             "GET",
