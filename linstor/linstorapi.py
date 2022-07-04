@@ -3569,7 +3569,8 @@ class Linstor(object):
             all_linstor=False,
             all_local_cluster=False,
             s3_key=None,
-            dryrun=None):
+            dryrun=None,
+            keep_snaps=None):
         self._require_version("1.10.0", msg="Backups are not supported by server")
         params = dict(locals().items())  # copy
 
@@ -3577,7 +3578,8 @@ class Linstor(object):
             "bak_id": "id",
             "bak_id_prefix": "id_prefix",
             "all_linstor": "all",
-            "s3_key": "s3key"
+            "s3_key": "s3key",
+            "cascade": "cascading"
         }
 
         query_params = {}
