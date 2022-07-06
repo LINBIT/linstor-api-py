@@ -1,3 +1,14 @@
+python-linstor (1.14.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * add methods for schedule_* and schedule enable/disable
+
+  [ Johanna Kucera ]
+  * SosReport: add commands for new filter options
+  * BackupShipping: add keep-snaps option to delete-cmds
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 06 Jul 2022 11:09:39 +0000
+
 python-linstor (1.13.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
