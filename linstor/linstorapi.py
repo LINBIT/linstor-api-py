@@ -1507,7 +1507,17 @@ class Linstor(object):
             vlm_sizes,
             partial=False,
             definitions_only=False,
-            external_name=None):
+            external_name=None,
+            place_count=None,
+            storage_pool=None,
+            do_not_place_with=None,
+            do_not_place_with_regex=None,
+            replicas_on_same=None,
+            replicas_on_different=None,
+            diskless_on_remaining=None,
+            layer_list=None,
+            provider_list=None,
+            diskless_storage_pool=None):
         """
         Spawns resource for the given resource group.
 
@@ -1519,6 +1529,16 @@ class Linstor(object):
         :param bool definitions_only: Do not auto place resource, just create the definitions
         :param Optional[str] external_name: External name to set for the resource definition, if this is specified
                                             the resource definition name will be ignored
+        :param int place_count: Number of placements, on how many different nodes
+        :param list[str] storage_pool: List of storage pools to use
+        :param list[str] do_not_place_with: Do not place with resource names in this list
+        :param str do_not_place_with_regex: A regex string that rules out resources
+        :param list[str] replicas_on_same: A list of node property names, their values should match
+        :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
+        :param list[str] layer_list: Define layers for the resource
+        :param list[str] provider_list: Filter provider kinds
+        :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1536,6 +1556,22 @@ class Linstor(object):
             "partial": partial,
             "definitions_only": definitions_only
         }
+
+        self._set_select_filter_body(
+            body,
+            place_count=place_count,
+            storage_pool=storage_pool,
+            do_not_place_with=do_not_place_with,
+            do_not_place_with_regex=do_not_place_with_regex,
+            replicas_on_same=replicas_on_same,
+            replicas_on_different=replicas_on_different,
+            diskless_on_remaining=diskless_on_remaining,
+            layer_list=layer_list,
+            provider_list=provider_list,
+            additional_place_count=None,
+            diskless_type=None,
+            diskless_storage_pool=diskless_storage_pool
+        )
 
         if external_name:
             self._require_version("1.0.16", msg="Spawn with external name not supported by server")
