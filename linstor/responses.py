@@ -13,6 +13,7 @@ class RESTMessageResponse(object):
     """
     A base protobuf wrapper class, all api response use.
     """
+
     def __init__(self, rest_data):
         self._rest_data = rest_data
 
@@ -57,6 +58,7 @@ class ApiCallResponse(RESTMessageResponse):
     This is a wrapper class for a proto MsgApiCallResponse.
     It provides some additional methods for easier state checking of the ApiCallResponse.
     """
+
     def __init__(self, rest_data):
         super(ApiCallResponse, self).__init__(rest_data)
 
@@ -436,6 +438,8 @@ class StoragePoolDriver(object):
     EXOS = "EXOS"
     STORAGE_SPACES = "STORAGE_SPACES"
     STORAGE_SPACES_THIN = "STORAGE_SPACES_THIN"
+    EBS_TARGET = "EBS_TARGET"
+    EBS_INIT = "EBS_INIT"
 
     @staticmethod
     def list():
@@ -452,13 +456,16 @@ class StoragePoolDriver(object):
             StoragePoolDriver.OPENFLEX_TARGET,
             StoragePoolDriver.EXOS,
             StoragePoolDriver.STORAGE_SPACES,
-            StoragePoolDriver.STORAGE_SPACES_THIN
+            StoragePoolDriver.STORAGE_SPACES_THIN,
+            StoragePoolDriver.EBS_TARGET,
+            StoragePoolDriver.EBS_INIT
         ]
 
     @classmethod
     def diskless_driver(cls):
         return [
-            StoragePoolDriver.Diskless
+            StoragePoolDriver.Diskless,
+            StoragePoolDriver.EBS_INIT
         ]
 
     @staticmethod
@@ -2384,6 +2391,27 @@ class LinstorRemote(RESTMessageResponse):
         return self._rest_data.get("passphrase")
 
 
+class EbsRemote(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(EbsRemote, self).__init__(rest_data)
+
+    @property
+    def remote_name(self):
+        return self._rest_data["remote_name"]
+
+    @property
+    def endpoint(self):
+        return self._rest_data["endpoint"]
+
+    @property
+    def region(self):
+        return self._rest_data.get("region")
+
+    @property
+    def availability_zone(self):
+        return self._rest_data.get("availability_zone")
+
+
 class RemoteListResponse(RESTMessageResponse):
     def __init__(self, rest_data):
         super(RemoteListResponse, self).__init__(rest_data)
@@ -2405,6 +2433,15 @@ class RemoteListResponse(RESTMessageResponse):
         :rtype: list[LinstorRemote]
         """
         return [LinstorRemote(x) for x in self._rest_data.get("linstor_remotes", [])]
+
+    @property
+    def ebs_remotes(self):
+        """
+
+        :return:
+        :rtype: list[EbsRemote]
+        """
+        return [EbsRemote(x) for x in self._rest_data.get("ebs_remotes", [])]
 
 
 class Backup(RESTMessageResponse):

@@ -65,6 +65,7 @@ class ResourceData(object):
             layer_list=None,
             drbd_diskless=False,
             nvme_initiator=False,
+            ebs_initiator=False,
             active=True):
         """
         :param str node_name: The node on which to place the resource
@@ -82,6 +83,7 @@ class ResourceData(object):
         self._layer_list = layer_list
         self._drbd_diskless = drbd_diskless
         self._nvme_initiator = nvme_initiator
+        self._ebs_initiator = ebs_initiator
         self._active = active
 
     @property
@@ -115,6 +117,10 @@ class ResourceData(object):
     @property
     def nvme_initiator(self):
         return self._nvme_initiator
+
+    @property
+    def ebs_initiator(self):
+        return self._ebs_initiator
 
     @property
     def active(self):
@@ -796,6 +802,22 @@ class Linstor(object):
 
         return self._rest_request(apiconsts.API_CRT_NODE, "POST", "/v1/nodes", body)
 
+    def node_create_ebs(self, node_name, ebs_remote_name):
+        """
+        Creates a special EBS satellite node on the controller.
+
+        :param str node_name: Name of the node.
+        :param str ebs_remote_name: Name of the EBS Remote*
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        body = {
+            "name": node_name,
+            "ebs_remote_name": ebs_remote_name,
+        }
+
+        return self._rest_request(apiconsts.API_CRT_NODE, "POST", "/v1/nodes/ebs", body)
+
     def node_modify(self, node_name, node_type=None, property_dict=None, delete_props=None):
         """
         Modify the properties of a given node.
@@ -1174,7 +1196,7 @@ class Linstor(object):
             body["external_locking"] = True
 
         # set driver device pool properties
-        if storage_driver not in [StoragePoolDriver.Diskless]:
+        if storage_driver not in [StoragePoolDriver.Diskless, StoragePoolDriver.EBS_INIT]:
             if not driver_pool_name:
                 raise LinstorError(
                     "Driver '{drv}' needs a driver pool name.".format(drv=storage_driver)
@@ -1187,7 +1209,7 @@ class Linstor(object):
                     apiconsts.NAMESPC_STORAGE_DRIVER + "/" + apiconsts.KEY_STOR_POOL_NAME: driver_pool_name}
 
         if property_dict:
-            body["props"].update(property_dict)
+            body.setdefault("props", {}).update(property_dict)
 
         return self._rest_request(
             apiconsts.API_CRT_STOR_POOL,
@@ -2192,6 +2214,9 @@ class Linstor(object):
 
             if rsc.nvme_initiator:
                 rsc_data["resource"]["flags"] += [apiconsts.FLAG_NVME_INITIATOR]
+
+            if rsc.ebs_initiator:
+                rsc_data["resource"]["flags"] += [apiconsts.FLAG_EBS_INITIATOR]
 
             if not rsc.active:
                 rsc_data["resource"]["flags"] += [apiconsts.FLAG_RSC_INACTIVE]
@@ -3979,6 +4004,89 @@ class Linstor(object):
             apiconsts.API_SET_REMOTE,
             "PUT",
             "/v1/remotes/linstor/" + remote_name,
+            body
+        )
+
+    def remote_create_ebs(
+            self,
+            remote_name,
+            availability_zone,
+            access_key,
+            secret_key,
+            endpoint=None,
+            region=None):
+        """
+        Create a new EBS remote.
+
+        :param str remote_name: Remote name
+        :param str availability_zone:
+        :param str endpoint:
+        :param str region:
+        :param str access_key:
+        :param str secret_key:
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.15.0", msg="EBS remotes are not supported by server")
+
+        body = {
+            "remote_name": remote_name,
+            "availability_zone": availability_zone,
+            "access_key": access_key,
+            "secret_key": secret_key
+        }
+        if region is not None:
+            body["region"] = region
+        if endpoint is not None:
+            body["endpoint"] = endpoint
+
+        return self._rest_request(
+            apiconsts.API_SET_REMOTE,
+            "POST",
+            "/v1/remotes/ebs",
+            body
+        )
+
+    def remote_modify_ebs(
+            self,
+            remote_name,
+            endpoint=None,
+            region=None,
+            availability_zone=None,
+            access_key=None,
+            secret_key=None):
+        """
+        Modify an already existing EBS remote.
+
+        :param str remote_name: Remote name
+        :param Optional[str] endpoint:
+        :param Optional[str] region:
+        :param Optional[str] availability_zone:
+        :param Optional[str] access_key:
+        :param Optional[str] secret_key:
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.15.0", msg="EBS remotes are not supported by server")
+
+        body = {
+            "remote_name": remote_name,
+        }
+        if endpoint is not None:
+            body["endpoint"] = endpoint
+        if region is not None:
+            body["region"] = region
+        if availability_zone is not None:
+            body["availability_zone"] = availability_zone
+        if access_key is not None:
+            body["access_key"] = access_key
+        if secret_key is not None:
+            body["secret_key"] = secret_key
+
+        return self._rest_request(
+            apiconsts.API_SET_REMOTE,
+            "PUT",
+            "/v1/remotes/ebs/" + remote_name,
             body
         )
 
