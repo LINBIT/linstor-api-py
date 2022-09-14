@@ -3391,7 +3391,8 @@ class Linstor(object):
             vdo_logical_size_kib=None,
             vdo_slab_size_kib=None,
             storage_pool_name=None,
-            storage_pool_props=None
+            storage_pool_props=None,
+            sed=False,
     ):
         """
         Creates a device pool on the given device and node.
@@ -3406,6 +3407,7 @@ class Linstor(object):
         :param Optional[int] vdo_slab_size_kib: Slab size for VDO
         :param Optional[str] storage_pool_name: If provided creates also a storage pool with that name
         :param Optional[Dict[str,str]] storage_pool_props: Additional storage pool props
+        :param bool sed: if True sed will be initialized on the device
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -3429,6 +3431,9 @@ class Linstor(object):
             }
             if storage_pool_props:
                 body["with_storage_pool"]["props"] = storage_pool_props
+
+        if sed:
+            body["sed"] = sed
 
         return self._rest_request(
             apiconsts.API_CREATE_DEVICE_POOL,
