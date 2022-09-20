@@ -1,3 +1,22 @@
+python-linstor (1.15.0-1) experimental; urgency=medium
+
+  [ Johanna Kucera ]
+  * RscGrp: add autoplace-options to spawn command
+
+  [ Johannes Thoma ]
+  * LINSTOR for Windows: Microsoft Storage Spaces support
+
+  [ Rene Peinthor ]
+  * physical_storage_create_device_pool: sed support
+  * linstor-common: update
+  * add Changelog.md
+  * linstor-common: update
+
+  [ Gabor Hernadi ]
+  * EBS: Added methods
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 20 Sep 2022 12:37:27 +0000
+
 python-linstor (1.14.0-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
