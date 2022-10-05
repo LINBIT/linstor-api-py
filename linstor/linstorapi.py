@@ -3488,7 +3488,7 @@ class Linstor(object):
         self._require_version("1.2.0", msg="SOS API not supported by server")
         query_params = []
         if since:
-            query_params += ["since" + int(time.mktime(since.timetuple()) * 1000)]
+            query_params += ["since={s}".format(s=int(time.mktime(since.timetuple()) * 1000))]
         if nodes:
             query_params += ["nodes=" + x for x in nodes]
         if rscs:
@@ -3530,7 +3530,7 @@ class Linstor(object):
         self._require_version("1.2.0", msg="SOS API not supported by server")
         query_params = []
         if since:
-            query_params += ["since=" + int(time.mktime(since.timetuple()) * 1000)]
+            query_params += ["since={s}".format(s=int(time.mktime(since.timetuple()) * 1000))]
         if nodes:
             query_params += ["nodes=" + x for x in nodes]
         if rscs:

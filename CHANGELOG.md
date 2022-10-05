@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.15.0] - 2022-09-20
 
+### Fixed
+
+- Fixed sos_report_create and sos_report_download since parameter concatenation
+
+
 ### Added
 
 - Added autoplace-options to resource-group spawn method
