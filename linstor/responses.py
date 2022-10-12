@@ -1804,6 +1804,31 @@ class Snapshot(RESTMessageResponse):
     def uuid(self):
         return self._rest_data.get("uuid")
 
+    @property
+    def snapshot_volumes(self):
+        return [SnapshotVolume(x) for x in self._rest_data.get("snapshot_volumes", [])]
+
+
+class SnapshotVolume(RESTMessageResponse):
+    def __init__(self, data):
+        super(SnapshotVolume, self).__init__(data)
+
+    @property
+    def uuid(self):
+        return self._rest_data.get("uuid")
+
+    @property
+    def vlm_nr(self):
+        return self._rest_data.get("vlm_nr")
+
+    @property
+    def state(self):
+        return self._rest_data.get("state")
+
+    @property
+    def properties(self):
+        return self._rest_data.get("props", {})
+
 
 class SnapshotDefinition(RESTMessageResponse):
     def __init__(self, data):
