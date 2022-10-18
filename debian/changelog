@@ -1,3 +1,13 @@
+python-linstor (1.15.1-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * Fixed sos_report_create and sos_report_download since parameter concat [...]
+
+  [ Gabor Hernadi ]
+  * SnapVlm: Add response object for state
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 18 Oct 2022 07:21:20 +0000
+
 python-linstor (1.15.0-1) experimental; urgency=medium
 
   [ Johanna Kucera ]

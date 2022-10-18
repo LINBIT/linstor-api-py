@@ -8,12 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.15.0] - 2022-09-20
+## [1.15.1] - 2022-10-18
+
+### Added
+
+- SnapVlm: Add response object for state
 
 ### Fixed
 
 - Fixed sos_report_create and sos_report_download since parameter concatenation
 
+
+## [1.15.0] - 2022-09-20
 
 ### Added
 
