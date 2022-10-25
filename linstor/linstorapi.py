@@ -31,6 +31,7 @@ from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
 from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.responses import FileResponse
+from linstor.responses import NodeConnection, NodeConnectionsResponse
 from linstor import responses
 from linstor.size_calc import SizeCalc
 
@@ -152,6 +153,7 @@ class Linstor(object):
     API_SINGLE_NODE_REQ = "API_SINGLE_NODE_REQ"
     API_SCHEDULE_BY_RESOURCE_LIST = "ScheduleListByResource"
     API_SCHEDULE_BY_RESOURCE_LIST_DETAILS = "ScheduleListByResourceDetails"
+    API_SINGLE_NODE_CONN_REQ = "API_SINGLE_NODE_CONN_REQ"
 
     APICALL2RESPONSE = {
         apiconsts.API_LST_NODE: NodeListResponse,
@@ -166,6 +168,8 @@ class Linstor(object):
         apiconsts.API_LST_SNAPSHOT_SHIPPINGS: SnapshotShippingResponse,
         apiconsts.API_REQ_ERROR_REPORTS: ErrorReport,
         apiconsts.API_LST_CTRL_PROPS: ControllerProperties,
+        apiconsts.API_LST_NODE_CONN: NodeConnectionsResponse,
+        API_SINGLE_NODE_CONN_REQ: NodeConnection,
         apiconsts.API_REQ_RSC_CONN_LIST: ResourceConnectionsResponse,
         apiconsts.API_LST_STOR_POOL_DFN: StoragePoolDefinitionResponse,
         apiconsts.API_QRY_MAX_VLM_SIZE: MaxVolumeSizeResponse,
@@ -2943,6 +2947,83 @@ class Linstor(object):
         )
         if list_res:
             if isinstance(list_res[0], ResourceConnection):
+                return list_res[0]
+            raise LinstorApiCallError(list_res[0], list_res)
+        raise LinstorError("No list response received.")
+
+    def node_conn_modify(self, node_a, node_b, property_dict, delete_props):
+        """
+        Modify properties of a node connection.
+        Identified by the node1 and node2 arguments.
+
+        :param str node_a: Name of the first node.
+        :param str node_b: Name of the second node.
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param list[str] delete_props: List of properties to delete
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        body = {}
+        if property_dict:
+            body["override_props"] = property_dict
+
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_NODE_CONN,
+            "PUT", "/v1/node-connections/" + node_a + "/" + node_b,
+            body
+        )
+
+    def node_conn_list_specific_pair(self, node_a, node_b):
+        return self._node_conn_list(Linstor.API_SINGLE_NODE_CONN_REQ, node_a, node_b)
+
+    def node_conn_list(self, node_a=None, node_b=None):
+        return self._node_conn_list(apiconsts.API_LST_NODE_CONN, node_a, node_b)
+
+    def _node_conn_list(self, api_call, node_a=None, node_b=None):
+        """
+        Request a list of all resource connection to the given resource name.
+
+        :param str api_call: API call to use internally. Determines the return type
+        :param str rsc_name: Name of the resource to get the connections.
+        :param str node_a: Name of the first node
+        :param str node_b: Name of the second node
+        :return: List of NodeConnectionsResponse or ApiCallRcResponse
+        :rtype: list[NodeConnection]
+        """
+
+        query_params = {}
+        if node_a:
+            query_params["node_a"] = node_a
+        if node_b:
+            query_params["node_b"] = node_b
+
+        query_filters_encoded = urlencode(query_params, True)
+        path = "/v1/node-connections/"
+        if query_filters_encoded:
+            path += "?" + query_filters_encoded
+
+        return self._rest_request(
+            api_call,
+            "GET",
+            path
+        )
+
+    def node_conn_list_raise(self, node_a=None, node_b=None):
+        """
+        Request a list of all resource connection to the given resource name.
+
+        :param str rsc_name: Name of the resource to get the connections.
+        :param str node_a: Name of the first node
+        :param str node_b: Name of the second node
+        :return: List of NodeConnectionsResponse or ApiCallRcResponse
+        :rtype: list[NodeConnection]
+        """
+        list_res = self.node_conn_list(node_a, node_b)
+        if list_res:
+            if isinstance(list_res[0], NodeConnectionsResponse):
                 return list_res[0]
             raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")

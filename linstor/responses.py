@@ -399,6 +399,57 @@ class NodeListResponse(RESTMessageResponse):
         }
 
 
+class NodeConnection(RESTMessageResponse):
+    def __init__(self, data):
+        super(NodeConnection, self).__init__(data)
+
+    @property
+    def node_a(self):
+        return self._rest_data["node_a"]
+
+    @property
+    def node_b(self):
+        return self._rest_data["node_b"]
+
+    @property
+    def flags(self):
+        return self._rest_data.get("flags", [])
+
+    @property
+    def properties(self):
+        return self._rest_data.get("props", {})
+
+    @property
+    def data_v0(self):
+        d = {
+            "node_name_1": self.node_a,
+            "node_name_2": self.node_b
+        }
+        if self.flags:
+            d["flags"] = self.flags
+        if self.properties:
+            print("self properties:")
+            print(self.properties)
+            d["props"] = [{"key": x, "value": v} for x, v in self.properties.items()]
+        return d
+
+
+class NodeConnectionsResponse(RESTMessageResponse):
+    def __init__(self, data):
+        super(NodeConnectionsResponse, self).__init__(data)
+
+    @property
+    def node_connections(self):
+        return [NodeConnection(x) for x in self._rest_data]
+
+    @property
+    def data_v0(self):
+        d = {}
+        if self.node_connections:
+            d["node_connections"] = [x.data_v0 for x in self.node_connections]
+        return d
+
+
 class FreeSpace(RESTMessageResponse):
     def __init__(self, rest_data):
         super(FreeSpace, self).__init__(rest_data)
