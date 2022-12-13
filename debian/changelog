@@ -1,3 +1,10 @@
+python-linstor (1.16.0-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * Add Node-Connections
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 13 Dec 2022 12:31:31 +0000
+
 python-linstor (1.15.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
