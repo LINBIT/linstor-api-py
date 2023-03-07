@@ -1829,7 +1829,14 @@ class Linstor(object):
             raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
-    def resource_dfn_create(self, name, port=None, external_name=None, layer_list=None, resource_group=None):
+    def resource_dfn_create(
+            self,
+            name,
+            port=None,
+            external_name=None,
+            layer_list=None,
+            resource_group=None,
+            peer_slots=None):
         """
         Creates a resource definition.
 
@@ -1838,6 +1845,7 @@ class Linstor(object):
         :param list[str] layer_list: Set of layer names to use.
         :param str external_name: Unicode string of the user specified name.
         :param str resource_group: Name of the resource group the definition should be linked to.
+        :param int peer_slots: Number of peer slots for new DRBD resources
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1859,6 +1867,9 @@ class Linstor(object):
 
         if resource_group:
             body["resource_definition"]["resource_group_name"] = resource_group
+
+        if peer_slots:
+            body["drbd_peer_slots"] = peer_slots
 
         return self._rest_request(
             apiconsts.API_CRT_RSC_DFN,
