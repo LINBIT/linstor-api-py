@@ -3203,6 +3203,35 @@ class Linstor(object):
             body
         )
 
+    def snapshot_create_multi(self, node_names, rsc_names, snapshot_name):
+        """
+        Create a snapshot.
+
+        :param list[str] node_names: Names of the nodes, if empty or None snapshot will be created on all nodes.
+        :param list[str] rsc_names: Name of the resources.
+        :param str snapshot_name: Name of the new snapshot.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.18.0")
+
+        snapshots = []
+        for rsc_name in rsc_names:
+            snap = {"name": snapshot_name, "resource_name": rsc_name}
+            if node_names:
+                snap["nodes"] = node_names
+            snapshots.append(snap)
+
+        body = {
+            "snapshots": snapshots
+        }
+
+        return self._rest_request(
+            apiconsts.API_CRT_SNAPSHOT_MULTI,
+            "POST", "/v1/actions/snapshot/multi",
+            body
+        )
+
     def snapshot_volume_definition_restore(self, from_resource, from_snapshot, to_resource):
         """
         Create volume definitions from a snapshot.

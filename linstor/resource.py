@@ -68,6 +68,7 @@ class Volume(object):
 
     :param size: String parsable by linstor.SizeCalc or size in bytes.
     """
+
     def __init__(self, size):
         # external properties
         self._size = self._size_to_bytes(size)
