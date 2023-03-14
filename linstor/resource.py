@@ -9,7 +9,6 @@ from functools import wraps
 
 import linstor.linstorapi
 from linstor.sharedconsts import FLAG_DISKLESS
-from linstor.responses import ResourceDefinitionResponse, ResourceResponse
 from linstor.linstorapi import Linstor
 
 PYTHON2 = True
@@ -348,7 +347,7 @@ class Resource(object):
         if not rsc_dfn_list_replies or not rsc_dfn_list_replies[0]:
             return True
 
-        rsc_dfn_list_reply = rsc_dfn_list_replies[0]  # type: ResourceDefinitionResponse
+        rsc_dfn_list_reply = rsc_dfn_list_replies[0]  # type: linstor.responses.ResourceDefinitionResponse
         for rsc_dfn in rsc_dfn_list_reply.resource_definitions:
             # WORKAROUND: linstor-server < 0.9.9 did not set the external_name, so for compat
             # and as these only used non external names, fall back to the name
@@ -382,7 +381,7 @@ class Resource(object):
             return True
 
         self._assignments = {}
-        rsc_list_reply = rsc_list_replies[0]  # type: ResourceResponse
+        rsc_list_reply = rsc_list_replies[0]  # type: linstor.responses.ResourceResponse
         for rsc in rsc_list_reply.resources:
             is_diskless = (FLAG_DISKLESS in rsc.flags)
             node_name = rsc.node_name
