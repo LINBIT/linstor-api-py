@@ -2888,3 +2888,56 @@ class ScheduleResourceDetailsListResponse(RESTMessageResponse):
     @property
     def schedule_resources(self):
         return [ScheduleResourceDetails(x) for x in self._rest_data.get("data", [])]
+
+
+class QuerySizeInfoSpawnResult(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(QuerySizeInfoSpawnResult, self).__init__(rest_data)
+
+    @property
+    def node_name(self):
+        return self._rest_data["node_name"]
+
+    @property
+    def stor_pool_name(self):
+        return self._rest_data["stor_pool_name"]
+
+
+class QuerySizeInfoResponseSpaceInfo(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(QuerySizeInfoResponseSpaceInfo, self).__init__(rest_data)
+
+    @property
+    def max_vlm_size_in_kib(self):
+        return self._rest_data["max_vlm_size_in_kib"]
+
+    @property
+    def available_size_in_kib(self):
+        return int(self._rest_data["available_size_in_kib"]) if "available_size_in_kib" in self._rest_data else None
+
+    @property
+    def capacity_in_kib(self):
+        return int(self._rest_data["capacity_in_kib"]) if "capacity_in_kib" in self._rest_data else None
+
+    @property
+    def default_max_oversubscription_ratio(self):
+        return float(self._rest_data["default_max_oversubscription_ratio"])\
+            if "default_max_oversubscription_ratio" in self._rest_data else None
+
+    @property
+    def next_spawn_result(self):
+        return [QuerySizeInfoSpawnResult(x) for x in self._rest_data["next_spawn_result"]]\
+            if "next_spawn_result" in self._rest_data else None
+
+
+class QuerySizeInfoResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(QuerySizeInfoResponse, self).__init__(rest_data)
+
+    @property
+    def space_info(self):
+        return QuerySizeInfoResponseSpaceInfo(self._rest_data["space_info"])
+
+    @property
+    def reports(self):
+        return [ApiCallResponse(x) for x in self._rest_data.get("reports", [])]

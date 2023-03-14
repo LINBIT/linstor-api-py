@@ -30,7 +30,7 @@ from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
     ExosEnclosureEventListResponse, ExosMapListResponse, ExosDefaults
 from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
-from linstor.responses import FileResponse
+from linstor.responses import FileResponse, QuerySizeInfoResponse
 from linstor.responses import NodeConnection, NodeConnectionsResponse
 from linstor import responses
 from linstor.size_calc import SizeCalc
@@ -173,6 +173,7 @@ class Linstor(object):
         apiconsts.API_REQ_RSC_CONN_LIST: ResourceConnectionsResponse,
         apiconsts.API_LST_STOR_POOL_DFN: StoragePoolDefinitionResponse,
         apiconsts.API_QRY_MAX_VLM_SIZE: MaxVolumeSizeResponse,
+        apiconsts.API_QRY_SIZE_INFO: QuerySizeInfoResponse,
         apiconsts.API_LST_KVS: KeyValueStoresResponse,
         apiconsts.API_VERSION: ControllerVersion,
         apiconsts.API_LST_PHYS_STOR: PhysicalStorageList,
@@ -1613,6 +1614,7 @@ class Linstor(object):
 
     def resource_group_qmvs(self, rsc_grp_name):
         """
+        Deprecated
         Queries maximum volume size from the given resource group
 
         This is basically the same as the qmvs on controller level, but
@@ -1627,6 +1629,67 @@ class Linstor(object):
             "GET",
             "/v1/resource-groups/" + rsc_grp_name + "/query-max-volume-size"
         )
+
+    def resource_group_query_size_info(self, rsc_grp_name,
+                                       place_count=None,
+                                       storage_pool=None,
+                                       do_not_place_with=None,
+                                       do_not_place_with_regex=None,
+                                       replicas_on_same=None,
+                                       replicas_on_different=None,
+                                       diskless_on_remaining=None,
+                                       layer_list=None,
+                                       provider_list=None,
+                                       diskless_storage_pool=None):
+        """
+        Queries maximum volume size from the given resource group
+
+        This is basically the same as the qmvs on controller level, but
+        this API reads all auto-place settings from the given resource group.
+
+        :param str rsc_grp_name: Name of the resource group to fetch the query filters
+        :param int place_count: Number of placements, on how many nodes
+        :param list[str] storage_pool: List of storage pools to use
+        :param list[str] do_not_place_with: Do not place with resource names in this list
+        :param str do_not_place_with_regex: A regex string that rules out resources
+        :param list[str] replicas_on_same: A list of node property names, their values should match
+        :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
+        :param list[str] layer_list: Define layers for the resource
+        :param list[str] provider_list: Filter provider kinds
+        :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
+        :return: Size info response
+        :rtype: QuerySizeInfoResponse
+        """
+        self._require_version("1.17.0", msg="Query size info on resource group API not supported by server")
+
+        body = {}
+
+        self._set_select_filter_body(
+            body,
+            place_count=place_count,
+            storage_pool=storage_pool,
+            do_not_place_with=do_not_place_with,
+            do_not_place_with_regex=do_not_place_with_regex,
+            replicas_on_same=replicas_on_same,
+            replicas_on_different=replicas_on_different,
+            diskless_on_remaining=diskless_on_remaining,
+            layer_list=layer_list,
+            provider_list=provider_list,
+            additional_place_count=None,
+            diskless_type=None,
+            diskless_storage_pool=diskless_storage_pool
+        )
+
+        res = self._rest_request(
+            apiconsts.API_QRY_SIZE_INFO,
+            "POST",
+            "/v1/resource-groups/" + rsc_grp_name + "/query-size-info",
+            body
+        )
+        if res:
+            return res[0]
+        return None
 
     def resource_group_adjust(
             self,
