@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.17.0] - 2023-03-14
+
+### Added
+
+- Added resource_group_query_size_info() method
+
 ## [1.16.0] - 2022-12-13
 
 ### Added

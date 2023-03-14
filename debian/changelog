@@ -1,3 +1,10 @@
+python-linstor (1.17.0-1) experimental; urgency=medium
+
+  * add resource_group_query_size_info() method
+  * fix pep8 errors
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 14 Mar 2023 12:50:35 +0000
+
 python-linstor (1.16.0-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
