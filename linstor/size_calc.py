@@ -14,6 +14,7 @@ class SizeCalc(object):
     _base_10 = 0x0A00
 
     UNIT_B = 0 | _base_2
+    UNIT_S = 9 | _base_2  # sectors b * 512
     UNIT_KiB = 10 | _base_2
     UNIT_MiB = 20 | _base_2
     UNIT_GiB = 30 | _base_2
@@ -38,6 +39,7 @@ class SizeCalc(object):
     """
     UNITS_MAP = OrderedDict([(unit_str.lower(), (unit_str, unit)) for unit_str, unit in [
         ('B', UNIT_B),
+        ('S', UNIT_S),
         ('K', UNIT_KiB),
         ('kB', UNIT_kB),
         ('KiB', UNIT_KiB),

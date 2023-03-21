@@ -13,6 +13,7 @@ class TestUtils(unittest.TestCase):
         self.assertSizeUnit("128", 128, SizeCalc.UNIT_B)
         self.assertSizeUnit("248GiB", 248, SizeCalc.UNIT_GiB)
         self.assertSizeUnit("248GB", 248, SizeCalc.UNIT_GB)
+        self.assertSizeUnit("512S", 512, SizeCalc.UNIT_S)
 
         self.assertRaises(LinstorError, SizeCalc.parse_unit, "nosize")
 
@@ -23,3 +24,7 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(3221225472, SizeCalc.auto_convert("3Gib", SizeCalc.UNIT_B))
         self.assertEqual(3145728, SizeCalc.auto_convert("3Gib", SizeCalc.UNIT_KiB))
+
+        self.assertEqual(4096, SizeCalc.auto_convert("2M", SizeCalc.UNIT_S))
+        self.assertEqual(2097152, SizeCalc.auto_convert("4096s", SizeCalc.UNIT_B))
+        self.assertEqual(2, SizeCalc.auto_convert("4096s", SizeCalc.UNIT_MiB))
