@@ -2902,6 +2902,10 @@ class QuerySizeInfoSpawnResult(RESTMessageResponse):
     def stor_pool_name(self):
         return self._rest_data["stor_pool_name"]
 
+    @property
+    def stor_pool_oversubscription_ratio(self):
+        return self._rest_data["stor_pool_oversubscription_ratio"]
+
 
 class QuerySizeInfoResponseSpaceInfo(RESTMessageResponse):
     def __init__(self, rest_data):
