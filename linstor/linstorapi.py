@@ -26,8 +26,8 @@ from linstor.responses import ResourceResponse, VolumeDefinitionResponse, Volume
 from linstor.responses import SnapshotResponse, ControllerProperties, ResourceConnection
 from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList, SnapshotShippingResponse
-from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, \
-    ExosEnclosureEventListResponse, ExosMapListResponse, ExosDefaults
+from linstor.responses import SpaceReport, ExosListResponse, ExosExecResponse, ExosEnclosureEventListResponse
+from linstor.responses import BackupQueues, ExosMapListResponse, ExosDefaults
 from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.responses import FileResponse, QuerySizeInfoResponse
@@ -190,6 +190,7 @@ class Linstor(object):
         apiconsts.API_LST_REMOTE: RemoteListResponse,
         apiconsts.API_LST_BACKUPS: BackupListResponse,
         apiconsts.API_BACKUP_INFO: BackupInfoResponse,
+        apiconsts.API_LST_QUEUE: BackupQueues,
         apiconsts.API_LST_EXT_FILES: FileResponse,
         apiconsts.API_LST_SCHEDULE: responses.ScheduleListResponse,
         API_SCHEDULE_BY_RESOURCE_LIST: responses.ScheduleResourceListResponse,
@@ -4047,6 +4048,38 @@ class Linstor(object):
             "BackupScheduleDisable",
             "DELETE",
             "/v1/remotes/{rn}/backups/schedule/{sn}/delete{q}".format(rn=remote_name, sn=schedule_name, q=query_str))
+
+    def backup_queue_list(self, nodes=None, snaps=None, rscs=None, remotes=None, snap_to_node=False):
+        """
+        Request a list of all queued backups.
+
+        :param Optional[list[str]] nodes: Filter by the given node names.
+        :param Optional[list[str]] snaps: Filter by the given snapshot names.
+        :param Optional[list[str]] rscs: Filter by the given resource names.
+        :param Optional[list[str]] remotes: Filter by the given remote names.
+        :param bool snap_to_node: If true, group the result by snaps instead of by nodes.
+        :return: A BackupQueues object
+        :rtype: BackupQueues
+        """
+        self._require_version("1.20.0", msg="Backup queue list not supported by server")
+
+        query_params = []
+        if nodes:
+            query_params += ["nodes=" + x for x in nodes]
+        if snaps:
+            query_params += ["snapshots=" + x for x in snaps]
+        if rscs:
+            query_params += ["resources=" + x for x in rscs]
+        if remotes:
+            query_params += ["remotes=" + x for x in remotes]
+        if snap_to_node:
+            query_params += ["snap_to_node=True"]
+
+        path = "/v1/view/backup/queue"
+        if query_params:
+            path += "?" + "&".join(query_params)
+
+        return self._rest_request(apiconsts.API_LST_QUEUE, "GET", path)
 
     def remote_list(self):
         """

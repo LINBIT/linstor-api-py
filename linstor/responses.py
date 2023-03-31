@@ -2702,6 +2702,81 @@ class BackupInfoStorPoolVolume(RESTMessageResponse):
         return self._rest_data.get("usable_size_kib")
 
 
+class BackupQueues(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(BackupQueues, self).__init__(rest_data)
+
+    @property
+    def node_queues(self):
+        """
+        :rtype: list[NodeQueue]
+        """
+        return [NodeQueue(v) for v in self._rest_data.get("node_queues", [])]
+
+    @property
+    def snap_queues(self):
+        """
+        :rtype: list[SnapQueue]
+        """
+        return [SnapQueue(v) for v in self._rest_data.get("snap_queues", [])]
+
+
+class NodeQueue(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(NodeQueue, self).__init__(rest_data)
+
+    @property
+    def node_name(self):
+        return self._rest_data.get("node_name")
+
+    @property
+    def queue(self):
+        """
+        :rtype: list[SnapQueue]
+        """
+        return [SnapQueue(v) for v in self._rest_data.get("queue", [])]
+
+
+class SnapQueue(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(SnapQueue, self).__init__(rest_data)
+
+    @property
+    def resource_name(self):
+        return self._rest_data.get("resource_name")
+
+    @property
+    def snapshot_name(self):
+        return self._rest_data.get("snapshot_name")
+
+    @property
+    def remote_name(self):
+        return self._rest_data.get("remote_name")
+
+    @property
+    def incremental(self):
+        return self._rest_data.get("incremental")
+
+    @property
+    def based_on(self):
+        return self._rest_data.get("based_on")
+
+    @property
+    def start_timestamp(self):
+        return self._rest_data.get("start_timestamp")
+
+    @property
+    def pref_node(self):
+        return self._rest_data.get("pref_node")
+
+    @property
+    def queue(self):
+        """
+        :rtype: list[NodeQueue]
+        """
+        return [NodeQueue(v) for v in self._rest_data.get("queue", [])]
+
+
 class ExternalFile(RESTMessageResponse):
     def __init__(self, rest_data):
         super(ExternalFile, self).__init__(rest_data)
