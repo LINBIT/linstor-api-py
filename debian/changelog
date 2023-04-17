@@ -1,3 +1,15 @@
+python-linstor (1.18.0-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * RscDfn,Crt: add peerslots to create request
+  * Qsi: Add oversubscription_ratio property
+  * MultiSnap: Add support for new API
+
+  [ Rene Peinthor ]
+  * SizeCalc class now unterstands sectors
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 17 Apr 2023 11:59:17 +0000
+
 python-linstor (1.17.0-1) experimental; urgency=medium
 
   * add resource_group_query_size_info() method

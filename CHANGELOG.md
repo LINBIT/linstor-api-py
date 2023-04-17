@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.18.0] - 2023-04-17
+
+### Added
+
+- Added snapshot_create_multi method to create snapshots of multiple resources
+
+### Changed
+
+- SizeCalc now supports sector units
+
+### Fixed
+
+- RscDfn create doesn't ignore peerslot
+
 ## [1.17.0] - 2023-03-14
 
 ### Added
