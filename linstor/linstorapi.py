@@ -2346,7 +2346,6 @@ class Linstor(object):
         :param Optional[list[str]] layer_list:
         :param Optional[list[str]] provider_list:
         :param Optional[int] additional_place_count:
-        :param Optional[list[str]] storage_pool_diskless_list:
         :return:
         """
         if "select_filter" not in body:
@@ -2564,7 +2563,7 @@ class Linstor(object):
     def resource_delete_if_diskless(self, node_name, rsc_name):
         """
         Deletes a given resource if, and only if, diskless on the given node.
-        If the resource does not even exit, then the delete is considered successful (NOOP).
+        If the resource does not even exist, then delete is considered successful (NOOP).
         If the resource is not diskless, then the action is considered successful.
 
         :param str node_name: Name of the node where the resource is deployed.
@@ -3062,7 +3061,6 @@ class Linstor(object):
         Request a list of all resource connection to the given resource name.
 
         :param str api_call: API call to use internally. Determines the return type
-        :param str rsc_name: Name of the resource to get the connections.
         :param str node_a: Name of the first node
         :param str node_b: Name of the second node
         :return: List of NodeConnectionsResponse or ApiCallRcResponse
@@ -3090,7 +3088,6 @@ class Linstor(object):
         """
         Request a list of all resource connection to the given resource name.
 
-        :param str rsc_name: Name of the resource to get the connections.
         :param str node_a: Name of the first node
         :param str node_b: Name of the second node
         :return: List of NodeConnectionsResponse or ApiCallRcResponse
@@ -3484,7 +3481,7 @@ class Linstor(object):
         """
         Deletes error-reports on the linstor cluster, filtered by the given parameters
 
-        :param list[str] nodes: Only delete error-reports from this nodes, if None or empty all
+        :param list[str] nodes: Only delete error-reports from these nodes, if None or empty all
         :param datetime since: Start datetime from when to delete
         :param datetime to: Until datetime to delete
         :param str exception: Delete error reports matching this exception string
