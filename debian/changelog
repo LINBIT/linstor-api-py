@@ -1,3 +1,13 @@
+python-linstor (1.19.0-1) experimental; urgency=medium
+
+  [ Johanna Kucera ]
+  * BackupShipping: add queue list command
+
+  [ Rene Peinthor ]
+  * linstorapi: fix typos in docstrings
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 19 Jul 2023 11:15:08 +0000
+
 python-linstor (1.18.0-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]

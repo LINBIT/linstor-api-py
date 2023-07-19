@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.19.0] - 2023-07-19
+
+### Added
+
+- Added backup queue list methods 
+
 ## [1.18.0] - 2023-04-17
 
 ### Added
