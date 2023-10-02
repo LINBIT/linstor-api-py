@@ -1658,6 +1658,16 @@ class Resource(RESTMessageResponse):
         return self._rest_data.get("props", {})
 
     @property
+    def effective_properties(self):
+        """
+        Resource effective_properties.
+
+        :return: Effective properties
+        :rtype: dict[str, EffectiveProp]
+        """
+        return {key: EffectiveProp(value) for key, value in self._rest_data.get("effective_props", {}).items()}
+
+    @property
     def layer_data(self):
         """
         Return resource layer object
@@ -3020,3 +3030,24 @@ class QuerySizeInfoResponse(RESTMessageResponse):
     @property
     def reports(self):
         return [ApiCallResponse(x) for x in self._rest_data.get("reports", [])]
+
+
+class EffectiveProp(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(EffectiveProp, self).__init__(rest_data)
+
+    @property
+    def type(self):
+        return self._rest_data["type"]
+
+    @property
+    def value(self):
+        return self._rest_data["value"]
+
+    @property
+    def descr(self):
+        return self._rest_data["descr"]
+
+    @property
+    def other(self):
+        return [EffectiveProp(x) for x in self._rest_data.get("other", [])]
