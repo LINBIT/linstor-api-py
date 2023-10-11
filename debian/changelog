@@ -1,3 +1,14 @@
+python-linstor (1.20.0-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * linstor-common update for DRBD_DELETE flag
+  * Add EffectiveProps structure
+
+  [ Rene Peinthor ]
+  * update CHANGELOG.md
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 11 Oct 2023 07:35:20 +0000
+
 python-linstor (1.19.0-1) experimental; urgency=medium
 
   [ Johanna Kucera ]
