@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add EffectiveProps structure
+
+### Changed
+
+- Updated linstor-common code
+
 ## [1.19.0] - 2023-07-19
 
 ### Added
