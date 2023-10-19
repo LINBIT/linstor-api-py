@@ -15,6 +15,7 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 from distutils.version import StrictVersion
+from enum import Enum
 
 from linstor.version import VERSION
 import linstor.sharedconsts as apiconsts
@@ -126,6 +127,42 @@ class ResourceData(object):
     @property
     def active(self):
         return self._active
+
+
+class LogLevelEnum(Enum):
+    ERROR = 'ERROR'
+    WARN = 'WARN'
+    INFO = 'INFO'
+    DEBUG = 'DEBUG'
+    TRACE = 'TRACE'
+
+    def __str__(self):
+        return self.value
+
+    @staticmethod
+    def check(value):
+        """
+        Maps the input (including aliases) to the given Enum
+        """
+        mapping = {
+            "WARNING": LogLevelEnum.WARN,
+            "ERR": LogLevelEnum.ERROR
+        }
+        if value is None:
+            return None
+
+        ret = None
+        for e in LogLevelEnum:
+            if value.upper() == e.value:
+                ret = e
+                break
+        if ret is None:
+            ret = mapping.get(value.upper(), None)
+
+        if ret is None:
+            raise ValueError('Log level "' + value + '" undefined. Valid values are ' + [e.value for e in LogLevelEnum])
+
+        return ret
 
 
 class Linstor(object):
@@ -2897,6 +2934,35 @@ class Linstor(object):
         """
         return self._ctrl_host
 
+    def controller_set_log_level(self, level, glob=False, library=False):
+        """
+        Sets the log level for the controller and optionally for ALL satellites.
+
+        :param Linstor.LogLevelEnum: The target log level
+        :param bool glob: If True, sets the log level for controller AND all satellites. If False, the log level is
+            only set for the controller
+        :param bool library: If True, does not change the log level of LINSTOR itself but only of LINSTOR's used
+            libraries. If False, only sets the log level of LINSTOR itself.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        key = "level"
+        if not library:
+            key = key + "_linstor"
+        if glob:
+            key = key + "_global"
+
+        body = {
+            "log": {
+                key: str(level)
+            }
+        }
+        return self._rest_request(
+            apiconsts.API_SET_CTRL_PROP,
+            "PUT", "/v1/controller/config",
+            body
+        )
+
     def crypt_create_passphrase(self, passphrase):
         """
         Create a new crypt passphrase on the controller.
@@ -3099,6 +3165,32 @@ class Linstor(object):
                 return list_res[0]
             raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
+
+    def node_set_log_level(self, node_name, level, library=False):
+        """
+        Sets the log level for the given satellite.
+
+        :param str node_name: Name of the satellite
+        :param Linstor.LogLevelEnum: The target log level
+        :param bool library: If True, does not change the log level of LINSTOR itself but only of LINSTOR's used
+            libraries. If False, only sets the log level of LINSTOR itself.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        key = "level"
+        if not library:
+            key = key + "_linstor"
+
+        body = {
+            "log": {
+                key: str(level)
+            }
+        }
+        return self._rest_request(
+            apiconsts.API_SET_CTRL_PROP,
+            "PUT", "/v1/nodes/" + node_name + "/config",
+            body
+        )
 
     def drbd_proxy_enable(self, rsc_name, node_a, node_b, port=None):
         """

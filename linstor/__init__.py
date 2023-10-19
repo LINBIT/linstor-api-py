@@ -1,5 +1,5 @@
 from .linstorapi import ApiCallResponse, ErrorReport
-from .linstorapi import Linstor, MultiLinstor
+from .linstorapi import Linstor, MultiLinstor, LogLevelEnum
 from .resource import Resource, Volume
 from .kv import KV
 from .resourcegroup import ResourceGroup
