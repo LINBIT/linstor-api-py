@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add optional peer_slots parameter to resource_group_{create,modify,spawn}
+
 ## [1.20.1] - 2023-10-25
 
 ### Added

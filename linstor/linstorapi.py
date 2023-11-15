@@ -1393,7 +1393,8 @@ class Linstor(object):
             layer_list=None,
             provider_list=None,
             property_dict=None,
-            diskless_storage_pool=None
+            diskless_storage_pool=None,
+            peer_slots=None
     ):
         """
         Create resource group with values.
@@ -1411,6 +1412,7 @@ class Linstor(object):
         :param list[str] provider_list: Filter provider kinds
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
+        :param optional[int] peer_slots: peer slots for new resources
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1444,6 +1446,12 @@ class Linstor(object):
             diskless_storage_pool=diskless_storage_pool
         )
 
+        if peer_slots is not None:
+            if peer_slots == 0:
+                raise LinstorArgumentError("peer_slots must not be 0")
+            self._require_version("1.21.0", msg="Resource group's peer-slots not supported by server")
+            body["peer_slots"] = peer_slots
+
         return self._rest_request(
             apiconsts.API_CRT_RSC_GRP,
             "POST", "/v1/resource-groups",
@@ -1465,7 +1473,9 @@ class Linstor(object):
             provider_list=None,
             property_dict=None,
             delete_props=None,
-            diskless_storage_pool=None):
+            diskless_storage_pool=None,
+            peer_slots=None
+    ):
         """
         Modify the given resource group.
 
@@ -1483,6 +1493,7 @@ class Linstor(object):
         :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
         :param list[str] delete_props: List of properties to delete
         :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
+        :param optional[int] peer_slots: peer slots for new resources
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1516,6 +1527,12 @@ class Linstor(object):
 
         if delete_props:
             body["delete_props"] = delete_props
+
+        if peer_slots is not None:
+            if peer_slots == 0:
+                raise LinstorArgumentError("peer_slots must not be 0")
+            self._require_version("1.21.0", msg="Resource group's peer-slots not supported by server")
+            body["peer_slots"] = peer_slots
 
         return self._rest_request(
             apiconsts.API_MOD_RSC_GRP,
@@ -1566,23 +1583,25 @@ class Linstor(object):
         raise LinstorError("No list response received.")
 
     def resource_group_spawn(
-            self,
-            rsc_grp_name,
-            rsc_dfn_name,
-            vlm_sizes,
-            partial=False,
-            definitions_only=False,
-            external_name=None,
-            place_count=None,
-            storage_pool=None,
-            do_not_place_with=None,
-            do_not_place_with_regex=None,
-            replicas_on_same=None,
-            replicas_on_different=None,
-            diskless_on_remaining=None,
-            layer_list=None,
-            provider_list=None,
-            diskless_storage_pool=None):
+        self,
+        rsc_grp_name,
+        rsc_dfn_name,
+        vlm_sizes,
+        partial=False,
+        definitions_only=False,
+        external_name=None,
+        place_count=None,
+        storage_pool=None,
+        do_not_place_with=None,
+        do_not_place_with_regex=None,
+        replicas_on_same=None,
+        replicas_on_different=None,
+        diskless_on_remaining=None,
+        layer_list=None,
+        provider_list=None,
+        diskless_storage_pool=None,
+        peer_slots=None
+    ):
         """
         Spawns resource for the given resource group.
 
@@ -1604,6 +1623,7 @@ class Linstor(object):
         :param list[str] layer_list: Define layers for the resource
         :param list[str] provider_list: Filter provider kinds
         :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
+        :param optional[int] peer_slots: peer slots for new resources
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1642,6 +1662,12 @@ class Linstor(object):
             self._require_version("1.0.16", msg="Spawn with external name not supported by server")
             body["resource_definition_name"] = ""
             body["resource_definition_external_name"] = external_name
+
+        if peer_slots is not None:
+            if peer_slots == 0:
+                raise LinstorArgumentError("peer_slots must not be 0")
+            self._require_version("1.21.0", msg="Resource group's peer-slots not supported by server")
+            body["peer_slots"] = peer_slots
 
         return self._rest_request(
             apiconsts.API_SPAWN_RSC_DFN,
