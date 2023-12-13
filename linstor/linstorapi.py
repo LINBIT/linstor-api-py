@@ -4102,7 +4102,9 @@ class Linstor(object):
             schedule_name,
             resource_name=None,
             resource_group_name=None,
-            preferred_node=None):
+            preferred_node=None,
+            dst_stor_pool=None,
+            stor_pool_rename=None,):
 
         body = {}
 
@@ -4114,6 +4116,10 @@ class Linstor(object):
 
         if preferred_node:
             body["node_name"] = preferred_node
+        if dst_stor_pool:
+            body["dst_stor_pool"] = dst_stor_pool
+        if stor_pool_rename:
+            body["stor_pool_rename"] = stor_pool_rename
 
         return self._rest_request(
             "BackupScheduleEnable",
