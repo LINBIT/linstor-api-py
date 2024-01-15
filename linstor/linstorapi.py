@@ -3369,7 +3369,13 @@ class Linstor(object):
             body
         )
 
-    def snapshot_resource_restore(self, node_names, from_resource, from_snapshot, to_resource):
+    def snapshot_resource_restore(
+            self,
+            node_names,
+            from_resource,
+            from_snapshot,
+            to_resource,
+            storpool_rename_map=None):
         """
         Restore from a snapshot.
 
@@ -3377,6 +3383,8 @@ class Linstor(object):
         :param str from_resource: Name of the snapshot resource.
         :param str from_snapshot: Name of the snapshot.
         :param str to_resource: Name of the new resource.
+        :param Optional[dict[str, str]] storpool_rename_map: Key: name of original storpool,
+                                                             Value: name of target storpool
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -3386,6 +3394,8 @@ class Linstor(object):
 
         if node_names:
             body["nodes"] = node_names
+        if storpool_rename_map:
+            body["stor_pool_rename"] = storpool_rename_map
 
         return self._rest_request(
             apiconsts.API_RESTORE_SNAPSHOT,
@@ -4104,7 +4114,7 @@ class Linstor(object):
             resource_group_name=None,
             preferred_node=None,
             dst_stor_pool=None,
-            stor_pool_rename=None,):
+            storpool_rename_map=None):
 
         body = {}
 
@@ -4118,8 +4128,8 @@ class Linstor(object):
             body["node_name"] = preferred_node
         if dst_stor_pool:
             body["dst_stor_pool"] = dst_stor_pool
-        if stor_pool_rename:
-            body["stor_pool_rename"] = stor_pool_rename
+        if storpool_rename_map:
+            body["stor_pool_rename"] = storpool_rename_map
 
         return self._rest_request(
             "BackupScheduleEnable",
