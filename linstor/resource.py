@@ -7,6 +7,8 @@ import sys
 import random
 from functools import wraps
 
+from linstor.responses import ApiCallResponse
+
 import linstor.linstorapi
 from linstor.sharedconsts import FLAG_DISKLESS
 from linstor.linstorapi import Linstor
@@ -379,6 +381,9 @@ class Resource(object):
         rsc_list_replies = self._lin.resource_list(filter_by_nodes=None,
                                                    filter_by_resources=[self._linstor_name])
         if not rsc_list_replies or not rsc_list_replies[0]:
+            return True
+
+        if isinstance(rsc_list_replies[0], ApiCallResponse):
             return True
 
         self._assignments = {}
