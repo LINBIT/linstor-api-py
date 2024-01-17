@@ -188,7 +188,7 @@ class ApiCallResponse(RESTMessageResponse):
         elif self.is_warning():
             st_str = "WARN"
 
-        return st_str + ":" + self.message
+        return st_str + ":" + (self.message if self.message else "NoneType")
 
 
 class ErrorReport(RESTMessageResponse):
