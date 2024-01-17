@@ -6,6 +6,7 @@ stages:
   - build
   - test
   - deploy
+  - deploy_tests
 
 before_script:
   - pip install xmlrunner
@@ -69,12 +70,18 @@ build:
   stage: deploy
   image: $LINBIT_DOCKER_REGISTRY/build-helpers:latest
   rules:
-    - if: '$CI_COMMIT_BRANCH == "jenkins"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CI_COMMIT_BRANCH == 'master'
   before_script:
     - curl -sSL $LINBIT_REGISTRY_URL/repository/lbbuild/lbbuildctl-latest -o /usr/local/bin/lbbuildctl
     - chmod +x /usr/local/bin/lbbuildctl
   script:
-    - PYTHON_LINSTOR_VERSION=1.99.0
+    - |
+      case "$CI_COMMIT_REF_NAME" in
+        "master") VERSION_SUFFIX="" ;;
+        *) VERSION_SUFFIX=.dev$(echo -n $CI_COMMIT_REF_NAME | md5sum| sed -e 's/[^0-9]//g' | cut -c -9) ;;
+      esac
+    - PYTHON_LINSTOR_VERSION=1.99.0$VERSION_SUFFIX
     - awk -f "/usr/local/bin/dch.awk" -v PROJECT_VERSION="$PYTHON_LINSTOR_VERSION" -v PROJECT_NAME="python-linstor" debian/changelog > debian/changelog.tmp
     - mv debian/changelog{.tmp,}
     - sed -i "s/VERSION = \"[0-9\.]*/VERSION = \"$PYTHON_LINSTOR_VERSION/g" linstor/version.py
@@ -85,7 +92,10 @@ build:
     - lbbuildctl build python-linstor --arch amd64 --ci -v "$PYTHON_LINSTOR_VERSION" -l -e LINBIT_REGISTRY_USER=$LINBIT_REGISTRY_USER -e LINBIT_REGISTRY_PASSWORD=$LINBIT_REGISTRY_PASSWORD -e LINBIT_REGISTRY_URL=$LINBIT_REGISTRY_URL -d ubuntu-bionic,ubuntu-focal,rhel7.0,rhel8.0
 
 staging:
-  stage: deploy
+  stage: deploy_tests
+  variables:
+    ARG_COMMIT_BRANCH: $CI_COMMIT_REF_NAME
   rules:
-    - if: '$CI_COMMIT_BRANCH == "jenkins"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CI_COMMIT_BRANCH == 'master'
   trigger: linstor/linstor-tests
