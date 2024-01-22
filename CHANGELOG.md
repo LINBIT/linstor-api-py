@@ -8,9 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.21.0] - 2024-01-22
+
 ### Added
 
 - Add optional peer_slots parameter to resource_group_{create,modify,spawn}
+- Allow storpool rename map on snap restore an schedule enable
+
+### Fixed
+
+- resource.py exception if a resource reply is an apicallrc
 
 ## [1.20.1] - 2023-10-25
 
