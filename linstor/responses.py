@@ -485,7 +485,6 @@ class StoragePoolDriver(object):
     FILEThin = "FILE_THIN"
     SPDK = "SPDK"
     REMOTE_SPDK = "REMOTE_SPDK"
-    OPENFLEX_TARGET = "OPENFLEX_TARGET"
     EXOS = "EXOS"
     STORAGE_SPACES = "STORAGE_SPACES"
     STORAGE_SPACES_THIN = "STORAGE_SPACES_THIN"
@@ -504,7 +503,6 @@ class StoragePoolDriver(object):
             StoragePoolDriver.FILEThin,
             StoragePoolDriver.SPDK,
             StoragePoolDriver.REMOTE_SPDK,
-            StoragePoolDriver.OPENFLEX_TARGET,
             StoragePoolDriver.EXOS,
             StoragePoolDriver.STORAGE_SPACES,
             StoragePoolDriver.STORAGE_SPACES_THIN,
@@ -555,11 +553,6 @@ class StoragePoolDriver(object):
         if storage_driver == StoragePoolDriver.SPDK:
             return {apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP: driver_pool_name}
 
-        if storage_driver == StoragePoolDriver.OPENFLEX_TARGET:
-            return {
-                apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_OPENFLEX_STOR_POOL: driver_pool_name
-            }
-
         if storage_driver == StoragePoolDriver.STORAGE_SPACES:
             return {
                 apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_STORAGE_SPACES: driver_pool_name
@@ -605,9 +598,6 @@ class StoragePoolDriver(object):
 
         if storage_driver_enum == StoragePoolDriver.SPDK:
             return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_VOLUME_GROUP, '')
-
-        if storage_driver_enum == StoragePoolDriver.OPENFLEX_TARGET:
-            return props.get(apiconsts.NAMESPC_STORAGE_DRIVER + '/' + apiconsts.KEY_STOR_POOL_OPENFLEX_STOR_POOL, '')
 
         return ''
 
