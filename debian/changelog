@@ -1,3 +1,13 @@
+python-linstor (1.21.1-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * update to the latest linstor-common
+
+  [ Gabor Hernadi ]
+  * Removed Openflex + update linstor-common
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 22 Feb 2024 05:31:25 +0000
+
 python-linstor (1.21.0-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
