@@ -1602,7 +1602,8 @@ class Linstor(object):
         layer_list=None,
         provider_list=None,
         diskless_storage_pool=None,
-        peer_slots=None
+        peer_slots=None,
+        volume_passphrases=None,
     ):
         """
         Spawns resource for the given resource group.
@@ -1626,6 +1627,7 @@ class Linstor(object):
         :param list[str] provider_list: Filter provider kinds
         :param optional[list[str]] diskless_storage_pool: List of diskless pools to use
         :param optional[int] peer_slots: peer slots for new resources
+        :param optional[list[str]] volume_passphrases: user provided passwords for encrypted volumes
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -1659,6 +1661,12 @@ class Linstor(object):
             diskless_type=None,
             diskless_storage_pool=diskless_storage_pool
         )
+
+        if volume_passphrases is not None:
+            if len(vlm_sizes_int) != len(volume_passphrases):
+                raise LinstorArgumentError("volume_passphrases must have same count as volume sizes provided")
+            self._require_version("1.22.0", msg="Volume passphrases not supported by server")
+            body["volume_passphrases"] = volume_passphrases
 
         if external_name:
             self._require_version("1.0.16", msg="Spawn with external name not supported by server")
@@ -2205,7 +2213,8 @@ class Linstor(object):
             minor_nr=None,
             encrypt=False,
             storage_pool=None,
-            gross=False
+            gross=False,
+            passphrase=None
     ):
         """
         Create a new volume definition on the controller.
@@ -2217,11 +2226,14 @@ class Linstor(object):
         :param bool encrypt: Encrypt created volumes from this volume definition.
         :param storage_pool: Storage pool this volume definition will use.
         :param bool gross: Specified size should be interpreted as gross size.
+        :param Optional[str] passphrase: User provided passphrase
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         body = {"volume_definition": {"size_kib": size, "flags": []}}
 
+        vlmdfn_props = {}
+        vlmdfn_flags = []
         if minor_nr is not None:
             body["drbd_minor_number"] = minor_nr
 
@@ -2229,16 +2241,23 @@ class Linstor(object):
             body["volume_definition"]["volume_number"] = volume_nr
 
         if encrypt:
-            body["volume_definition"]["flags"] += [apiconsts.FLAG_ENCRYPTED]
+            vlmdfn_flags += [apiconsts.FLAG_ENCRYPTED]
 
         if gross:
-            body["volume_definition"]["flags"] += [apiconsts.FLAG_GROSS_SIZE]
+            vlmdfn_flags += [apiconsts.FLAG_GROSS_SIZE]
 
         if storage_pool:
-            body["volume_definition"]["props"] = {apiconsts.KEY_STOR_POOL_NAME: storage_pool}
+            vlmdfn_props[apiconsts.KEY_STOR_POOL_NAME] = storage_pool
 
-        if not body["volume_definition"]["flags"]:
-            del body["volume_definition"]["flags"]
+        if passphrase is not None:
+            self._require_version("1.22.0", msg="Volume passphrases not supported by server")
+            body["passphrase"] = passphrase
+
+        if vlmdfn_flags:
+            body["volume_definition"]["flags"] = vlmdfn_flags
+
+        if vlmdfn_props:
+            body["volume_definition"]["props"] = vlmdfn_props
 
         return self._rest_request(
             apiconsts.API_CRT_VLM_DFN,
