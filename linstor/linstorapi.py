@@ -2360,6 +2360,28 @@ class Linstor(object):
 
         raise LinstorError('Could not find volume number {} in resource {}'.format(volume_nr, rsc_name))
 
+    def volume_dfn_modify_passphrase(self, rsc_name, volume_nr, new_passphrase):
+        """
+        Modify the volume dfn passphrase for encrypted volumes
+
+        :param str rsc_name: Resource definition name
+        :param int volume_nr: Volume number.
+        :param str new_passphrase: New pasphrase
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+
+        self._require_version("1.22.0", msg="Modify volume-definition passphrase not supported.")
+        body = {
+            "new_passphrase": new_passphrase
+        }
+        return self._rest_request(
+            apiconsts.API_MOD_VLM_DFN,  # TODO
+            "PUT", "/v1/resource-definitions/" + rsc_name
+                   + "/volume-definitions/" + str(volume_nr) + "/encryption-passphrase",
+            body
+        )
+
     def resource_create(self, rscs, async_msg=False):
         """
         Creates new resources in a resource definition.
