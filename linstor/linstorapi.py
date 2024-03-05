@@ -1954,7 +1954,14 @@ class Linstor(object):
             body
         )
 
-    def resource_dfn_clone(self, src_name, clone_name, clone_external_name=None, use_zfs_clone=None):
+    def resource_dfn_clone(
+            self,
+            src_name,
+            clone_name,
+            clone_external_name=None,
+            use_zfs_clone=None,
+            volume_passphrases=None,
+    ):
         """
         Sends a clone request to linstor controller.
 
@@ -1963,6 +1970,7 @@ class Linstor(object):
         :param Optional[str] clone_external_name: External name to set for the clone, if this is specified
                                                   the clone_name will be ignored
         :param bool use_zfs_clone: Use zfs clone method, which is faster, but has a dependency on the base resource
+        :param optional[list[str]] volume_passphrases: user provided passwords for encrypted volumes
         :return:
         :rtype: CloneStarted
         """
@@ -1980,6 +1988,10 @@ class Linstor(object):
                 print("IGNORING use_zfs_clone: not supported by server", file=sys.stderr)
             if not does_not_support_opt:
                 body["use_zfs_clone"] = use_zfs_clone
+
+        if volume_passphrases is not None:
+            self._require_version("1.22.0", msg="Volume passphrases not supported by server")
+            body["volume_passphrases"] = volume_passphrases
 
         return self._rest_request(
             apiconsts.API_CLONE_RSCDFN,
