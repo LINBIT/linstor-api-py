@@ -1575,6 +1575,9 @@ class Linstor(object):
 
         list_res = self._rest_request(apiconsts.API_LST_RSC_GRP, "GET", path)
 
+        if self._mode_curl:
+            return []
+
         if list_res:
             if isinstance(list_res[0], ResourceGroupResponse):
                 return list_res[0]
@@ -1885,6 +1888,9 @@ class Linstor(object):
             "GET",
             "/v1/resource-groups/" + resource_grp_name + "/volume-groups"
         )
+
+        if self._mode_curl:
+            return []
 
         if list_res:
             if isinstance(list_res[0], VolumeGroupResponse):
