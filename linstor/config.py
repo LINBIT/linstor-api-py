@@ -9,6 +9,8 @@ except ImportError:
 
 
 class Config(object):
+    CONFIG = None  # cache object
+
     @staticmethod
     def read_config(config_file):
         cp = ConfigParser()
@@ -20,20 +22,29 @@ class Config(object):
 
     @staticmethod
     def get_section(section, config_file_name=None):
-        home_dir = os.path.expanduser("~")
-        config_file = "linstor-client.conf"
-        user_conf = os.path.join(home_dir, ".config", "linstor", config_file)
-        sys_conf = os.path.join('/etc', 'linstor', config_file)
+        if Config.CONFIG is None:
+            home_dir = os.path.expanduser("~")
+            config_file = "linstor-client.conf"
+            user_conf = os.path.join(home_dir, ".config", "linstor", config_file)
+            sys_conf = os.path.join('/etc', 'linstor', config_file)
+            sys_d_conf_dir = os.path.join('/etc', 'linstor', 'linstor-client.d')
 
-        config = None
-        if config_file_name and os.path.exists(config_file_name):
-            config = Config.read_config(config_file_name)
-        elif os.path.exists(user_conf):
-            config = Config.read_config(user_conf)
-        elif os.path.exists(sys_conf):
-            config = Config.read_config(sys_conf)
+            config = {}
+            if os.path.exists(sys_d_conf_dir):
+                conf_files = [x for x in os.listdir(sys_d_conf_dir) if x.endswith('.conf')]
+                conf_files.sort()
+                for file in conf_files:
+                    config.update(Config.read_config(os.path.join(sys_d_conf_dir, file)))
 
-        entries = config.get(section, []) if config else []
+            if config_file_name and os.path.exists(config_file_name):
+                config.update(Config.read_config(config_file_name))
+            elif os.path.exists(user_conf):
+                config.update(Config.read_config(user_conf))
+            elif os.path.exists(sys_conf):
+                config.update(Config.read_config(sys_conf))
+            Config.CONFIG = config
+
+        entries = Config.CONFIG.get(section, []) if Config.CONFIG else []
         return {k: v for k, v in entries}
 
     @staticmethod

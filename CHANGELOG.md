@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+### Changed
+- LinstorApi is now parsing .conf files in /etc/linstor/linstor-client.d and merging with other client conf
 
+### Fixed
 - resource-group list throwing error in curl mode
 - volume-group list throwing error in curl mode
 
