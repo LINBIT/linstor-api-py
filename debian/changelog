@@ -1,3 +1,17 @@
+python-linstor (1.22.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * fix rg/vg list throwing error in curl mode
+  * config: read .conf files in /etc/linstor/linstor-client.d
+  * encryption: allow setting user volume passphrases
+  * resource_dfn_clone: allow to specify volume passwords
+  * added volume_dfn_modify_passphrase
+
+  [ Johanna Kucera ]
+  * Backups: add --force-restore option
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 02 Apr 2024 07:28:47 +0000
+
 python-linstor (1.21.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
