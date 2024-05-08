@@ -20,6 +20,7 @@ class ResourceGroup(object):
         self._do_not_place_with_regex = None
         self._replicas_on_same = None
         self._replicas_on_different = None
+        self._x_replicas_on_different = None
         self._diskless_on_remaining = None
         self._layer_list = None
         self._provider_list = None
@@ -152,9 +153,24 @@ class ResourceGroup(object):
         """
         return self._replicas_on_different
 
+    @property
+    def x_replicas_on_different(self):
+        """
+        Returns the x_replicas_on_different of the ResourceGroup
+
+        :return: The x_replicas_on_different of a Resource Group.
+        :rtype: dict[str, int]
+        """
+        return self._x_replicas_on_different
+
     @replicas_on_different.setter
     def replicas_on_different(self, replicas_on_different):
         self._replicas_on_different = replicas_on_different
+        return self._modify_or_create("modify")
+
+    @x_replicas_on_different.setter
+    def x_replicas_on_different(self, x_replicas_on_different):
+        self._x_replicas_on_different = x_replicas_on_different
         return self._modify_or_create("modify")
 
     @property
@@ -302,6 +318,7 @@ class ResourceGroup(object):
                do_not_place_with_regex=self._do_not_place_with_regex,
                replicas_on_same=self._replicas_on_same,
                replicas_on_different=self._replicas_on_different,
+               x_replicas_on_different=self._x_replicas_on_different,
                diskless_on_remaining=self._diskless_on_remaining,
                layer_list=self._layer_list,
                provider_list=self._provider_list,
@@ -322,6 +339,7 @@ class ResourceGroup(object):
             self._do_not_place_with_regex = sf.not_place_with_rsc_regex
             self._replicas_on_same = sf.replicas_on_same
             self._replicas_on_different = sf.replicas_on_different
+            self._x_replicas_on_different = sf.x_replicas_on_different
             self._diskless_on_remaining = sf.diskless_on_remaining
             self._layer_list = sf.layer_stack
             self._provider_list = sf.provider_list

@@ -496,6 +496,7 @@ class Resource(object):
             do_not_place_with_regex=None,
             replicas_on_same=None,
             replicas_on_different=None,
+            x_replicas_on_different=None,
             diskless_on_remaining=self.placement.diskless_on_remaining)
 
         if not Linstor.all_api_responses_no_error(rs):

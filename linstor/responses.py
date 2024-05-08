@@ -1088,6 +1088,10 @@ class SelectFilter(RESTMessageResponse):
         return self._rest_data.get("replicas_on_different")
 
     @property
+    def x_replicas_on_different(self):
+        return self._rest_data.get("x_replicas_on_different_map")
+
+    @property
     def layer_stack(self):
         return self._rest_data.get("layer_stack")
 
@@ -1117,6 +1121,9 @@ class SelectFilter(RESTMessageResponse):
 
         if self.replicas_on_different:
             fields.append("ReplicasOnDifferent: " + str(self.replicas_on_different))
+
+        if self.x_replicas_on_different:
+            fields.append("XReplicasOnDifferent: " + str(self.x_replicas_on_different))
 
         if self.layer_stack:
             fields.append("LayerStack: " + str(self.layer_stack))

@@ -1160,7 +1160,8 @@ class Linstor(object):
             do_not_place_with=None,
             do_not_place_with_regex=None,
             replicas_on_same=None,
-            replicas_on_different=None
+            replicas_on_different=None,
+            x_replicas_on_different=None,
     ):
         """
         Auto places(deploys) a resource to the amount of place_count.
@@ -1171,6 +1172,7 @@ class Linstor(object):
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param dict[str, int] x_replicas_on_different: A dict with the property key as key and the count as value
         :return: A list containing ApiCallResponses (with MsgRspMaxVlmSizes)
         :rtype: Union[list[ApiCallResponse], list[RESTMessageResponse]]
         """
@@ -1188,6 +1190,8 @@ class Linstor(object):
             body["replicas_on_same"] = replicas_on_same
         if replicas_on_different:
             body["replicas_on_different"] = replicas_on_different
+        if x_replicas_on_different:
+            body["x_replicas_on_different"] = x_replicas_on_different
 
         return self._rest_request(
             apiconsts.API_QRY_MAX_VLM_SIZE,
@@ -1388,6 +1392,7 @@ class Linstor(object):
             do_not_place_with_regex=None,
             replicas_on_same=None,
             replicas_on_different=None,
+            x_replicas_on_different=None,
             diskless_on_remaining=None,
             layer_list=None,
             provider_list=None,
@@ -1406,6 +1411,7 @@ class Linstor(object):
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param dict[str, int] x_replicas_on_different: A dict with the property key as key and the count as value
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
         :param list[str] layer_list: Define layers for the resource
         :param list[str] provider_list: Filter provider kinds
@@ -1437,6 +1443,7 @@ class Linstor(object):
             do_not_place_with_regex=do_not_place_with_regex,
             replicas_on_same=replicas_on_same,
             replicas_on_different=replicas_on_different,
+            x_replicas_on_different=x_replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
             provider_list=provider_list,
@@ -1467,6 +1474,7 @@ class Linstor(object):
             do_not_place_with_regex=None,
             replicas_on_same=None,
             replicas_on_different=None,
+            x_replicas_on_different=None,
             diskless_on_remaining=None,
             layer_list=None,
             provider_list=None,
@@ -1486,6 +1494,7 @@ class Linstor(object):
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param dict[str, int] x_replicas_on_different: A dict with the property key as key and the count as value
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
         :param list[str] layer_list: Define layers for the resource
         :param list[str] provider_list: Filter provider kinds
@@ -1514,6 +1523,7 @@ class Linstor(object):
             do_not_place_with_regex=do_not_place_with_regex,
             replicas_on_same=replicas_on_same,
             replicas_on_different=replicas_on_different,
+            x_replicas_on_different=x_replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
             provider_list=provider_list,
@@ -1598,6 +1608,7 @@ class Linstor(object):
         do_not_place_with_regex=None,
         replicas_on_same=None,
         replicas_on_different=None,
+        x_replicas_on_different=None,
         diskless_on_remaining=None,
         layer_list=None,
         provider_list=None,
@@ -1622,6 +1633,7 @@ class Linstor(object):
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param dict[str, int] x_replicas_on_different: A dict with the property key as key and the count as value
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
         :param list[str] layer_list: Define layers for the resource
         :param list[str] provider_list: Filter provider kinds
@@ -1654,6 +1666,7 @@ class Linstor(object):
             do_not_place_with_regex=do_not_place_with_regex,
             replicas_on_same=replicas_on_same,
             replicas_on_different=replicas_on_different,
+            x_replicas_on_different=x_replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
             provider_list=provider_list,
@@ -1711,6 +1724,7 @@ class Linstor(object):
                                        do_not_place_with_regex=None,
                                        replicas_on_same=None,
                                        replicas_on_different=None,
+                                       x_replicas_on_different=None,
                                        diskless_on_remaining=None,
                                        layer_list=None,
                                        provider_list=None,
@@ -1728,6 +1742,7 @@ class Linstor(object):
         :param str do_not_place_with_regex: A regex string that rules out resources
         :param list[str] replicas_on_same: A list of node property names, their values should match
         :param list[str] replicas_on_different: A list of node property names, their values should not match
+        :param dict[str, int] x_replicas_on_different: A dict with the property key as key and the count as value
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
         :param list[str] layer_list: Define layers for the resource
         :param list[str] provider_list: Filter provider kinds
@@ -1747,6 +1762,7 @@ class Linstor(object):
             do_not_place_with_regex=do_not_place_with_regex,
             replicas_on_same=replicas_on_same,
             replicas_on_different=replicas_on_different,
+            x_replicas_on_different=x_replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
             provider_list=provider_list,
@@ -2447,6 +2463,7 @@ class Linstor(object):
             do_not_place_with_regex,
             replicas_on_same,
             replicas_on_different,
+            x_replicas_on_different,
             diskless_on_remaining,
             layer_list,
             provider_list,
@@ -2463,6 +2480,7 @@ class Linstor(object):
         :param Optional[str] do_not_place_with_regex:
         :param Optional[list[str]] replicas_on_same:
         :param Optional[list[str]] replicas_on_different:
+        :param dict[str, int] x_replicas_on_different: A dict with the property key as key and the count as value
         :param Optional[bool] diskless_on_remaining:
         :param Optional[list[str]] layer_list:
         :param Optional[list[str]] provider_list:
@@ -2507,6 +2525,8 @@ class Linstor(object):
             body["select_filter"]["replicas_on_same"] = replicas_on_same
         if replicas_on_different is not None:
             body["select_filter"]["replicas_on_different"] = replicas_on_different
+        if x_replicas_on_different is not None:
+            body["select_filter"]["x_replicas_on_different_map"] = x_replicas_on_different
 
         if layer_list is not None:
             body["select_filter"]["layer_stack"] = layer_list
@@ -2524,6 +2544,7 @@ class Linstor(object):
             do_not_place_with_regex=None,
             replicas_on_same=None,
             replicas_on_different=None,
+            x_replicas_on_different=None,
             diskless_on_remaining=False,
             async_msg=False,
             layer_list=None,
@@ -2543,6 +2564,7 @@ class Linstor(object):
         :param Optional[str] do_not_place_with_regex: A regex string that rules out resources
         :param Optional[list[str]] replicas_on_same: A list of node property names, their values should match
         :param Optional[list[str]] replicas_on_different: A list of node property names, their values should not match
+        :param dict[str, int] x_replicas_on_different: A dict with the property key as key and the count as value
         :param bool diskless_on_remaining: If True all remaining nodes will add a diskless resource
         :param bool async_msg: True to return without waiting for the action to complete on the satellites
         :param Optional[list[str]] layer_list: Define layers for the resource
@@ -2569,6 +2591,7 @@ class Linstor(object):
             do_not_place_with_regex=do_not_place_with_regex,
             replicas_on_same=replicas_on_same,
             replicas_on_different=replicas_on_different,
+            x_replicas_on_different=x_replicas_on_different,
             diskless_on_remaining=diskless_on_remaining,
             layer_list=layer_list,
             provider_list=provider_list,
