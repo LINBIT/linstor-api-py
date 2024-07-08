@@ -2689,19 +2689,30 @@ class Linstor(object):
             body
         )
 
-    def resource_delete(self, node_name, rsc_name, async_msg=False):
+    def resource_delete(self, node_name, rsc_name, async_msg=False, keep_tiebreaker=False):
         """
         Deletes a given resource on the given node.
 
         :param str node_name: Name of the node where the resource is deployed.
         :param str rsc_name: Name of the resource.
         :param bool async_msg: True to return without waiting for the action to complete on the satellites.
+        :param bool keep_tiebreaker: Controller will ensure to keep a tiebreaker, even if that means to not
+            properly delete the resource of this request
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
+
+        query_params = []
+        if keep_tiebreaker:
+            query_params.append("keep_tiebreaker=True")
+
+        query = ""
+        if query_params:
+            query = "?" + ("&".join(query_params))
+
         return self._rest_request(
             apiconsts.API_DEL_RSC,
-            "DELETE", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name
+            "DELETE", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + query
         )
 
     def resource_delete_if_diskless(self, node_name, rsc_name):
