@@ -1,3 +1,14 @@
+python-linstor (1.23.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * gitlab: add ubuntu-noble to build
+
+  [ Gabor Hernadi ]
+  * Autoplace: Add --x-replicas-on-different option
+  * resource_delete: Add keep_tiebreaker parameter
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 11 Jul 2024 09:24:46 +0000
+
 python-linstor (1.22.0-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
