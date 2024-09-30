@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added options dst_rsc_grp and force_rsc_grp to BackupShip, BackupRestore and BackupSchedule
+- resource_definition_clone: add layer_list parameter
 
 ## [1.23.1] - 2024-09-25
 
