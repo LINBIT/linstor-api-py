@@ -4079,7 +4079,48 @@ class Linstor(object):
             stor_pool_map=None,
             download_only=False,
             force_restore=False,
-            snap_name=None):
+            snap_name=None,
+            dst_rsc_grp=None,
+            force_mv_rsc_grp=False):
+        """
+        Downloads and (by default) tries to restore a backup from an S3 remote.
+
+        :param str remote_name: Name of the S3 remote
+        :param str target_node_name: The node that should receive the backup.
+        :param str target_resource_name: Name of the resource-definition the snapshot should be received into.
+            Will also be the resource-definition for the restore-attempt, unless prevented (i.e. by download_only or
+            if resources already exist in the given resource-definition)
+        :param Optional[str] resource_name: The original resource name LINSTOR should look for the latest backup on the
+            given S3 remote.
+            This option is mutual exclusive to bak_id (i.e. one, but not both of these must be used)
+        :param Optional[str] bak_id: The S3 ID of the backup LINSTOR should download. This can be used to download an
+            earlier backup than the latest of a given original resource.
+            This option is mutual exclusive to resource_name (i.e. one, but not both of these must be used)
+        :param Optional[str] passphrase: The passphrase of the original cluster, i.e. the passphrase from which the
+            given S3 backup was uploaded from. Only mandatory if the resource should be restored AND contains a layer
+            that requires a passphrase (i.e. the LUKS layer)
+        :param Optional[dict] stor_pool_map: A dict that allows all storage pools to be renamed or mapped to a
+            different storage pool. This can be useful if special storage pools were used for caches, external
+            metadata, etc, that only exist on the source-side but not on the current cluster which should receive
+            the backup
+        :param Optional[boolean] download_only: If True the controller will _not_ try to restore the resource
+            once the backup is fully received. This is the same behavior as if the target resource-definition
+            already contained resources.
+            This option must not be True if force_restore is True.
+        :param Optional[boolean] force_restore: If the destination resource-definition already has resources deployed
+            a simple "restore" operation would default to --download-only. In order to prevent this default and
+            forcefully delete the existing resource so that the just received snapshot can be restored, this
+            force_restore option must be set to True.
+            This option must not be True if download_only is True.
+        :param Optional[str] snap_name: Only usable in combination with resource_name. Allows to more conveniently
+            specify an original resource_name and original snapshot_name to receive.
+        :param Optional[str] dst_rsc_grp: The resource-group of the destination resource-definition. If the destination
+            resource-definition exists but is empty, the dst_rsc_grp is applied even without force_mv_rsc_grp.
+        :param Optional[boolean] force_mv_rsc_grp: If the destination resource-definition already has resources, the
+            dst_rsc_grp is ignored to prevent unexpected autoplace-adjustments (for example from BalanceResourceTask).
+            The dst_rsc_grp can still be forcefully applied if force_mv_rsc_grp is set to True.
+        """
+
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
         path = "/v1/remotes/{rn}/backups/restore".format(rn=remote_name)
@@ -4102,6 +4143,10 @@ class Linstor(object):
             body["download_only"] = download_only
         if force_restore:
             body["force_restore"] = force_restore
+        if dst_rsc_grp:
+            body["dst_rsc_grp"] = dst_rsc_grp
+        if force_mv_rsc_grp:
+            body["force_mv_rsc_grp"] = force_mv_rsc_grp
 
         return self._rest_request(
             apiconsts.API_RESTORE_BACKUP,
@@ -4144,7 +4189,44 @@ class Linstor(object):
             dst_stor_pool=None,
             stor_pool_rename=None,
             download_only=False,
-            force_restore=False):
+            force_restore=False,
+            dst_rsc_grp=None,
+            force_mv_rsc_grp=False):
+        """
+        Starts a linstor-to-linstor shipment.
+
+        :param str remote_name: Name of the linstor remote
+        :param str src_rsc_name: Name of the resource-definition on the source side
+        :param str dst_rsc_name: Name of the resource-definition on the destination side
+        :param Optional[str] src_node: The preferred node of the source side that should send the backup.
+            If the preferred node cannot send the backup a different node will be chosen if possible.
+        :param Optional[str] dst_name: The preferred node of the destination side that should receive the backup.
+            If the preferred node cannot receive the backup a different node will be chosen if possible.
+        :param Optional[str] dst_net_if: The destination node's preferred network interface through which the backup
+            should be received.
+            If the preferred net_if cannot be used to receive the backup a different net_if will be chosen
+            if possible.
+        :param Optional[str] dst_stor_pool: In case of a linstor-to-linstor shipment, this option specifies the
+            destination resource's storage pool.
+        :param Optional[dict] storpool_rename_map: Similar to dst_stor_pool, but allows all storage pools to be renamed
+            or mapped to a different storage pool on the destination cluster. This can be useful if special storage
+            pools were used for caches, external metadata, etc, that only exist on the source-side but not on the
+            target side of the shipment.
+        :param Optional[boolean] download_only: If True the destination cluster will _not_ try to restore the resource
+            once the shipment is fully received. This is the same behavior as if the destination resource-definition
+            already contained resources.
+            This option must not be True if force_restore is True.
+        :param Optional[boolean] force_restore: If the destination resource-definition already has resources deployed
+            a simple "restore" operation would default to --download-only. In order to prevent this default and
+            forcefully delete the existing resource so that the just received snapshot can be restored, this
+            force_restore option must be set to True.
+            This option must not be True if download_only is True.
+        :param Optional[str] dst_rsc_grp: The resource-group of the destination resource-definition. If the destination
+            resource-definition exists but is empty, the dst_rsc_grp is applied even without force_mv_rsc_grp.
+        :param Optional[boolean] force_mv_rsc_grp: If the destination resource-definition already has resources, the
+            dst_rsc_grp is ignored to prevent unexpected autoplace-adjustments (for example from BalanceResourceTask).
+            The dst_rsc_grp can still be forcefully applied if force_mv_rsc_grp is set to True.
+        """
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
         path = "/v1/remotes/{rn}/backups/ship".format(rn=remote_name)
@@ -4167,6 +4249,10 @@ class Linstor(object):
             body["download_only"] = download_only
         if force_restore:
             body["force_restore"] = force_restore
+        if dst_rsc_grp:
+            body["dst_rsc_grp"] = dst_rsc_grp
+        if force_mv_rsc_grp:
+            body["force_mv_rsc_grp"] = force_mv_rsc_grp
 
         return self._rest_request(
             apiconsts.API_SHIP_BACKUP,
@@ -4213,7 +4299,42 @@ class Linstor(object):
             preferred_node=None,
             dst_stor_pool=None,
             storpool_rename_map=None,
-            force_restore=False):
+            force_restore=False,
+            dst_rsc_grp=None,
+            force_mv_rsc_grp=False):
+        """
+        Enables a given backup schedule for the given remote of the given resource-definition, -group or controller.
+
+        :param str remote_name: Name of the remote to enable
+        :param str schedule_name: Name of the schedule to enable
+        :param Optional[str] resource_name: Name of the resource-definition the backup schedule should be enabled on.
+            Must not be set when resource_group_name is also set.
+            If resource_name is set, the backup schedule is only enabled for the specified resource-definition.
+            If both, resource_name and resource_group_name are None, backup schedule is enabled on controller
+            level (i.e. all resource-groups)
+        :param Optional[str] resource_group_name: Name of the resource-group the backup schedule should be enabled on.
+            Must not be set when resource_name is also set.
+            If resource_group_name is set, the backup schedule is only enabled for the specified resource-group.
+            If both, resource_name and resource_group_name are None, backup schedule is enabled on controller
+            level (i.e. all resource-groups)
+        :param Optional[str] preferred_node: The preferred node that should send the backup. This is just a preference
+            i.e. no guarantee that only this node will handle the sending.
+        :param Optional[str] dst_stor_pool: In case of a linstor-to-linstor shipment, this option specifies the
+            destination resource's storage pool.
+        :param Optional[dict] storpool_rename_map: Similar to dst_stor_pool, but allows all storage pools to be renamed
+            or mapped to a different storage pool on the destination cluster. This can be useful if special storage
+            pools were used for caches, external metadata, etc, that only exist on the source-side but not on the
+            target side of the shipment.
+        :param Optional[boolean] force_restore: If the destination resource-definition already has resources deployed
+            a simple "restore" operation would default to --download-only. In order to prevent this default and
+            forcefully delete the existing resource so that the just received snapshot can be restored, this
+            force_restore option must be set to True.
+        :param Optional[str] dst_rsc_grp: The resource-group of the destination resource-definition. If the destination
+            resource-definition exists but is empty, the dst_rsc_grp is applied even without force_mv_rsc_grp.
+        :param Optional[boolean] force_mv_rsc_grp: If the destination resource-definition already has resources, the
+            dst_rsc_grp is ignored to prevent unexpected autoplace-adjustments (for example from BalanceResourceTask).
+            The dst_rsc_grp can still be forcefully applied if force_mv_rsc_grp is set to True.
+        """
 
         body = {}
 
@@ -4231,6 +4352,10 @@ class Linstor(object):
             body["stor_pool_rename"] = storpool_rename_map
         if force_restore:
             body["force_restore"] = force_restore
+        if dst_rsc_grp:
+            body["dst_rsc_grp"] = dst_rsc_grp
+        if force_mv_rsc_grp:
+            body["force_mv_rsc_grp"] = force_mv_rsc_grp
 
         return self._rest_request(
             "BackupScheduleEnable",
