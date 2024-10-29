@@ -3,7 +3,6 @@ Linstorapi module
 """
 from __future__ import print_function
 
-import logging
 import socket
 import sys
 import time
@@ -52,8 +51,6 @@ except ImportError:
 API_VERSION_MIN = "1.0.4"
 API_VERSION = API_VERSION_MIN
 
-
-logging.basicConfig(level=logging.WARNING)
 
 
 class ResourceData(object):
@@ -238,7 +235,6 @@ class Linstor(object):
 
     def __init__(self, ctrl_host, timeout=300, keep_alive=False, agent_info=""):
         self._ctrl_host = ctrl_host
-        self._logger = logging.getLogger('Linstor')
         self._timeout = timeout
         self._keep_alive = keep_alive
         self._rest_conn = None  # type: Optional[HTTPConnection]
