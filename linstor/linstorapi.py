@@ -52,7 +52,6 @@ API_VERSION_MIN = "1.0.4"
 API_VERSION = API_VERSION_MIN
 
 
-
 class ResourceData(object):
     def __init__(
             self,
