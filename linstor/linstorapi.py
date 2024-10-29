@@ -1973,6 +1973,7 @@ class Linstor(object):
             use_zfs_clone=None,
             volume_passphrases=None,
             layer_list=None,
+            resource_group=None,
     ):
         """
         Sends a clone request to linstor controller.
@@ -1984,6 +1985,7 @@ class Linstor(object):
         :param bool use_zfs_clone: Use zfs clone method, which is faster, but has a dependency on the base resource
         :param optional[list[str]] volume_passphrases: user provided passwords for encrypted volumes
         :param optional[list[str]] layer_list: Set of layer names to use.
+        :param optional[str] resource_group: Resource group the cloned resource should use.
         :return:
         :rtype: CloneStarted
         """
@@ -2009,6 +2011,10 @@ class Linstor(object):
         if layer_list:
             self._require_version("1.23.0", msg="Clone with layer-list not supported")
             body["layer_list"] = layer_list
+
+        if resource_group:
+            self._require_version("1.23.0", msg="Clone resource-group parameter not supported")
+            body["resource_group"] = resource_group
 
         return self._rest_request(
             apiconsts.API_CLONE_RSCDFN,
