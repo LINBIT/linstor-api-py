@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added options dst_rsc_grp and force_rsc_grp to BackupShip, BackupRestore and BackupSchedule
 - resource_definition_clone: add layer_list parameter
 - resource_definition_clone: add resource_group parameter
+- Added responses ResourdeDfnLayerData object and some mor layer_stack props
 
 ## [1.23.1] - 2024-09-25
 

@@ -926,6 +926,31 @@ class DrbdLayer(RESTMessageResponse):
     def secret(self):
         return self._rest_data["secret"]
 
+    @property
+    def peer_slots(self):
+        return self._rest_data["peer_slots"]
+
+
+class ResourceDfnLayerData(RESTMessageResponse):
+    def __init__(self, data):
+        super(ResourceDfnLayerData, self).__init__(data)
+
+    @property
+    def type(self):
+        return self._rest_data["type"]
+
+    @property
+    def drbd_resource(self):
+        """
+        Gets the DRBD resource layer data if layer data is DRBD, otherwise None.
+
+        :return: None if it isn't a drbd resource, otherwise the DrbdResource object
+        :rtype: Optional[DrbdLayer]
+        """
+        if self.type == "DRBD":
+            return DrbdLayer(self._rest_data["drbd"])
+        return None
+
 
 class ResourceDefinition(RESTMessageResponse):
     def __init__(self, rest_data):
@@ -973,6 +998,10 @@ class ResourceDefinition(RESTMessageResponse):
         :rtype: dict[str, str]
         """
         return self._rest_data.get("props", {})
+
+    @property
+    def layer_data(self):
+        return [ResourceDfnLayerData(x) for x in self._rest_data.get("layer_data", [])]
 
     @property
     def drbd_data(self):
@@ -1400,7 +1429,23 @@ class ResourceLayerData(RESTMessageResponse):
         :return: List of resource layer data children
         :rtype: list[ResourceLayerData]
         """
-        return [ResourceLayerData(x) for x in self._rest_data.children]
+        return [ResourceLayerData(x) for x in self._rest_data.get('children', [])]
+
+    @property
+    def layer_stack(self):
+        """
+        Returns a layer list, from top to bottom
+        :return:
+        :rtype: list[str]
+        """
+        layers = [self.type]
+
+        def child_types(childs):
+            for subchild in childs:
+                layers.append(subchild.type)
+                child_types(subchild.children)
+        child_types(self.children)
+        return layers
 
     @property
     def type(self):
