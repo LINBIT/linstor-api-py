@@ -1,3 +1,19 @@
+python-linstor (1.24.0-1) experimental; urgency=medium
+
+  [ Gabor Hernadi ]
+  * Backup: Added dst_rsc_grp and force_rsc_grp
+
+  [ Luís Simas ]
+  * linstorapi: remove unused logger
+
+  [ Rene Peinthor ]
+  * linstorapi: fix pep8
+  * rscdfn-clone: add layer_list parameter
+  * clone: add resource-group parameter for cloning
+  * responses: add layer_stack and layer_data props
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 17 Dec 2024 10:05:48 +0000
+
 python-linstor (1.23.1-1) experimental; urgency=medium
 
   * update linstor-common
