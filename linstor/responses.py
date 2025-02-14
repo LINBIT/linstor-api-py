@@ -1292,6 +1292,22 @@ class VolumeState(RESTMessageResponse):
         return self._rest_data.get("disk_state")
 
     @property
+    def replication_state(self):
+        """
+        :return: String describing the drbd replication state
+        :rtype: str
+        """
+        return self._rest_data.get("replication_state", "")
+
+    @property
+    def done_percentage(self):
+        """
+        :return: decimal percentage of current verify/sync operation on drbd
+        :rtype: Optional[float]
+        """
+        return self._rest_data.get("done_percentage")
+
+    @property
     def data_v0(self):
         return {
             "vlm_nr": self.number,
@@ -1616,6 +1632,10 @@ class Volume(RESTMessageResponse):
         return None
 
     @property
+    def state(self):
+        return VolumeState(self._rest_data.get("state", {}))
+
+    @property
     def reports(self):
         return [ApiCallResponse(x) for x in self._rest_data.get("reports", [])]
 
@@ -1778,7 +1798,9 @@ class ResourceResponse(RESTMessageResponse):
             "in_use": x.get("state", {}).get("in_use"),
             "vlm_states": [{
                 "vlm_nr": y["volume_number"],
-                "disk_state": y.get("state", {}).get("disk_state")
+                "disk_state": y.get("state", {}).get("disk_state"),
+                "replication_state": y.get("state", {}).get("replication_state"),
+                "done_percentage": y.get("state", {}).get("done_percentage"),
             } for y in x.get("volumes", [])]
         }) for x in self._rest_data]
 
