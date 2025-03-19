@@ -1,3 +1,11 @@
+python-linstor (1.25.0-1) experimental; urgency=medium
+
+  * responses: add repl state and done_percentage
+  * gitlab: build for debian-bookworm
+  * linstor-common: update
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 19 Mar 2025 15:22:12 +0000
+
 python-linstor (1.24.0-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
