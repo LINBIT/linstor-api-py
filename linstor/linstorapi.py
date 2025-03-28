@@ -52,6 +52,26 @@ API_VERSION_MIN = "1.0.4"
 API_VERSION = API_VERSION_MIN
 
 
+def _pquote(pathfmt, *args, **kwargs):
+    """
+    Produces a correctly quoted url path string.
+    :param pathfmt: pathfmt string with {} as placeholder for *args
+    :param args: quotes all given args and use them in the pathfmt string
+    :param kwargs: Can have the 'query_params' dict[str, list[str]] that will quote the list[str] members
+                   and append them correctly as query string
+    :return: A quoted url path string
+    """
+    quoted_args = []
+    if args:
+        for arg in args:
+            quoted_args.append(quote(str(arg), safe=""))
+    qry_str = ""
+    query_params = kwargs.get("query_params", {})
+    if query_params:
+        qry_str = "?" + urlencode(query_params, doseq=True)
+    return pathfmt.format(*quoted_args) + qry_str
+
+
 class ResourceData(object):
     def __init__(
             self,
@@ -837,7 +857,7 @@ class Linstor(object):
 
         self._require_node_is_active(body["net_interfaces"][0])
 
-        return self._rest_request(apiconsts.API_CRT_NODE, "POST", "/v1/nodes", body)
+        return self._rest_request(apiconsts.API_CRT_NODE, "POST", _pquote("/v1/nodes"), body)
 
     def node_create_ebs(self, node_name, ebs_remote_name):
         """
@@ -853,7 +873,7 @@ class Linstor(object):
             "ebs_remote_name": ebs_remote_name,
         }
 
-        return self._rest_request(apiconsts.API_CRT_NODE, "POST", "/v1/nodes/ebs", body)
+        return self._rest_request(apiconsts.API_CRT_NODE, "POST", _pquote("/v1/nodes/ebs"), body)
 
     def node_modify(self, node_name, node_type=None, property_dict=None, delete_props=None):
         """
@@ -876,7 +896,7 @@ class Linstor(object):
         if delete_props:
             body["delete_props"] = delete_props
 
-        return self._rest_request(apiconsts.API_MOD_NODE, "PUT", "/v1/nodes/" + node_name, body)
+        return self._rest_request(apiconsts.API_MOD_NODE, "PUT", _pquote("/v1/nodes/{}", node_name), body)
 
     def node_delete(self, node_name, async_msg=False):
         """
@@ -887,7 +907,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        return self._rest_request(apiconsts.API_DEL_NODE, "DELETE", "/v1/nodes/" + node_name)
+        return self._rest_request(apiconsts.API_DEL_NODE, "DELETE", _pquote("/v1/nodes/{}", node_name))
 
     def node_lost(self, node_name, async_msg=False):
         """
@@ -898,7 +918,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        return self._rest_request(apiconsts.API_LOST_NODE, "DELETE", "/v1/nodes/" + node_name + "/lost")
+        return self._rest_request(apiconsts.API_LOST_NODE, "DELETE", _pquote("/v1/nodes/{}/lost", node_name))
 
     def node_reconnect(self, node_names):
         """
@@ -910,7 +930,8 @@ class Linstor(object):
         """
         replies = []
         for node_name in node_names:
-            replies += self._rest_request(apiconsts.API_NODE_RECONNECT, "PUT", "/v1/nodes/" + node_name + "/reconnect")
+            replies += self._rest_request(
+                apiconsts.API_NODE_RECONNECT, "PUT", _pquote("/v1/nodes/{}/reconnect", node_name))
         return replies
 
     def node_restore(self, node_name, delete_resources=None, delete_snapshots=None):
@@ -933,7 +954,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_NODE_RESTORE,
             "PUT",
-            "/v1/nodes/" + node_name + "/restore",
+            _pquote("/v1/nodes/{}/restore", node_name),
             body if body else None
         )
 
@@ -950,7 +971,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_NODE_EVACUATE,
             "PUT",
-            "/v1/nodes/" + node_name + "/evacuate",
+            _pquote("/v1/nodes/{}/evacuate", node_name),
             body if body else None
         )
 
@@ -978,7 +999,8 @@ class Linstor(object):
 
         self._require_node_is_active(body, is_active)
 
-        return self._rest_request(apiconsts.API_CRT_NET_IF, "POST", "/v1/nodes/" + node_name + "/net-interfaces", body)
+        return self._rest_request(
+            apiconsts.API_CRT_NET_IF, "POST", _pquote("/v1/nodes/{}/net-interfaces", node_name), body)
 
     def netinterface_modify(self, node_name, interface_name, ip=None, port=None, com_type=None, is_active=False):
         """
@@ -1006,7 +1028,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_NET_IF,
-            "PUT", "/v1/nodes/" + node_name + "/net-interfaces/" + interface_name,
+            "PUT", _pquote("/v1/nodes/{}/net-interfaces/{}", node_name, interface_name),
             body
         )
 
@@ -1022,7 +1044,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_DEL_NET_IF,
             "DELETE",
-            "/v1/nodes/" + node_name + "/net-interfaces/" + interface_name
+            _pquote("/v1/nodes/{}/net-interfaces/{}", node_name, interface_name)
         )
 
     # unused
@@ -1034,7 +1056,7 @@ class Linstor(object):
         :return: A REST message containing all information.
         :rtype: list[RESTMessageResponse]
         """
-        return self._rest_request(apiconsts.API_LST_NET_IF, "GET", "/v1/nodes/" + node_name + "/net-interfaces")
+        return self._rest_request(apiconsts.API_LST_NET_IF, "GET", _pquote("/v1/nodes/{}/net-interfaces", node_name))
 
     def node_list(self, filter_by_nodes=None, filter_by_props=None):
         """
@@ -1045,20 +1067,17 @@ class Linstor(object):
         :return: A MsgLstNode proto message containing all information.
         :rtype: list[RESTMessageResponse]
         """
-        query_params = []
+        query_params = {}
         if filter_by_nodes:
-            query_params += ["nodes=" + x for x in filter_by_nodes]
+            query_params["nodes"] = filter_by_nodes
 
         if filter_by_props:
-            query_params += ["props=" + x for x in filter_by_props]
+            query_params["props"] = filter_by_props
 
-        path = "/v1/nodes"
-        if query_params:
-            path += "?" + "&".join(query_params)
         return self._rest_request(
             apiconsts.API_LST_NODE,
             "GET",
-            path
+            _pquote("/v1/nodes", query_params=query_params)
         )
 
     def node_list_raise(self, filter_by_nodes=None, filter_by_props=None):
@@ -1102,7 +1121,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_STOR_POOL_DFN,
-            "POST", "/v1/storage-pool-definitions",
+            "POST", _pquote("/v1/storage-pool-definitions"),
             body
         )
 
@@ -1125,7 +1144,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_STOR_POOL_DFN,
-            "PUT", "/v1/storage-pool-definitions/" + name,
+            "PUT", _pquote("/v1/storage-pool-definitions/{}", name),
             body
         )
 
@@ -1137,7 +1156,8 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        return self._rest_request(apiconsts.API_DEL_STOR_POOL_DFN, "DELETE", "/v1/storage-pool-definitions/" + name)
+        return self._rest_request(
+            apiconsts.API_DEL_STOR_POOL_DFN, "DELETE", _pquote("/v1/storage-pool-definitions/{}", name))
 
     def storage_pool_dfn_list(self):
         """
@@ -1146,7 +1166,7 @@ class Linstor(object):
         :return: A MsgLstStorPoolDfn proto message containing all information.
         :rtype: list[StoragePoolDefinitionResponse]
         """
-        return self._rest_request(apiconsts.API_LST_STOR_POOL_DFN, "GET", "/v1/storage-pool-definitions")
+        return self._rest_request(apiconsts.API_LST_STOR_POOL_DFN, "GET", _pquote("/v1/storage-pool-definitions"))
 
     def storage_pool_dfn_max_vlm_sizes(
             self,
@@ -1191,7 +1211,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_QRY_MAX_VLM_SIZE,
             "OPTIONS",
-            "/v1/query-max-volume-size",
+            _pquote("/v1/query-max-volume-size"),
             body
         )
 
@@ -1255,7 +1275,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CRT_STOR_POOL,
             "POST",
-            "/v1/nodes/" + node_name + "/storage-pools",
+            _pquote("/v1/nodes/{}/storage-pools", node_name),
             body
         )
 
@@ -1281,7 +1301,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_MOD_STOR_POOL,
             "PUT",
-            "/v1/nodes/" + node_name + "/storage-pools/" + storage_pool_name,
+            _pquote("/v1/nodes/{}/storage-pools/{}", node_name, storage_pool_name),
             body
         )
 
@@ -1297,7 +1317,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_DEL_STOR_POOL,
             "DELETE",
-            "/v1/nodes/" + node_name + "/storage-pools/" + storage_pool_name
+            _pquote("/v1/nodes/{}/storage-pools/{}", node_name, storage_pool_name)
         )
 
     def storage_pool_list(self, filter_by_nodes=None, filter_by_stor_pools=None, filter_by_props=None):
@@ -1310,21 +1330,18 @@ class Linstor(object):
         :return: A MsgLstStorPool proto message containing all information.
         :rtype: list[RESTMessageResponse]
         """
-        query_params = []
+        query_params = {}
         if filter_by_nodes:
-            query_params += ["nodes=" + x for x in filter_by_nodes]
+            query_params["nodes"] = filter_by_nodes
         if filter_by_stor_pools:
-            query_params += ["storage_pools=" + x for x in filter_by_stor_pools]
+            query_params["storage_pools"] = filter_by_stor_pools
         if filter_by_props:
-            query_params += ["props=" + x for x in filter_by_props]
+            query_params["props"] = filter_by_props
 
-        path = "/v1/view/storage-pools"
-        if query_params:
-            path += "?" + "&".join(query_params)
         storage_pool_res = self._rest_request(
             apiconsts.API_LST_STOR_POOL,
             "GET",
-            path
+            _pquote("/v1/view/storage-pools", query_params=query_params)
         )  # type: list[StoragePoolListResponse]
 
         result = []
@@ -1455,7 +1472,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_RSC_GRP,
-            "POST", "/v1/resource-groups",
+            "POST", _pquote("/v1/resource-groups"),
             body
         )
 
@@ -1540,7 +1557,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_RSC_GRP,
-            "PUT", "/v1/resource-groups/" + name,
+            "PUT", _pquote("/v1/resource-groups/{}", name),
             body
         )
 
@@ -1553,7 +1570,7 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
         self._require_version("1.0.8", msg="Resource group delete not supported by server")
-        return self._rest_request(apiconsts.API_DEL_RSC_GRP, "DELETE", "/v1/resource-groups/" + name)
+        return self._rest_request(apiconsts.API_DEL_RSC_GRP, "DELETE", _pquote("/v1/resource-groups/{}", name))
 
     def resource_group_list_raise(self, filter_by_resource_groups=None, filter_by_props=None):
         """
@@ -1568,17 +1585,14 @@ class Linstor(object):
         """
         self._require_version("1.0.8", msg="Resource group list not supported by server")
 
-        query_params = []
+        query_params = {}
         if filter_by_resource_groups:
-            query_params += ["resource_groups=" + x for x in filter_by_resource_groups]
+            query_params["resource_groups"] = filter_by_resource_groups
         if filter_by_props:
-            query_params += ["props=" + x for x in filter_by_props]
+            query_params["props"] = filter_by_props
 
-        path = "/v1/resource-groups"
-        if query_params:
-            path += "?" + "&".join(query_params)
-
-        list_res = self._rest_request(apiconsts.API_LST_RSC_GRP, "GET", path)
+        list_res = self._rest_request(
+            apiconsts.API_LST_RSC_GRP, "GET", _pquote("/v1/resource-groups", query_params=query_params))
 
         if self._mode_curl:
             return []
@@ -1690,7 +1704,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SPAWN_RSC_DFN,
             "POST",
-            "/v1/resource-groups/" + rsc_grp_name + "/spawn",
+            _pquote("/v1/resource-groups/{}/spawn", rsc_grp_name),
             body
         )
 
@@ -1709,7 +1723,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_QRY_MAX_VLM_SIZE,
             "GET",
-            "/v1/resource-groups/" + rsc_grp_name + "/query-max-volume-size"
+            _pquote("/v1/resource-groups/{}/query-max-volume-size", rsc_grp_name)
         )
 
     def resource_group_query_size_info(self, rsc_grp_name,
@@ -1747,10 +1761,8 @@ class Linstor(object):
         """
         self._require_version("1.17.0", msg="Query size info on resource group API not supported by server")
 
-        body = {}
-
-        self._set_select_filter_body(
-            body,
+        body = self._set_select_filter_body(
+            {},
             place_count=place_count,
             storage_pool=storage_pool,
             do_not_place_with=do_not_place_with,
@@ -1769,7 +1781,7 @@ class Linstor(object):
         res = self._rest_request(
             apiconsts.API_QRY_SIZE_INFO,
             "POST",
-            "/v1/resource-groups/" + rsc_grp_name + "/query-size-info",
+            _pquote("/v1/resource-groups/{}/query-size-info", rsc_grp_name),
             body
         )
         if res:
@@ -1791,9 +1803,9 @@ class Linstor(object):
         body = None  # {}
 
         if rsc_grp_name:
-            path = "/v1/resource-groups/" + rsc_grp_name + "/adjust"
+            path = _pquote("/v1/resource-groups/{}/adjust", rsc_grp_name)
         else:
-            path = "/v1/resource-groups/adjustall"
+            path = _pquote("/v1/resource-groups/adjustall")
 
         return self._rest_request(
             apiconsts.API_SPAWN_RSC_DFN,
@@ -1834,7 +1846,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_VLM_GRP,
-            "POST", "/v1/resource-groups/" + str(resource_grp_name) + "/volume-groups",
+            "POST", _pquote("/v1/resource-groups/{}/volume-groups", resource_grp_name),
             body
         )
 
@@ -1872,7 +1884,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_VLM_GRP,
-            "PUT", "/v1/resource-groups/" + resource_grp_name + "/volume-groups/" + str(volume_nr),
+            "PUT", _pquote("/v1/resource-groups/{}/volume-groups/{}", resource_grp_name, str(volume_nr)),
             body
         )
 
@@ -1889,7 +1901,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_DEL_VLM_GRP,
             "DELETE",
-            "/v1/resource-groups/" + resource_grp_name + "/volume-groups/" + str(volume_nr)
+            _pquote("/v1/resource-groups/{}/volume-groups/{}", resource_grp_name, str(volume_nr))
         )
 
     def volume_group_list_raise(self, resource_grp_name):
@@ -1905,7 +1917,7 @@ class Linstor(object):
         list_res = self._rest_request(
             apiconsts.API_LST_VLM_GRP,
             "GET",
-            "/v1/resource-groups/" + resource_grp_name + "/volume-groups"
+            _pquote("/v1/resource-groups/{}/volume-groups", resource_grp_name)
         )
 
         if self._mode_curl:
@@ -1961,7 +1973,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_RSC_DFN,
-            "POST", "/v1/resource-definitions",
+            "POST", _pquote("/v1/resource-definitions"),
             body
         )
 
@@ -2018,7 +2030,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CLONE_RSCDFN,
-            "POST", "/v1/resource-definitions/" + src_name + "/clone",
+            "POST", _pquote("/v1/resource-definitions/{}/clone", src_name),
             body,
             raise_error=True
         )[0]
@@ -2036,7 +2048,7 @@ class Linstor(object):
 
         ret = self._rest_request(
             apiconsts.API_CLONE_RSCDFN_STATUS,
-            "GET", "/v1/resource-definitions/" + src_name + "/clone/" + clone_name
+            "GET", _pquote("/v1/resource-definitions/{}/clone/{}", src_name, clone_name)
         )[0]
 
         if isinstance(ret, ApiCallResponse):
@@ -2081,7 +2093,7 @@ class Linstor(object):
 
         ret = self._rest_request(
             apiconsts.API_RSCDFN_SYNC_STATUS,
-            "GET", "/v1/resource-definitions/" + rsc_name + "/sync-status"
+            "GET", _pquote("/v1/resource-definitions/{}/sync-status", rsc_name)
         )[0]
 
         if isinstance(ret, ApiCallResponse):
@@ -2127,7 +2139,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_RSC_DFN,
-            "PUT", "/v1/resource-definitions/" + name,
+            "PUT", _pquote("/v1/resource-definitions/{}", name),
             body
         )
 
@@ -2140,7 +2152,7 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        return self._rest_request(apiconsts.API_DEL_RSC_DFN, "DELETE", "/v1/resource-definitions/" + name)
+        return self._rest_request(apiconsts.API_DEL_RSC_DFN, "DELETE", _pquote("/v1/resource-definitions/{}", name))
 
     def resource_dfn_list(
             self,
@@ -2165,28 +2177,25 @@ class Linstor(object):
                         vlm_dfn = self._rest_request(
                             apiconsts.API_LST_VLM_DFN,
                             "GET",
-                            "/v1/resource-definitions/" + rsc_dfn.name + "/volume-definitions"
+                            _pquote("/v1/resource-definitions/{}/volume-definitions", rsc_dfn.name)
                         )
                         if vlm_dfn and isinstance(vlm_dfn[0], VolumeDefinitionResponse):
                             rsc_dfn._rest_data["volume_definitions"] = vlm_dfn[0].rest_data
 
             return rsc_dfns_resp
         else:
-            query_params = []
+            query_params = {}
             if filter_by_resource_definitions:
-                query_params += ["resource_definitions=" + x for x in filter_by_resource_definitions]
+                query_params["resource_definitions"] = filter_by_resource_definitions
             if query_volume_definitions:
-                query_params += ["with_volume_definitions=true"]
+                query_params["with_volume_definitions"] = ["true"]
             if filter_by_props:
-                query_params += ["props=" + x for x in filter_by_props]
+                query_params["props"] = filter_by_props
 
-            path = "/v1/resource-definitions"
-            if query_params:
-                path += "?" + "&".join(query_params)
             resource_definition_res = self._rest_request(
                 apiconsts.API_LST_RSC_DFN,
                 "GET",
-                path
+                _pquote("/v1/resource-definitions", query_params=query_params)
             )  # type: list[ResourceDefinitionResponse]
 
             return resource_definition_res
@@ -2296,7 +2305,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_VLM_DFN,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/volume-definitions",
+            "POST", _pquote("/v1/resource-definitions/{}/volume-definitions", rsc_name),
             body
         )
 
@@ -2339,7 +2348,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_VLM_DFN,
-            "PUT", "/v1/resource-definitions/" + rsc_name + "/volume-definitions/" + str(volume_nr),
+            "PUT", _pquote("/v1/resource-definitions/{}/volume-definitions/{}", rsc_name, str(volume_nr)),
             body
         )
 
@@ -2355,7 +2364,7 @@ class Linstor(object):
         """
         return self._rest_request(
             apiconsts.API_DEL_VLM_DFN,
-            "DELETE", "/v1/resource-definitions/" + rsc_name + "/volume-definitions/" + str(volume_nr)
+            "DELETE", _pquote("/v1/resource-definitions/{}/volume-definitions/{}", rsc_name, str(volume_nr))
         )
 
     def _volume_dfn_size(self, rsc_name, volume_nr):
@@ -2400,8 +2409,8 @@ class Linstor(object):
         }
         return self._rest_request(
             apiconsts.API_MOD_VLM_DFN,  # TODO
-            "PUT", "/v1/resource-definitions/" + rsc_name
-                   + "/volume-definitions/" + str(volume_nr) + "/encryption-passphrase",
+            "PUT",
+            _pquote("/v1/resource-definitions/{}/volume-definitions/{}/encryption-passphrase", rsc_name, volume_nr),
             body
         )
 
@@ -2457,7 +2466,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_RSC,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/resources",
+            "POST", _pquote("/v1/resource-definitions/{}/resources", rsc_name),
             body
         )
 
@@ -2612,7 +2621,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_AUTO_PLACE_RSC,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/autoplace",
+            "POST", _pquote("/v1/resource-definitions/{}/autoplace", rsc_name),
             body
         )
 
@@ -2667,7 +2676,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MAKE_RSC_AVAIL,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/make-available",
+            "POST", _pquote("/v1/resource-definitions/{}/resources/{}/make-available", rsc_name, node_name),
             body
         )
 
@@ -2692,7 +2701,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_RSC,
-            "PUT", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name,
+            "PUT", _pquote("/v1/resource-definitions/{}/resources/{}", rsc_name, node_name),
             body
         )
 
@@ -2709,17 +2718,14 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
 
-        query_params = []
+        query_params = {}
         if keep_tiebreaker:
-            query_params.append("keep_tiebreaker=True")
-
-        query = ""
-        if query_params:
-            query = "?" + ("&".join(query_params))
+            query_params["keep_tiebreaker"] = ["True"]
 
         return self._rest_request(
             apiconsts.API_DEL_RSC,
-            "DELETE", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + query
+            "DELETE",
+            _pquote("/v1/resource-definitions/{}/resources/{}", rsc_name, node_name, query_params=query_params)
         )
 
     def resource_delete_if_diskless(self, node_name, rsc_name):
@@ -2766,7 +2772,7 @@ class Linstor(object):
         self._require_version("1.2.0")
         return self._rest_request(
             apiconsts.API_ACTIVATE_RSC,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/activate"
+            "POST", _pquote("/v1/resource-definitions/{}/resources/{}/activate", rsc_name, node_name)
         )
 
     def resource_deactivate(self, node_name, rsc_name):
@@ -2781,7 +2787,7 @@ class Linstor(object):
         self._require_version("1.2.0")
         return self._rest_request(
             apiconsts.API_DEACTIVATE_RSC,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/deactivate"
+            "POST", _pquote("/v1/resource-definitions/{}/resources/{}/deactivate", rsc_name, node_name)
         )
 
     def resource_list(self, filter_by_nodes=None, filter_by_resources=None, filter_by_props=None):
@@ -2833,22 +2839,20 @@ class Linstor(object):
         """
         result = []
         errors = []
-        query_params = []
+        query_params = {}
         if filter_by_nodes:
-            query_params += ["nodes=" + x for x in filter_by_nodes]
+            query_params["nodes"] = filter_by_nodes
         if filter_by_stor_pools:
-            query_params += ["storage_pools=" + x for x in filter_by_stor_pools]
+            query_params["storage_pools"] = filter_by_stor_pools
         if filter_by_resources:
-            query_params += ["resources=" + x for x in filter_by_resources]
+            query_params["resources"] = filter_by_resources
         if filter_by_props:
-            query_params += ["props=" + x for x in filter_by_props]
-        path = "/v1/view/resources"
-        if query_params:
-            path += "?" + "&".join(query_params)
+            query_params["props"] = filter_by_props
+
         resource_resp = self._rest_request(
             apiconsts.API_LST_RSC,
             "GET",
-            path
+            _pquote("/v1/view/resources", query_params=query_params)
         )  # type: list[ResourceResponse]
         if resource_resp and isinstance(resource_resp[0], ResourceResponse):
             result += resource_resp
@@ -2910,7 +2914,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_VLM,
-            "PUT", "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name + "/volumes/" + str(vlm_nr),
+            "PUT", _pquote("/v1/resource-definitions/{}/resources/{}/volumes/{}", rsc_name, node_name, vlm_nr),
             body
         )
 
@@ -2932,16 +2936,16 @@ class Linstor(object):
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        path = "/v1/resource-definitions/" + rsc_name + "/resources/" + node_name
+        path = _pquote("/v1/resource-definitions/{}/resources/{}", rsc_name, node_name)
 
         if migrate_from:
-            path += "/migrate-disk/" + migrate_from
+            path += _pquote("/migrate-disk/{}", migrate_from)
         else:
             path += "/toggle-disk/"
             path += "diskless" if diskless else "diskful"
 
         if storage_pool:
-            path += "/" + storage_pool
+            path += _pquote("/{}", storage_pool)
 
         return self._rest_request(
             apiconsts.API_TOGGLE_DISK,
@@ -2955,7 +2959,7 @@ class Linstor(object):
         :return: A MsgLstCtrlCfgProps proto message containing all controller props.
         :rtype: list
         """
-        return self._rest_request(apiconsts.API_LST_CTRL_PROPS, "GET", "/v1/controller/properties")
+        return self._rest_request(apiconsts.API_LST_CTRL_PROPS, "GET", _pquote("/v1/controller/properties"))
 
     @classmethod
     def _split_prop_key(cls, fkey):
@@ -2984,7 +2988,7 @@ class Linstor(object):
         }
         return self._rest_request(
             apiconsts.API_SET_CTRL_PROP,
-            "POST", "/v1/controller/properties",
+            "POST", _pquote("/v1/controller/properties"),
             body
         )
 
@@ -3002,7 +3006,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_SET_CTRL_PROP,
-            "POST", "/v1/controller/properties",
+            "POST", _pquote("/v1/controller/properties"),
             body
         )
 
@@ -3018,7 +3022,7 @@ class Linstor(object):
         body = {
             "backup_name": backup_name
         }
-        return self._rest_request("BackupDb", "POST", "/v1/controller/backup/db", body)
+        return self._rest_request("BackupDb", "POST", _pquote("/v1/controller/backup/db"), body)
 
     def controller_info(self):
         """
@@ -3029,7 +3033,7 @@ class Linstor(object):
         """
         cversion_list = self._rest_request(
             apiconsts.API_VERSION,
-            "GET", "/v1/controller/version"
+            "GET", _pquote("/v1/controller/version")
         )  # type: list[ControllerVersion]
 
         if cversion_list:
@@ -3047,7 +3051,7 @@ class Linstor(object):
         """
         return self._rest_request(
             apiconsts.API_VERSION,
-            "GET", "/v1/controller/version"
+            "GET", _pquote("/v1/controller/version")
         )[0]
 
     def controller_host(self):
@@ -3084,7 +3088,7 @@ class Linstor(object):
         }
         return self._rest_request(
             apiconsts.API_SET_CTRL_PROP,
-            "PUT", "/v1/controller/config",
+            "PUT", _pquote("/v1/controller/config"),
             body
         )
 
@@ -3100,7 +3104,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_CRYPT_PASS,
-            "POST", "/v1/encryption/passphrase",
+            "POST", _pquote("/v1/encryption/passphrase"),
             body
         )
 
@@ -3114,7 +3118,7 @@ class Linstor(object):
         """
         return self._rest_request(
             apiconsts.API_ENTER_CRYPT_PASS,
-            "PATCH", "/v1/encryption/passphrase",
+            "PATCH", _pquote("/v1/encryption/passphrase"),
             passphrase
         )
 
@@ -3134,7 +3138,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_CRYPT_PASS,
-            "PUT", "/v1/encryption/passphrase",
+            "PUT", _pquote("/v1/encryption/passphrase"),
             body
         )
 
@@ -3160,7 +3164,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_RSC_CONN,
-            "PUT", "/v1/resource-definitions/" + rsc_name + "/resource-connections/" + node_a + "/" + node_b,
+            "PUT", _pquote("/v1/resource-definitions/{}/resource-connections/{}/{}", rsc_name, node_a, node_b),
             body
         )
 
@@ -3175,7 +3179,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_REQ_RSC_CONN_LIST,
             "GET",
-            "/v1/resource-definitions/" + rsc_name + "/resource-connections"
+            _pquote("/v1/resource-definitions/{}/resource-connections", rsc_name)
         )
 
     def resource_conn_list_raise(self, rsc_name):
@@ -3208,7 +3212,7 @@ class Linstor(object):
         list_res = self._rest_request(
             Linstor.API_SINGLE_NODE_REQ,
             "GET",
-            "/v1/resource-definitions/" + rsc_name + "/resource-connections/" + node_a + "/" + node_b
+            _pquote("/v1/resource-definitions/{}/resource-connections/{}/{}", rsc_name, node_a, node_b)
         )
         if list_res:
             if isinstance(list_res[0], ResourceConnection):
@@ -3237,7 +3241,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_NODE_CONN,
-            "PUT", "/v1/node-connections/" + node_a + "/" + node_b,
+            "PUT", _pquote("/v1/node-connections/{}/{}", node_a, node_b),
             body
         )
 
@@ -3264,15 +3268,10 @@ class Linstor(object):
         if node_b:
             query_params["node_b"] = node_b
 
-        query_filters_encoded = urlencode(query_params, True)
-        path = "/v1/node-connections/"
-        if query_filters_encoded:
-            path += "?" + query_filters_encoded
-
         return self._rest_request(
             api_call,
             "GET",
-            path
+            _pquote("/v1/node-connections", query_params=query_params)
         )
 
     def node_conn_list_raise(self, node_a=None, node_b=None):
@@ -3313,7 +3312,7 @@ class Linstor(object):
         }
         return self._rest_request(
             apiconsts.API_SET_CTRL_PROP,
-            "PUT", "/v1/nodes/" + node_name + "/config",
+            "PUT", _pquote("/v1/nodes/{}/config", node_name),
             body
         )
 
@@ -3335,7 +3334,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_ENABLE_DRBD_PROXY,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/drbd-proxy/enable/" + node_a + "/" + node_b,
+            "POST", _pquote("/v1/resource-definitions/{}/drbd-proxy/enable/{}/{}", rsc_name, node_a, node_b),
             body
         )
 
@@ -3352,7 +3351,7 @@ class Linstor(object):
         """
         return self._rest_request(
             apiconsts.API_ENABLE_DRBD_PROXY,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/drbd-proxy/disable/" + node_a + "/" + node_b
+            "POST", _pquote("/v1/resource-definitions/{}/drbd-proxy/disable/{}/{}", rsc_name, node_a, node_b)
         )
 
     def drbd_proxy_modify(
@@ -3390,7 +3389,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_DRBD_PROXY,
-            "PUT", "/v1/resource-definitions/" + rsc_name + "/drbd-proxy",
+            "PUT", _pquote("/v1/resource-definitions/{}/drbd-proxy", rsc_name),
             body
         )
 
@@ -3414,7 +3413,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_SNAPSHOT,
-            "POST", "/v1/resource-definitions/" + rsc_name + "/snapshots",
+            "POST", _pquote("/v1/resource-definitions/{}/snapshots", rsc_name),
             body
         )
 
@@ -3443,7 +3442,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_CRT_SNAPSHOT_MULTI,
-            "POST", "/v1/actions/snapshot/multi",
+            "POST", _pquote("/v1/actions/snapshot/multi"),
             body
         )
 
@@ -3464,7 +3463,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_RESTORE_VLM_DFN,
             "POST",
-            "/v1/resource-definitions/" + from_resource + "/snapshot-restore-volume-definition/" + from_snapshot,
+            _pquote("/v1/resource-definitions/{}/snapshot-restore-volume-definition/{}", from_resource, from_snapshot),
             body
         )
 
@@ -3499,7 +3498,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_RESTORE_SNAPSHOT,
             "POST",
-            "/v1/resource-definitions/" + from_resource + "/snapshot-restore-resource/" + from_snapshot,
+            _pquote("/v1/resource-definitions/{}/snapshot-restore-resource/{}", from_resource, from_snapshot),
             body
         )
 
@@ -3518,16 +3517,10 @@ class Linstor(object):
         if node_names:
             query_params["nodes"] = node_names
 
-        query_filters_encoded = urlencode(query_params, True)
-        path = "/v1/resource-definitions/{rn}/snapshots/{sn}{af}".format(
-            rn=rsc_name,
-            sn=snapshot_name,
-            af=("?" + query_filters_encoded) if query_filters_encoded else "")
-
         return self._rest_request(
             apiconsts.API_DEL_SNAPSHOT,
             "DELETE",
-            path
+            _pquote("/v1/resource-definitions/{}/snapshots/{}", rsc_name, snapshot_name, query_params=query_params)
         )
 
     def snapshot_rollback(self, rsc_name, snapshot_name):
@@ -3542,7 +3535,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_ROLLBACK_SNAPSHOT,
             "POST",
-            "/v1/resource-definitions/" + rsc_name + "/snapshot-rollback/" + snapshot_name
+            _pquote("/v1/resource-definitions/{}/snapshot-rollback/{}", rsc_name, snapshot_name)
         )
 
     def snapshot_ship(self, from_node, to_node, rsc_name):
@@ -3563,7 +3556,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SHIP_SNAPSHOT,
             "POST",
-            "/v1/resource-definitions/" + rsc_name + "/snapshot-shipping",
+            _pquote("/v1/resource-definitions/{}/snapshot-shipping", rsc_name),
             body
         )
 
@@ -3583,21 +3576,18 @@ class Linstor(object):
         :rtype: list[SnapshotShippingResponse]
         """
         self._require_version("1.3.0")
-        query_params = []
+        query_params = {}
         if filter_by_nodes:
-            query_params += ["nodes=" + x for x in filter_by_nodes]
+            query_params["nodes"] = filter_by_nodes
         if filter_by_resources:
-            query_params += ["resources=" + x for x in filter_by_resources]
+            query_params["resources"] = filter_by_resources
         if filter_by_snapshots:
-            query_params += ["snapshots=" + x for x in filter_by_snapshots]
+            query_params["snapshots"] = filter_by_snapshots
         if filter_by_status:
-            query_params += ["status=" + x for x in filter_by_status]
-        path = "/v1/view/snapshot-shippings"
-        if query_params:
-            path += "?" + "&".join(query_params)
+            query_params["status"] = filter_by_status
         return self._rest_request(
             apiconsts.API_LST_SNAPSHOT_SHIPPINGS,
-            "GET", path)
+            "GET", _pquote("/v1/view/snapshot-shippings", query_params=query_params))
 
     def snapshot_dfn_list(self, filter_by_nodes=None, filter_by_resources=None):
         """
@@ -3615,23 +3605,21 @@ class Linstor(object):
             for rsc_dfn in rsc_dfns.resource_definitions:
                 snapshots = self._rest_request(
                     apiconsts.API_LST_SNAPSHOT_DFN,
-                    "GET", "/v1/resource-definitions/" + rsc_dfn.name + "/snapshots"
+                    "GET", _pquote("/v1/resource-definitions/{}/snapshots", rsc_dfn.name)
                 )
                 if snapshots and isinstance(snapshots[0], SnapshotResponse):
                     result += snapshots[0]._rest_data
             return [SnapshotResponse(result)]
         else:
-            query_params = []
+            query_params = {}
             if filter_by_nodes:
-                query_params += ["nodes=" + x for x in filter_by_nodes]
+                query_params["nodes"] = filter_by_nodes
             if filter_by_resources:
-                query_params += ["resources=" + x for x in filter_by_resources]
-            path = "/v1/view/snapshots"
-            if query_params:
-                path += "?" + "&".join(query_params)
+                query_params["resources"] = filter_by_resources
+
             return self._rest_request(
                 apiconsts.API_LST_SNAPSHOT_DFN,
-                "GET", path)
+                "GET", _pquote("/v1/view/snapshots", query_params=query_params))
 
     def snapshot_dfn_list_raise(self, filter_by_nodes=None, filter_by_resources=None):
         """
@@ -3664,21 +3652,20 @@ class Linstor(object):
         :rtype: list[ErrorReport]
         """
         query_params = {
-            "withContent": with_content
+            "withContent": [str(with_content)]
         }
 
         if since:
-            query_params["since"] = int(time.mktime(since.timetuple()) * 1000)
+            query_params["since"] = [str(int(time.mktime(since.timetuple()) * 1000))]
         if to:
-            query_params["to"] = int(time.mktime(to.timetuple()) * 1000)
+            query_params["to"] = [str(int(time.mktime(to.timetuple()) * 1000))]
 
         result = []
-        query_str = urlencode(query_params)
         if ids:
             for id in ids:
                 err = self._rest_request(
                     apiconsts.API_REQ_ERROR_REPORTS,
-                    "GET", "/v1/error-reports/" + id + "?" + query_str
+                    "GET", _pquote("/v1/error-reports/{}", id, query_params=query_params)
                 )
                 if err:
                     result.append(err[0])
@@ -3686,14 +3673,14 @@ class Linstor(object):
             if nodes:
                 for node in nodes:
                     query_params["node"] = node
-                    query_str = urlencode(query_params)
                     result += self._rest_request(
                         apiconsts.API_REQ_ERROR_REPORTS,
                         "GET",
-                        "/v1/error-reports?" + query_str
+                        _pquote("/v1/error-reports", query_params=query_params)
                     )
             else:
-                result = self._rest_request(apiconsts.API_REQ_ERROR_REPORTS, "GET", "/v1/error-reports?" + query_str)
+                result = self._rest_request(
+                    apiconsts.API_REQ_ERROR_REPORTS, "GET", _pquote("/v1/error-reports", query_params=query_params))
 
         return result
 
@@ -3724,20 +3711,20 @@ class Linstor(object):
             body["nodes"] = nodes
 
         if since:
-            body["since"] = int(time.mktime(since.timetuple()) * 1000)
+            body["since"] = [str(int(time.mktime(since.timetuple()) * 1000))]
         if to:
-            body["to"] = int(time.mktime(to.timetuple()) * 1000)
+            body["to"] = [str(int(time.mktime(to.timetuple()) * 1000))]
 
         if exception:
-            body["exception"] = exception
+            body["exception"] = [exception]
 
         if version:
-            body["version"] = version
+            body["version"] = [version]
 
         if ids:
             body["ids"] = ids
 
-        return self._rest_request(apiconsts.API_DEL_ERROR_REPORTS, "PATCH", "/v1/error-reports", body)
+        return self._rest_request(apiconsts.API_DEL_ERROR_REPORTS, "PATCH", _pquote("/v1/error-reports"), body)
 
     def keyvaluestore_modify(self, instance_name, property_dict=None, delete_props=None):
         """
@@ -3758,7 +3745,7 @@ class Linstor(object):
 
         return self._rest_request(
             apiconsts.API_MOD_KVS,
-            "PUT", "/v1/key-value-store/" + instance_name,
+            "PUT", _pquote("/v1/key-value-store/{}", instance_name),
             body
         )
 
@@ -3772,7 +3759,7 @@ class Linstor(object):
         """
         list_res = self._rest_request(
             apiconsts.API_LST_KVS,
-            "GET", "/v1/key-value-store"
+            "GET", _pquote("/v1/key-value-store")
         )
 
         if list_res:
@@ -3805,7 +3792,7 @@ class Linstor(object):
         self._require_version("1.0.10", msg="Physical storage API not supported by server")
         phys_list = self._rest_request(
             apiconsts.API_LST_PHYS_STOR,
-            "GET", "/v1/physical-storage"
+            "GET", _pquote("/v1/physical-storage")
         )
 
         if phys_list:
@@ -3872,7 +3859,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CREATE_DEVICE_POOL,
             "POST",
-            "/v1/physical-storage/" + node_name,
+            _pquote("/v1/physical-storage/{}", node_name),
             body
         )
 
@@ -3895,26 +3882,23 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
         self._require_version("1.2.0", msg="SOS API not supported by server")
-        query_params = []
+        query_params = {}
         if since:
-            query_params += ["since={s}".format(s=int(time.mktime(since.timetuple()) * 1000))]
+            query_params["since"] = ["{s}".format(s=int(time.mktime(since.timetuple()) * 1000))]
         if nodes:
-            query_params += ["nodes=" + x for x in nodes]
+            query_params["nodes"] = nodes
         if rscs:
-            query_params += ["rscs=" + x for x in rscs]
+            query_params["rscs"] = rscs
         if exclude:
-            query_params += ["exclude=" + x for x in exclude]
+            query_params["exclude"] = exclude
         if not include_ctrl:
             # can't be None, default is True, so only pass if set to False
-            query_params += ["include-ctrl=false"]
+            query_params["include-ctrl"] = ["false"]
 
-        path = "/v1/sos-report"
-        if query_params:
-            path += "?" + "&".join(query_params)
         return self._rest_request(
             apiconsts.API_REQ_SOS_REPORT,
             "GET",
-            path
+            _pquote("/v1/sos-report", query_params=query_params)
         )
 
     def sos_report_download(
@@ -3937,26 +3921,23 @@ class Linstor(object):
         :rtype: list[ApiCallResponse]
         """
         self._require_version("1.2.0", msg="SOS API not supported by server")
-        query_params = []
+        query_params = {}
         if since:
-            query_params += ["since={s}".format(s=int(time.mktime(since.timetuple()) * 1000))]
+            query_params["since"] = ["{s}".format(s=int(time.mktime(since.timetuple()) * 1000))]
         if nodes:
-            query_params += ["nodes=" + x for x in nodes]
+            query_params["nodes"] = nodes
         if rscs:
-            query_params += ["rscs=" + x for x in rscs]
+            query_params["rscs"] = rscs
         if exclude:
-            query_params += ["exclude=" + x for x in exclude]
+            query_params["exclude"] = exclude
         if not include_ctrl:
             # can't be None, default is True, so only pass if set to False
-            query_params += ["include-ctrl=false"]
+            query_params["include-ctrl"] = ["false"]
 
-        path = "/v1/sos-report/download"
-        if query_params:
-            path += "?" + "&".join(query_params)
         return self._rest_request_download(
             apiconsts.API_REQ_SOS_REPORT,
             "GET",
-            path,
+            _pquote("/v1/sos-report/download", query_params=query_params),
             to_file=to_file
         )
 
@@ -3969,11 +3950,10 @@ class Linstor(object):
         """
         self._require_version("1.5.0", msg="Space reporting API not supported by server")
 
-        path = "/v1/space-report"
         return self._rest_request(
             apiconsts.API_RPT_SPC,
             "GET",
-            path
+            _pquote("/v1/space-report")
         )
 
     def backup_list(self, remote_name, resource_name=None, snap_name=None):
@@ -3987,19 +3967,15 @@ class Linstor(object):
         """
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
-        path = "/v1/remotes/{rn}/backups".format(rn=remote_name)
         query_params = {}
         if resource_name:
             query_params["rsc_name"] = resource_name
         if snap_name:
             query_params["snap_name"] = snap_name
-        query_str = urlencode(query_params)
-        if query_str:
-            path += "?" + query_str
         return self._rest_request(
             apiconsts.API_LST_BACKUPS,
             "GET",
-            path
+            _pquote("/v1/remotes/{}/backups", remote_name, query_params=query_params)
         )
 
     def backup_create(self, remote_name, resource_name, incremental=True, node_name=None, snap_name=None):
@@ -4016,7 +3992,6 @@ class Linstor(object):
         """
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
-        path = "/v1/remotes/{rn}/backups".format(rn=remote_name)
         body = {
             "rsc_name": resource_name,
             "incremental": incremental
@@ -4028,7 +4003,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CRT_BACKUP,
             "POST",
-            path,
+            _pquote("/v1/remotes/{}/backups", remote_name),
             body
         )
 
@@ -4063,16 +4038,11 @@ class Linstor(object):
                 if v:
                     key = rename[k] if k in rename else k
                     query_params[key] = v
-        query_str = urlencode(query_params)
-
-        path = "/v1/remotes/{rn}/backups".format(rn=remote_name)
-        if query_str:
-            path += "?" + query_str
 
         return self._rest_request(
             apiconsts.API_DEL_BACKUP,
             "DELETE",
-            path
+            _pquote("/v1/remotes/{}/backups", remote_name, query_params=query_params)
         )
 
     def backup_restore(
@@ -4130,7 +4100,6 @@ class Linstor(object):
 
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
-        path = "/v1/remotes/{rn}/backups/restore".format(rn=remote_name)
         body = {
             "node_name": target_node_name,
             "target_rsc_name": target_resource_name
@@ -4158,7 +4127,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_RESTORE_BACKUP,
             "POST",
-            path,
+            _pquote("/v1/remotes/{}/backups/restore", remote_name),
             body)
 
     def backup_abort(
@@ -4169,7 +4138,6 @@ class Linstor(object):
             create=None):
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
-        path = "/v1/remotes/{rn}/backups/abort".format(rn=remote_name)
         body = {
             "rsc_name": resource_name,
         }
@@ -4181,7 +4149,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_ABORT_BACKUP,
             "POST",
-            path,
+            _pquote("/v1/remotes/{}/backups/abort", remote_name),
             body
         )
 
@@ -4236,7 +4204,6 @@ class Linstor(object):
         """
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
-        path = "/v1/remotes/{rn}/backups/ship".format(rn=remote_name)
         body = {
             "src_rsc_name": src_rsc_name,
             "dst_rsc_name": dst_rsc_name,
@@ -4264,7 +4231,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SHIP_BACKUP,
             "POST",
-            path,
+            _pquote("/v1/remotes/{}/backups/ship", remote_name),
             body
         )
 
@@ -4278,7 +4245,6 @@ class Linstor(object):
             snap_name=None):
         self._require_version("1.10.2", msg="Backup info is not supported by server")
 
-        path = "/v1/remotes/{rn}/backups/info".format(rn=remote_name)
         body = {}
 
         if resource_name:
@@ -4294,7 +4260,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_BACKUP_INFO,
             "POST",
-            path,
+            _pquote("/v1/remotes/{}/backups/info", remote_name),
             body)
 
     def backup_schedule_enable(
@@ -4367,7 +4333,7 @@ class Linstor(object):
         return self._rest_request(
             "BackupScheduleEnable",
             "PUT",
-            "/v1/remotes/{rn}/backups/schedule/{sn}/enable".format(rn=remote_name, sn=schedule_name),
+            _pquote("/v1/remotes/{}/backups/schedule/{}/enable", remote_name, schedule_name),
             body)
 
     def backup_schedule_disable(
@@ -4388,7 +4354,7 @@ class Linstor(object):
         return self._rest_request(
             "BackupScheduleDisable",
             "PUT",
-            "/v1/remotes/{rn}/backups/schedule/{sn}/disable".format(rn=remote_name, sn=schedule_name),
+            _pquote("/v1/remotes/{}/backups/schedule/{}/disable", remote_name, schedule_name),
             body)
 
     def backup_schedule_delete(
@@ -4404,14 +4370,10 @@ class Linstor(object):
         if resource_group_name:
             query_params["rsc_grp_name"] = resource_group_name
 
-        query_str = urlencode(query_params)
-        if query_str:
-            query_str = "?" + query_str
-
         return self._rest_request(
             "BackupScheduleDisable",
             "DELETE",
-            "/v1/remotes/{rn}/backups/schedule/{sn}/delete{q}".format(rn=remote_name, sn=schedule_name, q=query_str))
+            _pquote("/v1/remotes/{}/backups/schedule/{}/delete", remote_name, schedule_name, query_params=query_params))
 
     def backup_queue_list(self, nodes=None, snaps=None, rscs=None, remotes=None, snap_to_node=False):
         """
@@ -4427,23 +4389,20 @@ class Linstor(object):
         """
         self._require_version("1.20.0", msg="Backup queue list not supported by server")
 
-        query_params = []
+        query_params = {}
         if nodes:
-            query_params += ["nodes=" + x for x in nodes]
+            query_params["nodes"] = nodes
         if snaps:
-            query_params += ["snapshots=" + x for x in snaps]
+            query_params["snapshots"] = snaps
         if rscs:
-            query_params += ["resources=" + x for x in rscs]
+            query_params["resources"] = rscs
         if remotes:
-            query_params += ["remotes=" + x for x in remotes]
+            query_params["remotes"] = remotes
         if snap_to_node:
-            query_params += ["snap_to_node=True"]
+            query_params["snap_to_node"] = ["True"]
 
-        path = "/v1/view/backup/queue"
-        if query_params:
-            path += "?" + "&".join(query_params)
-
-        return self._rest_request(apiconsts.API_LST_QUEUE, "GET", path)
+        return self._rest_request(
+            apiconsts.API_LST_QUEUE, "GET", _pquote("/v1/view/backup/queue", query_params=query_params))
 
     def remote_list(self):
         """
@@ -4453,12 +4412,10 @@ class Linstor(object):
         """
         self._require_version("1.10.0", msg="Remotes are not supported by server")
 
-        path = "/v1/remotes"
-
         return self._rest_request(
             apiconsts.API_LST_REMOTE,
             "GET",
-            path
+            _pquote("/v1/remotes")
         )
 
     def remote_create_s3(self, remote_name, endpoint, region, bucket, access_key, secret_key, use_path_style=False):
@@ -4489,7 +4446,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SET_REMOTE,
             "POST",
-            "/v1/remotes/s3",
+            _pquote("/v1/remotes/s3"),
             body
         )
 
@@ -4525,7 +4482,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SET_REMOTE,
             "PUT",
-            "/v1/remotes/s3/" + remote_name,
+            _pquote("/v1/remotes/s3/{}", remote_name),
             body
         )
 
@@ -4554,7 +4511,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SET_REMOTE,
             "POST",
-            "/v1/remotes/linstor",
+            _pquote("/v1/remotes/linstor"),
             body
         )
 
@@ -4584,7 +4541,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SET_REMOTE,
             "PUT",
-            "/v1/remotes/linstor/" + remote_name,
+            _pquote("/v1/remotes/linstor/{}", remote_name),
             body
         )
 
@@ -4624,7 +4581,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SET_REMOTE,
             "POST",
-            "/v1/remotes/ebs",
+            _pquote("/v1/remotes/ebs"),
             body
         )
 
@@ -4667,18 +4624,17 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_SET_REMOTE,
             "PUT",
-            "/v1/remotes/ebs/" + remote_name,
+            _pquote("/v1/remotes/ebs/{}", remote_name),
             body
         )
 
     def remote_delete(self, remote_name):
         self._require_version("1.10.0", msg="Remotes are not supported by server")
 
-        path = "/v1/remotes?" + urlencode({"remote_name": remote_name})
         return self._rest_request(
             apiconsts.API_SET_REMOTE,
             "DELETE",
-            path
+            _pquote("/v1/remotes", query_params={"remote_name": remote_name})
         )
 
     def stats(self):
@@ -4702,7 +4658,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_LST_EXOS_DFLTS,
             "GET",
-            "/v1/vendor/seagate/exos/defaults"
+            _pquote("/v1/vendor/seagate/exos/defaults")
         )
 
     def exos_set_defaults(
@@ -4730,7 +4686,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_MOD_EXOS_DFLTS,
             "PUT",
-            "/v1/vendor/seagate/exos/defaults",
+            _pquote("/v1/vendor/seagate/exos/defaults"),
             {
                 "username": username,
                 "username_env": username_env,
@@ -4785,7 +4741,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CRT_EXOS_ENCLOSURE,
             "POST",
-            "/v1/vendor/seagate/exos/enclosures",
+            _pquote("/v1/vendor/seagate/exos/enclosures"),
             body
         )
 
@@ -4834,7 +4790,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_MOD_EXOS_ENCLOSURE,
             "PUT",
-            "/v1/vendor/seagate/exos/enclosures/" + enclosure_name,
+            _pquote("/v1/vendor/seagate/exos/enclosures/{}", enclosure_name),
             body
         )
 
@@ -4854,7 +4810,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_DEL_EXOS_ENCLOSURE,
             "DELETE",
-            "/v1/vendor/seagate/exos/enclosures/" + enclosure_name
+            _pquote("/v1/vendor/seagate/exos/enclosures/{}", enclosure_name)
         )
 
     def exos_list_enclosures(
@@ -4871,18 +4827,14 @@ class Linstor(object):
 
         self._require_version("1.7.0", msg="EXOS API not supported by server")
 
-        query_params = []
+        query_params = {}
         if nocache:
-            query_params += ["nocache=true"]
-
-        path = "/v1/vendor/seagate/exos/enclosures"
-        if query_params:
-            path += "?" + "&".join(query_params)
+            query_params["nocache"] = ["true"]
 
         return self._rest_request(
             apiconsts.API_LST_EXOS_ENCLOSURES,
             "GET",
-            path
+            _pquote("/v1/vendor/seagate/exos/enclosures", query_params=query_params)
         )
 
     def exos_enclosure_events(
@@ -4901,18 +4853,14 @@ class Linstor(object):
 
         self._require_version("1.7.0", msg="EXOS API not supported by server")
 
-        query_params = []
+        query_params = {}
         if count:
-            query_params += ["count=" + str(count)]
-
-        path = "/v1/vendor/seagate/exos/enclosures/" + enclosure_name + "/events"
-        if query_params:
-            path += "?" + "&".join(query_params)
+            query_params["count"] = [str(count)]
 
         return self._rest_request(
             apiconsts.API_EXOS_ENCLOSURE_EVENTS,
             "GET",
-            path
+            _pquote("/v1/vendor/seagate/exos/enclosures/{}/events", enclosure_name, query_params=query_params)
         )
 
     def exos_exec(
@@ -4930,10 +4878,11 @@ class Linstor(object):
 
         self._require_version("1.7.0", msg="EXOS API not supported by server")
 
+        path = "/v1/vendor/seagate/exos/enclosures/{}/exec/" + "/".join(cmds)
         return self._rest_request(
             apiconsts.API_EXOS_EXEC,
             "GET",
-            "/v1/vendor/seagate/exos/enclosures/" + enclosure_name + "/exec/" + "/".join(cmds)
+            _pquote(path, enclosure_name)
         )
 
     def exos_map(self):
@@ -4950,7 +4899,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_EXOS_MAP,
             "GET",
-            "/v1/vendor/seagate/exos/map"
+            _pquote("/v1/vendor/seagate/exos/map")
         )
 
     def file_list(self):
@@ -4966,7 +4915,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_LST_EXT_FILES,
             "GET",
-            "/v1/files"
+            _pquote("/v1/files")
         )
 
     def file_show(self, file_name):
@@ -5046,7 +4995,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_DEPLOY_EXT_FILE,
             "POST",
-            "/v1/resource-definitions/" + rsc_name + "/files/" + quote(file_name, safe="")
+            _pquote("/v1/resource-definitions/{}/files/", rsc_name) + quote(file_name, safe="")
         )
 
     def file_undeploy(self, file_name, rsc_name):
@@ -5064,7 +5013,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_UNDEPLOY_EXT_FILE,
             "DELETE",
-            "/v1/resource-definitions/" + rsc_name + "/files/" + quote(file_name, safe="")
+            _pquote("/v1/resource-definitions/{}/files/", rsc_name) + quote(file_name, safe="")
         )
 
     def schedule_list(self):
@@ -5081,7 +5030,7 @@ class Linstor(object):
         list_res = self._rest_request(
             apiconsts.API_LST_SCHEDULE,
             "GET",
-            "/v1/schedules"
+            _pquote("/v1/schedules")
         )
 
         if list_res:
@@ -5111,14 +5060,10 @@ class Linstor(object):
         if active_only:
             query_params["active-only"] = active_only
 
-        query_str = urlencode(query_params)
-        if query_str:
-            query_str = "?" + query_str
-
         return self._rest_request(
             Linstor.API_SCHEDULE_BY_RESOURCE_LIST,
             "GET",
-            "/v1/view/schedules-by-resource{q}".format(q=query_str))
+            _pquote("/v1/view/schedules-by-resource", query_params=query_params))
 
     def schedule_list_by_resource_details(self, resource_name):
         self._require_version("1.14.0", msg="Schedules not supported by server")
@@ -5152,7 +5097,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CRT_SCHEDULE,
             "POST",
-            "/v1/schedules",
+            _pquote("/v1/schedules"),
             body
         )
 
@@ -5190,7 +5135,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CRT_SCHEDULE,
             "PUT",
-            "/v1/schedules/" + schedule_name,
+            _pquote("/v1/schedules/{}", schedule_name),
             body
         )
 
@@ -5200,7 +5145,7 @@ class Linstor(object):
         return self._rest_request(
             apiconsts.API_CRT_SCHEDULE,
             "DELETE",
-            "/v1/schedules/" + schedule_name
+            _pquote("/v1/schedules/{}", schedule_name)
         )
 
 

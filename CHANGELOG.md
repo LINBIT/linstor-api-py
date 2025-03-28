@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Correctly encode all rest url path calls
+
 ## [1.25.0] - 2025-03-19
 
 ### Added
