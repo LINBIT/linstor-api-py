@@ -1,3 +1,10 @@
+python-linstor (1.25.1-1) experimental; urgency=medium
+
+  * linstorapi: Correctly encode all rest url path calls
+  * linstor-common update
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 02 Apr 2025 07:57:55 +0000
+
 python-linstor (1.25.0-1) experimental; urgency=medium
 
   * responses: add repl state and done_percentage
