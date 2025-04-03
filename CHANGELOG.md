@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- remove replication_state and done_percentage, but added instead replication_states
+
 ## [1.25.1] - 2025-04-02
 
 ### Fixed

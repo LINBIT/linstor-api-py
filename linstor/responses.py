@@ -1270,6 +1270,27 @@ class VolumeGroupResponse(RESTMessageResponse):
         return [VolumeGroup(x) for x in self._rest_data]
 
 
+class ReplicationState(RESTMessageResponse):
+    def __init__(self, data):
+        super(ReplicationState, self).__init__(data)
+
+    @property
+    def replication_state(self):
+        """
+        :return: String describing the drbd replication state
+        :rtype: str
+        """
+        return self._rest_data.get("replication_state", "")
+
+    @property
+    def done_percentage(self):
+        """
+        :return: decimal percentage of current verify/sync operation on drbd
+        :rtype: Optional[float]
+        """
+        return self._rest_data.get("done_percentage")
+
+
 class VolumeState(RESTMessageResponse):
     def __init__(self, data):
         super(VolumeState, self).__init__(data)
@@ -1292,20 +1313,12 @@ class VolumeState(RESTMessageResponse):
         return self._rest_data.get("disk_state")
 
     @property
-    def replication_state(self):
+    def replication_states(self):
         """
-        :return: String describing the drbd replication state
-        :rtype: str
+        :return: dict with peers and their replication states
+        :rtype: dict[str, ReplicationState]
         """
-        return self._rest_data.get("replication_state", "")
-
-    @property
-    def done_percentage(self):
-        """
-        :return: decimal percentage of current verify/sync operation on drbd
-        :rtype: Optional[float]
-        """
-        return self._rest_data.get("done_percentage")
+        return {k: ReplicationState(v) for k, v in self._rest_data.get("replication_states", {}).items()}
 
     @property
     def data_v0(self):
