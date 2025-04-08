@@ -1,3 +1,9 @@
+python-linstor (1.25.2-1) experimental; urgency=medium
+
+  * remove replication_state and %, but added instead replication_states
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 08 Apr 2025 07:08:10 +0000
+
 python-linstor (1.25.1-1) experimental; urgency=medium
 
   * linstorapi: Correctly encode all rest url path calls
