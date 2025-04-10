@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Correctly pass parameters in error_report_delete
+- resource_dfn_clone: Fix exception if curl option was set
 
 ## [1.25.2] - 2025-04-08
 

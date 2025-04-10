@@ -2007,7 +2007,7 @@ class Linstor(object):
         :param optional[list[str]] layer_list: Set of layer names to use.
         :param optional[str] resource_group: Resource group the cloned resource should use.
         :return:
-        :rtype: CloneStarted
+        :rtype: optional[CloneStarted]
         """
         self._require_version("1.10.0", msg="Resource definition clone API not supported by server")
 
@@ -2036,12 +2036,13 @@ class Linstor(object):
             self._require_version("1.23.0", msg="Clone resource-group parameter not supported")
             body["resource_group"] = resource_group
 
-        return self._rest_request(
+        result = self._rest_request(
             apiconsts.API_CLONE_RSCDFN,
             "POST", _pquote("/v1/resource-definitions/{}/clone", src_name),
             body,
             raise_error=True
-        )[0]
+        )
+        return result[0] if result else None
 
     def resource_dfn_clone_status(self, src_name, clone_name):
         """
