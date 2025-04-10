@@ -3696,8 +3696,8 @@ class Linstor(object):
         Deletes error-reports on the linstor cluster, filtered by the given parameters
 
         :param list[str] nodes: Only delete error-reports from these nodes, if None or empty all
-        :param datetime since: Start datetime from when to delete
-        :param datetime to: Until datetime to delete
+        :param datetime.datetime since: Start datetime from when to delete
+        :param datetime.datetime to: Until datetime to delete
         :param str exception: Delete error reports matching this exception string
         :param str version: Delete error reports matching this version string
         :param list[str] ids: Error report ids to delete
@@ -3711,15 +3711,15 @@ class Linstor(object):
             body["nodes"] = nodes
 
         if since:
-            body["since"] = [str(int(time.mktime(since.timetuple()) * 1000))]
+            body["since"] = int(time.mktime(since.timetuple()) * 1000)
         if to:
-            body["to"] = [str(int(time.mktime(to.timetuple()) * 1000))]
+            body["to"] = int(time.mktime(to.timetuple()) * 1000)
 
         if exception:
-            body["exception"] = [exception]
+            body["exception"] = exception
 
         if version:
-            body["version"] = [version]
+            body["version"] = version
 
         if ids:
             body["ids"] = ids
