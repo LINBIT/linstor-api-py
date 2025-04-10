@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.25.3] - 2025-04-10
+
 ### Added
 
 - Add TLS certificate options to "curl" debug output
