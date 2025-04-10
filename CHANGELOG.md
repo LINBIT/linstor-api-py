@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add TLS certificate options to "curl" debug output
+
 ### Fixed
 
 - Correctly pass parameters in error_report_delete

@@ -3,6 +3,7 @@ Linstorapi module
 """
 from __future__ import print_function
 
+import shlex
 import socket
 import sys
 import time
@@ -343,17 +344,24 @@ class Linstor(object):
         url = urlparse(self._ctrl_host)
         cmd = ["curl", "-X", method]
         if body is not None:
-            cmd += ['-H "Content-Type: application/json"']
-            cmd += ["-d '" + json.dumps(body) + "'"]
+            cmd += ["-H", "Content-Type: application/json"]
+            cmd += ["-d", json.dumps(body)]
 
-        port = url.port if url.port else Linstor.REST_PORT
-        is_https = True if url.scheme == "linstor+ssl" else False
+        port = url.port or Linstor.REST_PORT
+        is_https = url.scheme == "linstor+ssl" or url.scheme == "https"
 
         port = port if not is_https else Linstor.REST_HTTPS_PORT
 
+        if self.cafile:
+            cmd += ["--cacert", self.cafile]
+        if self.certfile:
+            cmd += ["--cert", self.certfile]
+        if self.keyfile:
+            cmd += ["--key", self.keyfile]
+
         scheme = "https" if is_https else "http"
         cmd += [scheme + "://" + url.hostname + ":" + str(port) + path]
-        print(" ".join(cmd))
+        print(" ".join([shlex.quote(arg) for arg in cmd]))
 
     @classmethod
     def _current_milli_time(cls):
