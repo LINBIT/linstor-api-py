@@ -748,20 +748,21 @@ class Linstor(object):
 
         try:
             self._rest_conn.connect()
-            self._ctrl_version = self.controller_version()
-            if not self._ctrl_version.rest_api_version.startswith("1") or \
-                    StrictVersion(API_VERSION_MIN) > StrictVersion(self._ctrl_version.rest_api_version):
-                self._rest_conn.close()
-                raise LinstorApiCallError(
-                    ApiCallResponse.from_str("Client doesn't support Controller rest api version: "
-                                             + self._ctrl_version.rest_api_version + "; Minimal version needed: "
-                                             + API_VERSION_MIN))
-            self._connected = True
         except socket.error as err:
             hosturl = self._ctrl_host
             if is_https:
                 hosturl = "linstor+ssl://" + url.hostname + ":" + str(port)
             raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=hosturl, err=err))
+
+        self._ctrl_version = self.controller_version()
+        if not self._ctrl_version.rest_api_version.startswith("1") or \
+                StrictVersion(API_VERSION_MIN) > StrictVersion(self._ctrl_version.rest_api_version):
+            self._rest_conn.close()
+            raise LinstorApiCallError(
+                ApiCallResponse.from_str("Client doesn't support Controller rest api version: "
+                                         + self._ctrl_version.rest_api_version + "; Minimal version needed: "
+                                         + API_VERSION_MIN))
+        self._connected = True
         return True
 
     @property
