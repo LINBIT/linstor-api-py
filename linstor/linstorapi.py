@@ -85,14 +85,20 @@ class ResourceData(object):
             drbd_diskless=False,
             nvme_initiator=False,
             ebs_initiator=False,
-            active=True):
+            active=True,
+            drbd_tcp_ports=None):
         """
         :param str node_name: The node on which to place the resource
         :param str rsc_name: The resource definition to place
         :param bool diskless: Should the resource be diskless
         :param str storage_pool: The storage pool to use
         :param int node_id: Use this DRBD node_id
-        :param list[str] layer_list: Set of layer names to use.
+        :param list[str] layer_list: Set of layer names to use
+        :param bool drbd_diskless: If true, a diskless DRBD peer is created
+        :param bool nvme_initiator: If true, an NVMe initiator is created (instead of an NVMe target)
+        :param bool ebs_initiator: If true, an EBS initiator is created (instead of an EBS target)
+        :param bool active: If false, only the storage for the given resource will be created, not the layers above it
+        :param Optional[List[int]] drbd_tcp_ports: Set the TCP port(s) for the DRBD resource
         """
         self._node_name = node_name
         self._rsc_name = rsc_name
@@ -104,6 +110,7 @@ class ResourceData(object):
         self._nvme_initiator = nvme_initiator
         self._ebs_initiator = ebs_initiator
         self._active = active
+        self._drbd_tcp_ports = drbd_tcp_ports
 
     @property
     def node_name(self):
@@ -144,6 +151,10 @@ class ResourceData(object):
     @property
     def active(self):
         return self._active
+
+    @property
+    def drbd_tcp_ports(self):
+        return self._drbd_tcp_ports
 
 
 class LogLevelEnum(Enum):
@@ -2121,7 +2132,14 @@ class Linstor(object):
                 raise LinstorTimeoutError("{c} resource didn't get ready in time.".format(c=rsc_name))
             time.sleep(wait_interval)
 
-    def resource_dfn_modify(self, name, property_dict, delete_props=None, peer_slots=None, resource_group=None):
+    def resource_dfn_modify(
+            self,
+            name,
+            property_dict,
+            delete_props=None,
+            peer_slots=None,
+            resource_group=None,
+            port=None):
         """
         Modify properties of the given resource definition.
 
@@ -2130,6 +2148,7 @@ class Linstor(object):
         :param Optional[list[str]] delete_props: List of properties to delete
         :param Optional[int] peer_slots: peer slot count for new resources of this resource dfn
         :param Optional[str] resource_group: Change resource group to the given name
+        :param Optional[int] ports: Optional preferred DRBD ports
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2146,6 +2165,9 @@ class Linstor(object):
 
         if resource_group:
             body["resource_group"] = resource_group
+
+        if port:
+            body["drbd_port"] = port
 
         return self._rest_request(
             apiconsts.API_MOD_RSC_DFN,
@@ -2469,6 +2491,9 @@ class Linstor(object):
             if rsc.layer_list:
                 rsc_data["layer_list"] = rsc.layer_list
 
+            if rsc.drbd_tcp_ports is not None:
+                rsc_data["drbd_tcp_ports"] = rsc.drbd_tcp_ports
+
             if not rsc_data["resource"]["flags"]:
                 del rsc_data["resource"]["flags"]
 
@@ -2661,7 +2686,7 @@ class Linstor(object):
         return self.resource_auto_place(rsc_name, place_count, storage_pool=storage_pool,
                                         diskless_on_remaining=diskless_on_remaining)
 
-    def resource_make_available(self, node_name, rsc_name, diskful=False, layer_list=None):
+    def resource_make_available(self, node_name, rsc_name, diskful=False, layer_list=None, drbd_tcp_ports=None):
         """
         Adds a resource on a node if not already deployed.
 
@@ -2674,6 +2699,7 @@ class Linstor(object):
         :param str rsc_name: Resource name to make available
         :param bool diskful: If true make the resource diskful.
         :param list[str] layer_list: Set of layer names to use.
+        :param list[int] drbd_tcp_ports: List of TCP ports for the given DRBD peer
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2683,6 +2709,9 @@ class Linstor(object):
 
         if layer_list:
             body["layer_list"] = layer_list
+
+        if drbd_tcp_ports is not None:
+            body["drbd_tcp_ports"] = drbd_tcp_ports
 
         return self._rest_request(
             apiconsts.API_MAKE_RSC_AVAIL,

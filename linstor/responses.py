@@ -919,7 +919,7 @@ class DrbdLayer(RESTMessageResponse):
         super(DrbdLayer, self).__init__(rest_data)
 
     @property
-    def port(self):
+    def port(self):  # deprecated - use DrbdResource's tcp_port instead!
         return self._rest_data["port"]
 
     @property
@@ -948,7 +948,7 @@ class ResourceDfnLayerData(RESTMessageResponse):
         :rtype: Optional[DrbdLayer]
         """
         if self.type == "DRBD":
-            return DrbdLayer(self._rest_data["drbd"])
+            return DrbdLayer(self._rest_data["data"])
         return None
 
 
@@ -1439,6 +1439,16 @@ class DrbdResource(RESTMessageResponse):
         :rtype: dict[str, DrbdConnection]
         """
         return {k: DrbdConnection(v) for k, v in self._rest_data.get("connections", {}).items()}
+
+    @property
+    def tcp_ports(self):
+        """
+        Ports used by this DRBD Resource.
+
+        :return: A list of integers
+        :rtype: list[int]
+        """
+        return self._rest_data.get("tcp_ports", [])
 
     # TODO other fields
 

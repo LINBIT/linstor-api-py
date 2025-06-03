@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - snapshot_dfn_modify() and properties to responses.SnapshotDefinition
+- Add tcp_ports to DrbdResource
 
 ### Fixed
 
