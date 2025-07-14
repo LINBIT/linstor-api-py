@@ -3649,6 +3649,31 @@ class Linstor(object):
             raise LinstorApiCallError(list_res[0], list_res)
         raise LinstorError("No list response received.")
 
+    def snapshot_dfn_modify(self, resource_name, snapshot_name, property_dict, delete_props=None):
+        """
+        Modify properties of the given snapshot definition.
+
+        :param str resource_name: Name of the resource definition to modify.
+        :param str snapshot_name: Name of the snapshot.
+        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
+        :param Optional[list[str]] delete_props: List of properties to delete
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        body = {}
+
+        if property_dict:
+            body["override_props"] = property_dict
+
+        if delete_props:
+            body["delete_props"] = delete_props
+
+        return self._rest_request(
+            apiconsts.API_MOD_RSC_DFN,
+            "PUT", _pquote("/v1/resource-definitions/{}/snapshots/{}", resource_name, snapshot_name),
+            body
+        )
+
     def error_report_list(self, nodes=None, with_content=False, since=None, to=None, ids=None):
         """
         Retrieves an error report list from the controller.

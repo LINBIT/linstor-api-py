@@ -2006,6 +2006,10 @@ class SnapshotDefinition(RESTMessageResponse):
         return self._rest_data.get("flags", [])
 
     @property
+    def properties(self):
+        return self._rest_data.get("props", {})
+
+    @property
     def snapshot_volume_definitions(self):
         return [SnapshotVolumeDefinition(x) for x in self._rest_data.get("volume_definitions", [])]
 
