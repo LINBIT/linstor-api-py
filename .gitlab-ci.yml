@@ -79,7 +79,7 @@ build:
     - |
       case "$CI_COMMIT_REF_NAME" in
         "master") VERSION_SUFFIX="" ;;
-        *) VERSION_SUFFIX=.dev$(echo -n $CI_COMMIT_REF_NAME | md5sum| sed -e 's/[^0-9]//g' | cut -c -9) ;;
+        *) VERSION_SUFFIX=.dev$(echo -n $CI_COMMIT_REF_NAME | md5sum| sed -e 's/[^1-9]//g' | cut -c -9) ;;
       esac
     - PYTHON_LINSTOR_VERSION=1.99.0$VERSION_SUFFIX
     - awk -f "/usr/local/bin/dch.awk" -v PROJECT_VERSION="$PYTHON_LINSTOR_VERSION" -v PROJECT_NAME="python-linstor" debian/changelog > debian/changelog.tmp
