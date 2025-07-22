@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Error out if reading controller version fails
 
+### Removed
+
+- Removed deprecated EXOS methods
+
 ## [1.25.3] - 2025-04-10
 
 ### Added
