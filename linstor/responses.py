@@ -2058,61 +2058,6 @@ class SnapshotResponse(RESTMessageResponse):
         return d
 
 
-class Shipping(RESTMessageResponse):
-    def __init__(self, data):
-        super(Shipping, self).__init__(data)
-
-    @property
-    def snapshot_dfn(self):
-        """
-        Return the SnapshotDefinition object of the shipping
-        :return: SnapshotDefinition object of ths shipping
-        :rtype: SnapshotDefinition
-        """
-        return SnapshotDefinition(self._rest_data["snapshot"])
-
-    @property
-    def from_node_name(self):
-        """
-        Source node of the shipping
-        :return: source node name
-        :rtype: str
-        """
-        return self._rest_data["from_node_name"]
-
-    @property
-    def to_node_name(self):
-        """
-        Target node of the shipping
-        :return: target node name
-        :rtype: str
-        """
-        return self._rest_data["to_node_name"]
-
-    @property
-    def status(self):
-        """
-        Status of the shipping
-        :return: status of the shipping
-        :rtype: apiconsts.SnapshotShipStatus
-        """
-        return apiconsts.SnapshotShipStatus(self._rest_data["status"])
-
-
-class SnapshotShippingResponse(RESTMessageResponse):
-    def __init__(self, data):
-        super(SnapshotShippingResponse, self).__init__(data)
-
-    @property
-    def shippings(self):
-        """
-        Returns snapshot shipping list
-        :return:
-        :rtype: list[Shipping]
-        """
-        return [Shipping(x) for x in self._rest_data]
-
-
 class ControllerProperties(RESTMessageResponse):
     def __init__(self, data):
         super(ControllerProperties, self).__init__(data)

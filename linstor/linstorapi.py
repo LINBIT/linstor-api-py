@@ -26,7 +26,7 @@ from linstor.responses import NodeListResponse, KeyValueStoresResponse, Resource
 from linstor.responses import ResourceResponse, VolumeDefinitionResponse, VolumeResponse, ResourceConnectionsResponse
 from linstor.responses import SnapshotResponse, ControllerProperties, ResourceConnection
 from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
-from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList, SnapshotShippingResponse
+from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
 from linstor.responses import SpaceReport, BackupQueues
 from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
@@ -228,7 +228,6 @@ class Linstor(object):
         apiconsts.API_LST_RSC: ResourceResponse,
         apiconsts.API_LST_VLM: VolumeResponse,
         apiconsts.API_LST_SNAPSHOT_DFN: SnapshotResponse,
-        apiconsts.API_LST_SNAPSHOT_SHIPPINGS: SnapshotShippingResponse,
         apiconsts.API_REQ_ERROR_REPORTS: ErrorReport,
         apiconsts.API_LST_CTRL_PROPS: ControllerProperties,
         apiconsts.API_LST_NODE_CONN: NodeConnectionsResponse,
@@ -3570,57 +3569,6 @@ class Linstor(object):
             "POST",
             _pquote("/v1/resource-definitions/{}/snapshot-rollback/{}", rsc_name, snapshot_name)
         )
-
-    def snapshot_ship(self, from_node, to_node, rsc_name):
-        """
-        Roll a resource back to a snapshot state.
-
-        :param str rsc_name: Name of the resource.
-        :param str from_node: Snapshot source node.
-        :param str to_node: Snapshot target node.
-        :return: A list containing ApiCallResponses from the controller.
-        :rtype: list[ApiCallResponse]
-        """
-        self._require_version("1.2.0")
-        body = {
-            "from_node": from_node,
-            "to_node": to_node
-        }
-        return self._rest_request(
-            apiconsts.API_SHIP_SNAPSHOT,
-            "POST",
-            _pquote("/v1/resource-definitions/{}/snapshot-shipping", rsc_name),
-            body
-        )
-
-    def snapshot_shipping_list(self,
-                               filter_by_nodes=None,
-                               filter_by_resources=None,
-                               filter_by_snapshots=None,
-                               filter_by_status=None):
-        """
-        Request a list of all snapshot shippings known to the controller.
-
-        :param list[str] filter_by_nodes: filter resources by nodes
-        :param list[str] filter_by_resources: filter resources by resource names
-        :param list[str] filter_by_snapshots: filter shippings by snapshot names
-        :param list[str] filter_by_status: filter shippings by status
-        :return: A MsgLstSnapshotDfn proto message containing all information.
-        :rtype: list[SnapshotShippingResponse]
-        """
-        self._require_version("1.3.0")
-        query_params = {}
-        if filter_by_nodes:
-            query_params["nodes"] = filter_by_nodes
-        if filter_by_resources:
-            query_params["resources"] = filter_by_resources
-        if filter_by_snapshots:
-            query_params["snapshots"] = filter_by_snapshots
-        if filter_by_status:
-            query_params["status"] = filter_by_status
-        return self._rest_request(
-            apiconsts.API_LST_SNAPSHOT_SHIPPINGS,
-            "GET", _pquote("/v1/view/snapshot-shippings", query_params=query_params))
 
     def snapshot_dfn_list(self, filter_by_nodes=None, filter_by_resources=None):
         """
