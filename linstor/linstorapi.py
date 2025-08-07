@@ -1999,6 +1999,8 @@ class Linstor(object):
             volume_passphrases=None,
             layer_list=None,
             resource_group=None,
+            property_dict=None,
+            delete_props=None,
     ):
         """
         Sends a clone request to linstor controller.
@@ -2011,6 +2013,8 @@ class Linstor(object):
         :param optional[list[str]] volume_passphrases: user provided passwords for encrypted volumes
         :param optional[list[str]] layer_list: Set of layer names to use.
         :param optional[str] resource_group: Resource group the cloned resource should use.
+        :param optional[dict[str,str]] property_dict: Properties to override
+        :param optiona[list[str]] delete_props: Property keys to delete
         :return:
         :rtype: optional[CloneStarted]
         """
@@ -2040,6 +2044,14 @@ class Linstor(object):
         if resource_group:
             self._require_version("1.23.0", msg="Clone resource-group parameter not supported")
             body["resource_group"] = resource_group
+
+        if property_dict:
+            self._require_version("1.26.0", msg="Clone property override not supported")
+            body["override_props"] = property_dict
+
+        if delete_props:
+            self._require_version("1.26.0", msg="Clone property delete not supported")
+            body["delete_props"] = delete_props
 
         result = self._rest_request(
             apiconsts.API_CLONE_RSCDFN,
