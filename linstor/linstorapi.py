@@ -3555,19 +3555,27 @@ class Linstor(object):
             _pquote("/v1/resource-definitions/{}/snapshots/{}", rsc_name, snapshot_name, query_params=query_params)
         )
 
-    def snapshot_rollback(self, rsc_name, snapshot_name):
+    def snapshot_rollback(self, rsc_name, snapshot_name, zfs_rollback_strategy=None):
         """
         Roll a resource back to a snapshot state.
 
         :param str rsc_name: Name of the resource.
         :param str snapshot_name: Name of the snapshot.
+        :param Optional[str] zfs_rollback_strategy: Override possibly existing property for this API call
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
+
+        body = {}
+        if zfs_rollback_strategy:
+            self._require_version("1.26.0")
+            body['zfs_rollback_strategy'] = zfs_rollback_strategy
+
         return self._rest_request(
             apiconsts.API_ROLLBACK_SNAPSHOT,
             "POST",
-            _pquote("/v1/resource-definitions/{}/snapshot-rollback/{}", rsc_name, snapshot_name)
+            _pquote("/v1/resource-definitions/{}/snapshot-rollback/{}", rsc_name, snapshot_name),
+            body,
         )
 
     def snapshot_dfn_list(self, filter_by_nodes=None, filter_by_resources=None):
