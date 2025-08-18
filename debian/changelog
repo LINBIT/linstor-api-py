@@ -1,3 +1,19 @@
+python-linstor (1.26.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * linstorapi/connect: Error out if reading controller version fails
+  * Added snapshot_dfn_modify
+  * gitlab: python version shouldn't contain 0
+  * resource_dfn_clone: can now set and delete properties
+
+  [ Gabor Hernadi ]
+  * DRBD: Add new tcp_ports property to DrbdResource
+  * Removed EXOS
+  * Removed snapshot ship methods
+  * Snap,rollback: Add optional zfs_rollback_strategy param
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 18 Aug 2025 09:09:27 +0000
+
 python-linstor (1.25.3-1) experimental; urgency=medium
 
   [ Moritz Wanzenböck ]
