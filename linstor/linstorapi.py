@@ -4300,7 +4300,8 @@ class Linstor(object):
             storpool_rename_map=None,
             force_restore=False,
             dst_rsc_grp=None,
-            force_mv_rsc_grp=False):
+            force_mv_rsc_grp=False,
+            dst_rsc_name=None):
         """
         Enables a given backup schedule for the given remote of the given resource-definition, -group or controller.
 
@@ -4333,6 +4334,7 @@ class Linstor(object):
         :param Optional[boolean] force_mv_rsc_grp: If the destination resource-definition already has resources, the
             dst_rsc_grp is ignored to prevent unexpected autoplace-adjustments (for example from BalanceResourceTask).
             The dst_rsc_grp can still be forcefully applied if force_mv_rsc_grp is set to True.
+        :param Optional[str] dst_rsc_name: The target-resource-name. Only allowed when used with resource_name paramter!
         """
 
         body = {}
@@ -4353,6 +4355,8 @@ class Linstor(object):
             body["force_restore"] = force_restore
         if dst_rsc_grp:
             body["dst_rsc_grp"] = dst_rsc_grp
+        if dst_rsc_name:
+            body["dst_rsc_name"] = dst_rsc_name
         if force_mv_rsc_grp:
             body["force_mv_rsc_grp"] = force_mv_rsc_grp
 
