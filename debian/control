@@ -16,6 +16,7 @@ Standards-Version: 3.9.6
 Package: python-linstor
 Architecture: all
 Depends: ${misc:Depends},
+         python3-setuptools,
          ${python3:Depends}
 Description: Linstor python api library
  This library provides functions to access the Linstor controller
