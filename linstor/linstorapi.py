@@ -4045,7 +4045,13 @@ class Linstor(object):
             _pquote("/v1/remotes/{}/backups", remote_name, query_params=query_params)
         )
 
-    def backup_create(self, remote_name, resource_name, incremental=True, node_name=None, snap_name=None):
+    def backup_create(
+            self,
+            remote_name,
+            resource_name,
+            incremental=True,
+            node_name=None,
+            snap_name=None):
         """
         Create a backup at the given remote of the given resource.
 
@@ -4067,6 +4073,7 @@ class Linstor(object):
             body["node_name"] = node_name
         if snap_name:
             body["snap_name"] = snap_name
+
         return self._rest_request(
             apiconsts.API_CRT_BACKUP,
             "POST",
@@ -4202,7 +4209,20 @@ class Linstor(object):
             remote_name,
             resource_name,
             restore=None,
-            create=None):
+            create=None,
+            snapshot=None):
+        """
+        Aborts the given snapshot(s)
+
+        :param str remote_name: Name of the remote
+        :param str resource_name: Name of the resource to abort
+        :param Optional[boolean] restore: If true, only abort the backup if it is restoring. If both, restore and
+                                          create are omitted, all backups of the given remote/resource are aborted
+        :param Optional[boolean] create: If true, only abort the backup if it is sending. If both, restore and
+                                          create are omitted, all backups of the given remote/resource are aborted
+        :param Optional[str] snapshot: Only abort the given snapshot name (multiple snapshots might be in sending
+                                       state)
+        """
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
         body = {
@@ -4213,6 +4233,9 @@ class Linstor(object):
             body["restore"] = restore
         if create:
             body["create"] = create
+        if snapshot:
+            self._require_version("1.26.1", msg="Aborting a specific snapshot is not supported by server")
+            body["snapshot"] = snapshot
         return self._rest_request(
             apiconsts.API_ABORT_BACKUP,
             "POST",
@@ -4233,7 +4256,9 @@ class Linstor(object):
             download_only=False,
             force_restore=False,
             dst_rsc_grp=None,
-            force_mv_rsc_grp=False):
+            force_mv_rsc_grp=False,
+            force_full=None,
+            src_snap=None):
         """
         Starts a linstor-to-linstor shipment.
 
@@ -4268,6 +4293,9 @@ class Linstor(object):
         :param Optional[boolean] force_mv_rsc_grp: If the destination resource-definition already has resources, the
             dst_rsc_grp is ignored to prevent unexpected autoplace-adjustments (for example from BalanceResourceTask).
             The dst_rsc_grp can still be forcefully applied if force_mv_rsc_grp is set to True.
+        :param Optional[boolean] force_full: Force a full backup instead of an incremental
+        :param Optional[str] src_snap: Ship the given snapshot instead of creating a new one. If the given snapshot
+            snapshot does not exist a new snapshot with the given name is created and shipped.
         """
         self._require_version("1.10.0", msg="Backups are not supported by server")
 
@@ -4289,11 +4317,20 @@ class Linstor(object):
         if download_only:
             body["download_only"] = download_only
         if force_restore:
+            self._require_version("1.21.0", msg="Force restore is not supported by the server")
             body["force_restore"] = force_restore
         if dst_rsc_grp:
+            self._require_version("1.24.0", msg="Target resource group is not supported by the server")
             body["dst_rsc_grp"] = dst_rsc_grp
         if force_mv_rsc_grp:
+            self._require_version("1.24.0", msg="Force move resource group is not supported by the server")
             body["force_mv_rsc_grp"] = force_mv_rsc_grp
+        if force_full:
+            self._require_version("1.14.0", msg="Force full backup is not supported by the server")
+            body["allow_incremental"] = not force_full
+        if src_snap:
+            self._require_version("1.26.1", msg="Source snapshot option is not supported by the server")
+            body["src_snap_name"] = src_snap
 
         return self._rest_request(
             apiconsts.API_SHIP_BACKUP,

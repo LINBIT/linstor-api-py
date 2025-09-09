@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added missing resource_dfn_clone() arguments to Resource.clone()
+- Added optional parameter snapshot to backup_abort
+- Added optional parameter force_full to backup_ship
+- Added optional parameter src_snap to backup_ship
 
 ### Changed
 
