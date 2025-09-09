@@ -688,7 +688,18 @@ class Resource(object):
 
         return Resource(resource_name_to, ",".join(self.client.uri_list), existing_client=self._existing_client)
 
-    def clone(self, clone_name, clone_external_name=None, timeout=None, use_zfs_clone=None):
+    def clone(
+            self,
+            clone_name,
+            clone_external_name=None,
+            timeout=None,
+            use_zfs_clone=None,
+            volume_passphrases=None,
+            layer_list=None,
+            resource_group=None,
+            property_dict=None,
+            delete_props=None
+    ):
         """
         Starts a clone operation on the current resource to the given clone_name.
 
@@ -696,6 +707,11 @@ class Resource(object):
         :param Optional[str] clone_external_name: Clone external name
         :param Optional[int] timeout: How long to wait for the clone to finish (secs)
         :param Optional[bool] use_zfs_clone: use fast zfs clone with snapshot (dependent clone)
+        :param optional[list[str]] volume_passphrases: user provided passwords for encrypted volumes
+        :param optional[list[str]] layer_list: Set of layer names to use.
+        :param optional[str] resource_group: Resource group the cloned resource should use.
+        :param optional[dict[str,str]] property_dict: Properties to override
+        :param optional[list[str]] delete_props: Property keys to delete
         :return: A new resource object with the cloned resource
         :rtype: linstor.resource.Resource
         :raise LinstorError: On errors
@@ -704,7 +720,17 @@ class Resource(object):
             raise linstor.LinstorError("Resource '{n}' doesn't exist.".format(n=self.name))
 
         with self._get_connection() as lin:
-            c_started = lin.resource_dfn_clone(self._linstor_name, clone_name, clone_external_name, use_zfs_clone)
+            c_started = lin.resource_dfn_clone(
+                self._linstor_name,
+                clone_name,
+                clone_external_name,
+                use_zfs_clone,
+                volume_passphrases,
+                layer_list,
+                resource_group,
+                property_dict,
+                delete_props
+            )
 
             if not Linstor.all_api_responses_no_error(c_started.messages):
                 raise linstor.LinstorError(

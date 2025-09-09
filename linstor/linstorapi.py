@@ -2014,7 +2014,7 @@ class Linstor(object):
         :param optional[list[str]] layer_list: Set of layer names to use.
         :param optional[str] resource_group: Resource group the cloned resource should use.
         :param optional[dict[str,str]] property_dict: Properties to override
-        :param optiona[list[str]] delete_props: Property keys to delete
+        :param optional[list[str]] delete_props: Property keys to delete
         :return:
         :rtype: optional[CloneStarted]
         """
