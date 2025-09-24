@@ -993,16 +993,30 @@ class Linstor(object):
             body if body else None
         )
 
-    def node_evacuate(self, node_name):
+    def node_evacuate(self, node_name, target=None, do_not_target=None):
         """
         Evacuates a node.
 
         :param str node_name: Node name to evacuate
+        :param Optional[list[str]] target: Optional list of node names for evacuation target
+        :param Optional[list[str]] do_not_target: Optional list of prohibited node names for evacuation target
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         self._require_version("1.12.0", msg="Node evacuate is not supported by server")
+
+        if target and do_not_target:
+            raise LinstorError("target and do_not_target must not be used together!")
+
         body = {}
+
+        if target:
+            self._require_version("1.26.1", msg="Node evacuate --target is not supported by server")
+            body["target"] = target
+        if do_not_target:
+            self._require_version("1.26.1", msg="Node evacuate --do-not-target is not supported by server")
+            body["do_not_target"] = do_not_target
+
         return self._rest_request(
             apiconsts.API_NODE_EVACUATE,
             "PUT",

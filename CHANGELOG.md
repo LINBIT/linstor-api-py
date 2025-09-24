@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added optional parameter snapshot to backup_abort
 - Added optional parameter force_full to backup_ship
 - Added optional parameter src_snap to backup_ship
+- Added optional parameter target to node_evacuate
+- Added optional parameter do_not_target to node_evacuate
 
 ### Changed
 
