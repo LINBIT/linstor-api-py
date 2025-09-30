@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## Added
+### Added
 
 - Added missing resource_dfn_clone() arguments to Resource.clone()
+
+### Changed
+
+- Fixed handling of clone api error status codes
 
 ## [1.26.1] - 2025-08-26
 

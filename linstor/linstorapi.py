@@ -541,6 +541,28 @@ class Linstor(object):
             if response:
                 response.close()
 
+    def _rest_request_raw(self, apicall, method, path, body=None, reconnect=True):
+        """
+        Returns the raw object
+        :param str apicall: linstor apicall strid
+        :param str method: One of GET, POST, PUT, DELETE, OPTIONS
+        :param str path: object path on the server
+        :param Union[dict[str,Any], list[Any] body: body data
+        :return:
+        :rtype: list[Union[ApiCallRESTResponse, ResourceResponse]]
+        """
+        response = None
+        try:
+            response = self._rest_request_base(apicall, method, path, body, reconnect)
+
+            if response is None:  # --curl
+                return []
+
+            return self.__convert_rest_response(apicall, response, path)
+        finally:
+            if response:
+                response.close()
+
     def _rest_request_download(self, apicall, method, path, body=None, reconnect=True, to_file=None):
         response = None
         try:
@@ -2053,11 +2075,10 @@ class Linstor(object):
             self._require_version("1.26.0", msg="Clone property delete not supported")
             body["delete_props"] = delete_props
 
-        result = self._rest_request(
+        result = self._rest_request_raw(
             apiconsts.API_CLONE_RSCDFN,
             "POST", _pquote("/v1/resource-definitions/{}/clone", src_name),
-            body,
-            raise_error=True
+            body
         )
         return result[0] if result else None
 
