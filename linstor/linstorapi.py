@@ -3861,6 +3861,10 @@ class Linstor(object):
             storage_pool_name=None,
             storage_pool_props=None,
             sed=False,
+            pv_create_arguments=None,
+            vg_create_arguments=None,
+            lv_create_arguments=None,
+            zpool_create_arguments=None,
     ):
         """
         Creates a device pool on the given device and node.
@@ -3876,6 +3880,10 @@ class Linstor(object):
         :param Optional[str] storage_pool_name: If provided creates also a storage pool with that name
         :param Optional[Dict[str,str]] storage_pool_props: Additional storage pool props
         :param bool sed: if True sed will be initialized on the device
+        :param Optional[list[str]] pv_create_arguments: Additional arguments to pass to pvcreate
+        :param Optional[list[str]] vg_create_arguments: Additional arguments to pass to vgcreate
+        :param Optional[list[str]] lv_create_arguments: Additional arguments to pass to lvcreate
+        :param Optional[list[str]] zpool_create_arguments: Additional arguments to pass to zpool create
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -3902,6 +3910,18 @@ class Linstor(object):
 
         if sed:
             body["sed"] = sed
+
+        if pv_create_arguments:
+            body["pv_create_arguments"] = pv_create_arguments
+
+        if vg_create_arguments:
+            body["vg_create_arguments"] = vg_create_arguments
+
+        if lv_create_arguments:
+            body["lv_create_arguments"] = lv_create_arguments
+
+        if zpool_create_arguments:
+            body["zpool_create_arguments"] = zpool_create_arguments
 
         return self._rest_request(
             apiconsts.API_CREATE_DEVICE_POOL,
