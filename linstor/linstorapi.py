@@ -1011,10 +1011,10 @@ class Linstor(object):
         body = {}
 
         if target:
-            self._require_version("1.26.1", msg="Node evacuate --target is not supported by server")
+            self._require_version("1.27.0", msg="Node evacuate --target is not supported by server")
             body["target"] = target
         if do_not_target:
-            self._require_version("1.26.1", msg="Node evacuate --do-not-target is not supported by server")
+            self._require_version("1.27.0", msg="Node evacuate --do-not-target is not supported by server")
             body["do_not_target"] = do_not_target
 
         return self._rest_request(
@@ -4248,7 +4248,7 @@ class Linstor(object):
         if create:
             body["create"] = create
         if snapshot:
-            self._require_version("1.26.1", msg="Aborting a specific snapshot is not supported by server")
+            self._require_version("1.27.0", msg="Aborting a specific snapshot is not supported by server")
             body["snapshot"] = snapshot
         return self._rest_request(
             apiconsts.API_ABORT_BACKUP,
@@ -4343,7 +4343,7 @@ class Linstor(object):
             self._require_version("1.14.0", msg="Force full backup is not supported by the server")
             body["allow_incremental"] = not force_full
         if src_snap:
-            self._require_version("1.26.1", msg="Source snapshot option is not supported by the server")
+            self._require_version("1.27.0", msg="Source snapshot option is not supported by the server")
             body["src_snap_name"] = src_snap
 
         return self._rest_request(
