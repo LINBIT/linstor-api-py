@@ -1,3 +1,20 @@
+python-linstor (1.27.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * debian: python-linstor also needs setuptools for the version class
+  * Resource: Added missing resource_dfn_clone() to clone()
+  * clone-api: correctly handle error returns
+  * bump rest-api requirements to 1.27.0 for 1.33.0 release
+
+  [ Moritz Wanzenböck ]
+  * physical-storage: pass arguments to pv/vg/lv/zpool create
+
+  [ Gabor Hernadi ]
+  * Added parameters for ship existing snapshots
+  * Added target and do_not_target opt params to node_evacuate
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Tue, 11 Nov 2025 07:10:30 +0000
+
 python-linstor (1.26.1-1) experimental; urgency=medium
 
   [ Gabor Hernadi ]
