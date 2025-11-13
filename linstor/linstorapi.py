@@ -3092,6 +3092,7 @@ class Linstor(object):
     def controller_backupdb(self, backup_name):
         """
         Backup controller database with the given backup_name.
+        NOTE: Only works with H2 database. Use controller_exportdb for a more general solution
 
         :param str backup_name: Name the backup should have.
         :return: A list containing ApiCallResponses from the controller.
@@ -3102,6 +3103,20 @@ class Linstor(object):
             "backup_name": backup_name
         }
         return self._rest_request("BackupDb", "POST", _pquote("/v1/controller/backup/db"), body)
+
+    def controller_exportdb(self, backup_name):
+        """
+        Exports the controller database into f"{backup_name}.json".
+
+        :param str backup_name: Name the backup should have.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.28.0", msg="Export DB is not support by controller version")
+        body = {
+            "backup_name": backup_name
+        }
+        return self._rest_request("ExportDb", "POST", _pquote("/v1/controller/database/export"), body)
 
     def controller_info(self):
         """
