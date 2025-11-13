@@ -918,7 +918,7 @@ class DrbdLayer(RESTMessageResponse):
 
     @property
     def port(self):  # deprecated - use DrbdResource's tcp_port instead!
-        return self._rest_data["port"]
+        return self._rest_data.get("port", None)
 
     @property
     def secret(self):
