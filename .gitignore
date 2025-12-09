@@ -24,3 +24,5 @@ linstor/consts_githash.py
 # unittests ignores
 test-reports/
 .cache/
+/.project
+/.pydevproject

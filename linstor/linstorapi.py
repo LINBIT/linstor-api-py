@@ -252,6 +252,7 @@ class Linstor(object):
         apiconsts.API_LST_SCHEDULE: responses.ScheduleListResponse,
         API_SCHEDULE_BY_RESOURCE_LIST: responses.ScheduleResourceListResponse,
         API_SCHEDULE_BY_RESOURCE_LIST_DETAILS: responses.ScheduleResourceDetailsListResponse,
+        apiconsts.API_STATUS_CRYPT_PASS: responses.PassphraseStatus,
     }
 
     REST_PORT = 3370
@@ -3219,6 +3220,16 @@ class Linstor(object):
             apiconsts.API_MOD_CRYPT_PASS,
             "PUT", _pquote("/v1/encryption/passphrase"),
             body
+        )
+
+    def crypt_status(self):
+        """
+        Checks and returns the current status of encryption. As of 1.33.0: unset/unlocked/locked
+        """
+        return self._rest_request(
+            apiconsts.API_STATUS_CRYPT_PASS,
+            "GET", _pquote("/v1/encryption/passphrase"),
+            None
         )
 
     def resource_conn_modify(self, rsc_name, node_a, node_b, property_dict, delete_props):

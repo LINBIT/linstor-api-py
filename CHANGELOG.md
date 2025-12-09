@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added api method to check the controller's current encryption state (locked/unlocked/unset)
+
 ## [1.27.0] - 2025-11-11
 
 ### Added

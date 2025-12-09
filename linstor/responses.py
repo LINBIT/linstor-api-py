@@ -2921,3 +2921,12 @@ class EffectiveProp(RESTMessageResponse):
     @property
     def other(self):
         return [EffectiveProp(x) for x in self._rest_data.get("other", [])]
+
+
+class PassphraseStatus(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(PassphraseStatus, self).__init__(rest_data)
+
+    @property
+    def status(self):
+        return self._rest_data.get("status", None)
