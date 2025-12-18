@@ -7,6 +7,23 @@ LVM/ZFS volumes across a group of machines. It maintains DRBD configuration on t
 creates/deletes the backing LVM/ZFS volumes. It automatically places the backing LVM/ZFS volumes among the
 participating machines.
 
+# Building
+
+To build the package, install the `build` module and run it from the project root:
+
+```bash
+pip install build
+python -m build
+```
+
+This will create both source distribution (`.tar.gz`) and wheel (`.whl`) files in the `dist/` directory.
+
+To install the package locally for development:
+
+```bash
+pip install -e .
+```
+
 # Online API documentation
 A rendered html documentation for the LINSTOR Python API can be found [here](https://linbit.github.io/linstor-api-py/).
 

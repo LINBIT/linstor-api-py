@@ -23,24 +23,9 @@ pep8:
   script:
     flake8 .
 
-test:2.7:
+test:3.6:
   stage: test
-  image: python:2.7
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "jenkins"'
-    - if: $CI_COMMIT_BRANCH == 'master'
-  script:
-    - pip install enum34 xmlrunner
-    - make gensrc
-    - python tests.py
-  artifacts:
-    reports:
-      junit: test-reports/TEST-*.xml
-
-test:3.5:
-  stage: test
-  image: python:3.5
+  image: python:3.6
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == "jenkins"'
@@ -85,7 +70,7 @@ build:
     - awk -f "/usr/local/bin/dch.awk" -v PROJECT_VERSION="$PYTHON_LINSTOR_VERSION" -v PROJECT_NAME="python-linstor" debian/changelog > debian/changelog.tmp
     - mv debian/changelog{.tmp,}
     - sed -i "s/VERSION = \"[0-9\.]*/VERSION = \"$PYTHON_LINSTOR_VERSION/g" linstor/version.py
-#    - dummy-release.sh python-linstor $PYTHON_LINSTOR_VERSION ignore
+    - sed -i "s/version = \"[0-9\.]*/version = \"$PYTHON_LINSTOR_VERSION/g" pyproject.toml
     - make debrelease
     - curl -isSf -u $LINBIT_REGISTRY_USER:$LINBIT_REGISTRY_PASSWORD --upload-file dist/python-linstor-*.tar.gz $LINBIT_REGISTRY_URL/repository/lbbuild-upstream/
     - curl -X DELETE -u $LINBIT_REGISTRY_USER:$LINBIT_REGISTRY_PASSWORD $LINBIT_REGISTRY_URL/repository/rhel8/x86_64/python-linstor-$PYTHON_LINSTOR_VERSION-1.noarch.rpm
@@ -93,7 +78,7 @@ build:
         -e LINBIT_REGISTRY_USER=$LINBIT_REGISTRY_USER
         -e LINBIT_REGISTRY_PASSWORD=$LINBIT_REGISTRY_PASSWORD
         -e LINBIT_REGISTRY_URL=$LINBIT_REGISTRY_URL
-        -d ubuntu-bionic,ubuntu-focal,ubuntu-noble,debian-bookworm,rhel7.0,rhel8.0
+        -d ubuntu-jammy,ubuntu-noble,debian-bookworm,rhel8.0
 
 staging:
   stage: deploy_tests

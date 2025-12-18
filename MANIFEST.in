@@ -7,4 +7,3 @@ include MANIFEST.in
 include COPYING
 include README.md
 include Makefile
-include setup.cfg.py2
