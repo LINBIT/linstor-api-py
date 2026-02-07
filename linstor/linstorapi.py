@@ -479,12 +479,14 @@ class Linstor(object):
                 return self._rest_request_base(apicall, method, path, body, reconnect=False)
             else:
                 raise LinstorNetworkError("Error reading response from {hp}: {err}".format(hp=self._ctrl_host, err=err))
-        except BadStatusLine:  # python2 raises BadStatusLine on connection closed
+        except BadStatusLine as err:  # python2 raises BadStatusLine on connection closed
             if self._keep_alive and reconnect:
+                print("while connecting to {hp}: {err}; retrying...".format(hp=self._ctrl_host, err=repr(err)),
+                      file=sys.stderr)
                 self.connect()
                 return self._rest_request_base(apicall, method, path, body, reconnect=False)
             else:
-                raise
+                raise LinstorNetworkError("while connecting to {hp}: {err}".format(hp=self._ctrl_host, err=repr(err)))
 
     def _handle_response_error(self, response, method, path, raise_error=False):
         error_data_raw = self._decode_response_data(response)
@@ -504,13 +506,16 @@ class Linstor(object):
                     return apicallresponses
             else:
                 # try to get an error message from html
-                root = ET.fromstring(error_data_raw)
-                # get head error message
-                error_msg = "Request failed."
-                for child in root.find("body"):
-                    if "header" in child.attrib.get("class"):
-                        error_msg = child.text
-                        break
+                try:
+                    root = ET.fromstring(error_data_raw)
+                    # get head error message
+                    error_msg = "Request failed."
+                    for child in root.find("body"):
+                        if "header" in child.attrib.get("class"):
+                            error_msg = child.text
+                            break
+                except Exception:
+                    error_msg = repr(error_data_raw)
                 raise LinstorError("HTTP-Status({s})/{err}".format(s=response.status, err=error_msg))
         raise LinstorError("REST api call method '{m}' to resource '{p}' returned status {s} with no data."
                            .format(m=method, p=path, s=response.status))
@@ -725,6 +730,8 @@ class Linstor(object):
             if response.status == 302:
                 https_url = urlparse(response.getheader("Location"))
                 return https_url.port
+        except BadStatusLine:
+            return 0
         except socket.error:
             return 0
         return 0
@@ -3142,10 +3149,16 @@ class Linstor(object):
 
         :return: Controller info string or None if not connected.
         :rtype: ControllerVersion
+
+        This is done implicitly in our self.connect().
+        Do not retry unless we successfully connected before, or this will
+        recurse and eventually explode if we try to connect to a server that
+        allows the connection, but then does not give a useful response.
         """
         return self._rest_request(
             apiconsts.API_VERSION,
-            "GET", _pquote("/v1/controller/version")
+            "GET", _pquote("/v1/controller/version"),
+            reconnect=self._connected
         )[0]
 
     def controller_host(self):
