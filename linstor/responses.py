@@ -311,6 +311,10 @@ class Node(RESTMessageResponse):
         return self._rest_data["type"]
 
     @property
+    def platform(self):
+        return self._rest_data.get("platform", "")
+
+    @property
     def connection_status(self):
         return self._rest_data.get(
             "connection_status",
