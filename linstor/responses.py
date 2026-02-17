@@ -4,6 +4,7 @@ Linstor response module
 Contains various classes of linstorapi responses wrappers.
 """
 from datetime import datetime
+from typing import Optional, List
 
 import linstor.sharedconsts as apiconsts
 from .errors import LinstorError
@@ -2934,3 +2935,62 @@ class PassphraseStatus(RESTMessageResponse):
     @property
     def status(self):
         return self._rest_data.get("status", None)
+
+
+class AuthToken(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(AuthToken, self).__init__(rest_data)
+
+    @staticmethod
+    def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
+        if value is None:
+            return None
+        # Handle 'Z' suffix for UTC
+        if value.endswith('Z'):
+            value = value[:-1] + '+00:00'
+        return datetime.fromisoformat(value)
+
+    @property
+    def id(self):
+        return self._rest_data["id"]
+
+    @property
+    def token(self) -> Optional[str]:
+        return self._rest_data.get("token")
+
+    @property
+    def description(self) -> str:
+        return self._rest_data["description"]
+
+    @property
+    def created_at(self) -> datetime:
+        return self._parse_datetime(self._rest_data["created_at"])
+
+    @property
+    def is_active(self) -> bool:
+        return self._rest_data.get("is_active", True)
+
+    @property
+    def deleted_at(self) -> Optional[datetime]:
+        return self._parse_datetime(self._rest_data.get("deleted_at"))
+
+    @property
+    def expires_at(self) -> Optional[datetime]:
+        return self._parse_datetime(self._rest_data.get("expires_at"))
+
+    @property
+    def ip_filter(self) -> Optional[str]:
+        return self._rest_data.get("ip_filter")
+
+    @property
+    def is_user_token(self) -> bool:
+        return self._rest_data.get("is_user_token", True)
+
+
+class AuthTokenListResponse(RESTMessageResponse):
+    def __init__(self, rest_data):
+        super(AuthTokenListResponse, self).__init__(rest_data)
+
+    @property
+    def auth_tokens(self) -> List[AuthToken]:
+        return [AuthToken(x) for x in self._rest_data.get("list", [])]

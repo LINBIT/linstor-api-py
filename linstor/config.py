@@ -1,11 +1,23 @@
 import os
+from enum import Enum
+from configparser import ConfigParser
 
 from linstor.linstorapi import MultiLinstor
 
-try:
-    from configparser import ConfigParser
-except ImportError:
-    from ConfigParser import SafeConfigParser as ConfigParser
+
+class ConfigFileLevel(Enum):
+    USER = 1
+    SYS = 2
+
+    def to_config_path(self):
+        config_file = "linstor-client.conf"
+        if self.value == 1:
+            home_dir = os.path.expanduser("~")
+            return os.path.join(home_dir, ".config", "linstor", config_file)
+        elif self.value == 2:
+            return os.path.join('/etc', 'linstor', config_file)
+        else:
+            return None
 
 
 class Config(object):
@@ -46,6 +58,16 @@ class Config(object):
 
         entries = Config.CONFIG.get(section, []) if Config.CONFIG else []
         return {k: v for k, v in entries}
+
+    @staticmethod
+    def set_value(section: str, key: str, value: str, level: ConfigFileLevel = ConfigFileLevel.USER):
+        cp = ConfigParser()
+        cp.read(level.to_config_path())
+        if section not in cp.sections():
+            cp.add_section(section)
+        cp.set(section, key, value)
+        with open(level.to_config_path(), 'w') as f:
+            cp.write(f)
 
     @staticmethod
     def get_controllers(section='global', config_file_name=None, fallback='linstor://localhost'):

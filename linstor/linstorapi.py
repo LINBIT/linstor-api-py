@@ -5,6 +5,7 @@ Linstorapi module
 import shlex
 import socket
 import sys
+import os.path
 import time
 import json
 import zlib
@@ -13,6 +14,8 @@ import base64
 import re
 import shutil
 import xml.etree.ElementTree as ET
+from typing import Any
+
 from distutils.version import StrictVersion
 from enum import Enum
 
@@ -31,6 +34,7 @@ from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.responses import FileResponse, QuerySizeInfoResponse
 from linstor.responses import NodeConnection, NodeConnectionsResponse
+from linstor.responses import AuthTokenListResponse
 from linstor import responses
 from linstor.size_calc import SizeCalc
 
@@ -252,12 +256,21 @@ class Linstor(object):
         API_SCHEDULE_BY_RESOURCE_LIST: responses.ScheduleResourceListResponse,
         API_SCHEDULE_BY_RESOURCE_LIST_DETAILS: responses.ScheduleResourceDetailsListResponse,
         apiconsts.API_STATUS_CRYPT_PASS: responses.PassphraseStatus,
+        apiconsts.API_CTRL_LIST_AUTH_TOKEN: AuthTokenListResponse,
     }
 
     REST_PORT = 3370
     REST_HTTPS_PORT = 3371
 
-    def __init__(self, ctrl_host, timeout=300, keep_alive=False, agent_info=""):
+    AUTH_JSON_PATH = "/var/lib/linstor.d/auth.json"
+
+    def __init__(
+            self,
+            ctrl_host: str,
+            timeout: int = 300,
+            keep_alive: bool = False,
+            agent_info: str = "",
+            auth_token: str = None):
         self._ctrl_host = ctrl_host
         self._timeout = timeout
         self._keep_alive = keep_alive
@@ -279,8 +292,16 @@ class Linstor(object):
         self._http_headers = {
             "User-Agent": user_agent,
             "Connection": "keep-alive",
-            "Accept-Encoding": "gzip"
+            "Accept-Encoding": "gzip",
         }
+        if auth_token:
+            self._http_headers["Authorization"] = "Bearer " + auth_token
+        else:
+            if os.path.exists(Linstor.AUTH_JSON_PATH):
+                with open(Linstor.AUTH_JSON_PATH) as auth_json_f:
+                    auth_data = json.load(auth_json_f)
+                    if "token" in auth_data:
+                        self._http_headers["Authorization"] = "Bearer " + auth_data["token"]
 
     def __del__(self):
         self.disconnect()
@@ -500,6 +521,9 @@ class Linstor(object):
                                                                        "Request-Uri: " + path
                     )
                 apicallresponses = [ApiCallResponse(x) for x in error_data]
+                if response.status == 401:
+                    raise_error = True
+
                 if raise_error:
                     raise LinstorApiCallError(apicallresponses[0], apicallresponses)
                 else:
@@ -5052,9 +5076,79 @@ class Linstor(object):
             _pquote("/v1/schedules/{}", schedule_name)
         )
 
+    def controller_create_auth_token(self, description: str, ip_filter: str = None, expires_at: str = None):
+        self._require_version("1.28.0", msg="Auth token not supported by server")
+        body = {
+            "description": description
+        }
+        if ip_filter:
+            body["ip_filter"] = ip_filter
+        if expires_at:
+            body["expires_at"] = expires_at
+        return self._rest_request(
+            apiconsts.API_CTRL_CRT_AUTH_TOKEN,
+            "POST",
+            _pquote("/v1/controller/auth/token"),
+            body
+        )
+
+    def controller_init_auth_token(self, description: str, only_satellites: bool = False, no_https: bool = False):
+        self._require_version("1.28.0", msg="Auth token not supported by server")
+        body: dict[str, Any] = {
+            "description": description
+        }
+        if only_satellites:
+            body["only_satellites"] = only_satellites
+        if no_https:
+            body["no_https"] = no_https
+        return self._rest_request(
+            apiconsts.API_CTRL_INIT_AUTH_TOKEN,
+            "POST",
+            _pquote("/v1/controller/auth/initialize-token-auth"),
+            body
+        )
+
+    def controller_list_auth_tokens(self):
+        self._require_version("1.28.0", msg="Auth token not supported by server")
+        return self._rest_request(
+            apiconsts.API_CTRL_LIST_AUTH_TOKEN,
+            "GET",
+            _pquote("/v1/controller/auth/token")
+        )
+
+    def controller_modify_auth_token(
+            self,
+            tokenid: int,
+            description: str = None,
+            is_active: bool = None,
+            ip_filter: str = None
+    ):
+        self._require_version("1.28.0", msg="Auth token not supported by server")
+        body = {}
+        if description is not None:
+            body["description"] = description
+        if is_active is not None:
+            body["is_active"] = is_active
+        if ip_filter is not None:
+            body["ip_filter"] = ip_filter
+        return self._rest_request(
+            apiconsts.API_CTRL_MODIFY_AUTH_TOKEN,
+            "PUT",
+            _pquote("/v1/controller/auth/token/{}", tokenid),
+            body
+        )
+
+    def controller_delete_auth_token(self, tokenid: int):
+        self._require_version("1.28.0", msg="Auth token not supported by server")
+        return self._rest_request(
+            apiconsts.API_CTRL_DELETE_AUTH_TOKEN,
+            "DELETE",
+            _pquote("/v1/controller/auth/token/{}", tokenid)
+        )
+
 
 class MultiLinstor(Linstor):
-    def __init__(self, ctrl_host_list, timeout=300, keep_alive=False, agent_info=""):
+    def __init__(self, ctrl_host_list, timeout=300, keep_alive=False, agent_info="", auth_token: str = None):
         """A Linstor client that tries connecting to a list of controllers
 
         This is intended to support high availability deployments with multiple Controllers, with only one controller
@@ -5064,8 +5158,9 @@ class MultiLinstor(Linstor):
         :param timeout: connection timeout. See linstor.Linstor
         :param bool keep_alive: See linstor.Linstor
         :param str agent_info: This string gets added to the user-agent info
+        :param str auth_token: Authentication token for Linstor controller
         """
-        super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive, agent_info)
+        super(MultiLinstor, self).__init__(ctrl_host_list[0], timeout, keep_alive, agent_info, auth_token)
         self._ctrl_host_list = ctrl_host_list  # type: list[str]
 
     def connect(self):
@@ -5081,6 +5176,7 @@ class MultiLinstor(Linstor):
             raise LinstorNetworkError(
                 "Unable to connect to any of the given controller hosts: " + str(self._ctrl_host_list),
                 conn_errors)
+        return None
 
     @classmethod
     def controller_uri_list(cls, controller_list):

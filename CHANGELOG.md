@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added controller_exportdb
+- Added platform property to responses.py
+- Added support for linstor-controller token authentication and also checking for token file in /var/lib/linstor.d
 
 ### Changed
 
