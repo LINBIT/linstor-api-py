@@ -16,7 +16,6 @@ import shutil
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from distutils.version import StrictVersion
 from enum import Enum
 
 from linstor.version import VERSION
@@ -53,6 +52,11 @@ except ImportError:
 
 API_VERSION_MIN = "1.0.4"
 API_VERSION = API_VERSION_MIN
+
+
+def _parse_version(version_string):
+    """Parse a version string like "1.0.4" into a tuple of ints for comparison."""
+    return tuple(int(x) for x in version_string.split("."))
 
 
 def _pquote(pathfmt, *args, **kwargs):
@@ -442,7 +446,8 @@ class Linstor(object):
         :return: True if supported
         :raises LinstorError: if server version is lower than required version
         """
-        if self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(required_version):
+        if self._ctrl_version and \
+                _parse_version(self._ctrl_version.rest_api_version) < _parse_version(required_version):
             raise LinstorError(
                 msg + ", REST-API-VERSION: " + self._ctrl_version.rest_api_version
                 + "; needed " + required_version
@@ -455,7 +460,7 @@ class Linstor(object):
         :return: True if server version is smaller than given version
         :rtype: bool
         """
-        return self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) < StrictVersion(version)
+        return self._ctrl_version and _parse_version(self._ctrl_version.rest_api_version) < _parse_version(version)
 
     def _rest_request_base(self, apicall, method, path, body=None, reconnect=True):
         """
@@ -813,7 +818,7 @@ class Linstor(object):
 
         self._ctrl_version = self.controller_version()
         if not self._ctrl_version.rest_api_version.startswith("1") or \
-                StrictVersion(API_VERSION_MIN) > StrictVersion(self._ctrl_version.rest_api_version):
+                _parse_version(API_VERSION_MIN) > _parse_version(self._ctrl_version.rest_api_version):
             self._rest_conn.close()
             raise LinstorApiCallError(
                 ApiCallResponse.from_str("Client doesn't support Controller rest api version: "
@@ -860,7 +865,7 @@ class Linstor(object):
         :return:
         """
         # is_active is added with API 1.0.7, before active stlt conn was set via property
-        if self._ctrl_version and StrictVersion(self._ctrl_version.rest_api_version) >= StrictVersion("1.0.7"):
+        if self._ctrl_version and _parse_version(self._ctrl_version.rest_api_version) >= _parse_version("1.0.7"):
             net_interface["is_active"] = value
 
     def node_create(
