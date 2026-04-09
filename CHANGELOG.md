@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed py2 support
 - Updated build system to use python build module
 
+### Fixed
+
+- Fixed Combined+SSL nodes getting controller port (3371) instead of satellite port (3367) in node_create()
+- Fixed netinterface_modify() resetting encryption type when only port is changed
+
 ## [1.27.1] - 2025-12-10
 
 ### Added

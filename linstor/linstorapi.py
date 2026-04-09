@@ -903,10 +903,8 @@ class Linstor(object):
                 port = apiconsts.DFLT_CTRL_PORT_PLAIN \
                     if node_type_lower == apiconsts.VAL_NODE_TYPE_CTRL.lower() else apiconsts.DFLT_STLT_PORT_PLAIN
             elif com_lower == apiconsts.VAL_NETCOM_TYPE_SSL.lower():
-                if node_type_lower == apiconsts.VAL_NODE_TYPE_STLT.lower():
-                    port = apiconsts.DFLT_STLT_PORT_SSL
-                else:
-                    port = apiconsts.DFLT_CTRL_PORT_SSL
+                port = apiconsts.DFLT_CTRL_PORT_SSL \
+                    if node_type_lower == apiconsts.VAL_NODE_TYPE_CTRL.lower() else apiconsts.DFLT_STLT_PORT_SSL
             else:
                 raise LinstorError("Communication type %s has no default port" % com_type)
 
@@ -1107,6 +1105,7 @@ class Linstor(object):
 
         if port:
             body["satellite_port"] = port
+        if com_type is not None:
             body["satellite_encryption_type"] = com_type
 
         self._require_node_is_active(body, is_active)
