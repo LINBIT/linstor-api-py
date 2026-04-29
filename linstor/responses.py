@@ -1453,6 +1453,16 @@ class DrbdResource(RESTMessageResponse):
         """
         return self._rest_data.get("tcp_ports", [])
 
+    @property
+    def flags(self):
+        """
+        Flags on the DRBD Resource.
+
+        :return: A list of flags (as strings)
+        :rtype: list[str]
+        """
+        return self._rest_data.get("flags", [])
+
     # TODO other fields
 
 

@@ -92,7 +92,8 @@ class ResourceData(object):
             nvme_initiator=False,
             ebs_initiator=False,
             active=True,
-            drbd_tcp_ports=None):
+            drbd_tcp_ports=None,
+            drbd_client=None):
         """
         :param str node_name: The node on which to place the resource
         :param str rsc_name: The resource definition to place
@@ -105,6 +106,8 @@ class ResourceData(object):
         :param bool ebs_initiator: If true, an EBS initiator is created (instead of an EBS target)
         :param bool active: If false, only the storage for the given resource will be created, not the layers above it
         :param Optional[List[int]] drbd_tcp_ports: Set the TCP port(s) for the DRBD resource
+        :param Optional[bool] drbd_client: If true, a diskless DRBD peer without quorum vote is created (mutually
+               exclusive with drbd_diskless)
         """
         self._node_name = node_name
         self._rsc_name = rsc_name
@@ -117,6 +120,7 @@ class ResourceData(object):
         self._ebs_initiator = ebs_initiator
         self._active = active
         self._drbd_tcp_ports = drbd_tcp_ports
+        self._drbd_client = drbd_client
 
     @property
     def node_name(self):
@@ -145,6 +149,10 @@ class ResourceData(object):
     @property
     def drbd_diskless(self):
         return self._drbd_diskless
+
+    @property
+    def drbd_client(self):
+        return self._drbd_client
 
     @property
     def nvme_initiator(self):
@@ -446,8 +454,7 @@ class Linstor(object):
         :return: True if supported
         :raises LinstorError: if server version is lower than required version
         """
-        if self._ctrl_version and \
-                _parse_version(self._ctrl_version.rest_api_version) < _parse_version(required_version):
+        if self.api_version_smaller(required_version):
             raise LinstorError(
                 msg + ", REST-API-VERSION: " + self._ctrl_version.rest_api_version
                 + "; needed " + required_version
@@ -2551,6 +2558,10 @@ class Linstor(object):
             if rsc.drbd_diskless:
                 rsc_data["resource"]["flags"] += [apiconsts.FLAG_DRBD_DISKLESS]
 
+            if rsc.drbd_client:
+                self._require_version("1.28.0", msg="DRBD diskless client is not supported by the controller version")
+                rsc_data["drbd_client"] = rsc.drbd_client
+
             if rsc.nvme_initiator:
                 rsc_data["resource"]["flags"] += [apiconsts.FLAG_NVME_INITIATOR]
 
@@ -2794,14 +2805,16 @@ class Linstor(object):
             body
         )
 
-    def resource_modify(self, node_name, rsc_name, property_dict, delete_props=None):
+    def resource_modify(self, node_name, rsc_name, property_dict=None, delete_props=None, drbd_client: bool = None):
         """
         Modify properties of a given resource.
 
         :param str node_name: Node name where the resource is deployed.
         :param str rsc_name: Name of the resource.
-        :param dict[str, str] property_dict: Dict containing key, value pairs for new values.
-        :param list[str] delete_props: List of properties to delete
+        :param Optional[dict[str, str]] property_dict: Dict containing key, value pairs for new values.
+        :param Optional[list[str]] delete_props: List of properties to delete
+        :param Optional[bool] drbd_client: If true, set the current resource (if it is diskless) as a DRBD client
+                                           (no quorum vote). Otherwise changes it back to a diskless (with quorum)
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2812,6 +2825,9 @@ class Linstor(object):
 
         if delete_props:
             body["delete_props"] = delete_props
+
+        if drbd_client is not None:
+            body['drbd_client'] = drbd_client
 
         return self._rest_request(
             apiconsts.API_MOD_RSC,
@@ -3039,32 +3055,57 @@ class Linstor(object):
             storage_pool=None,
             diskless=False,
             async_msg=False,
-            migrate_from=None
+            migrate_from=None,
+            drbd_client=None
     ):
         """
         Toggles a resource between diskless and having a disk.
 
         :param str node_name: Node name where the resource is deployed.
         :param str rsc_name: Name of the resource.
+        :param Optional[str] storage_pool: Name of the storage pool to toggle into.
+        :param Optional[bool] diskless: If true toggle into diskless state.
         :param bool async_msg: True to return without waiting for the action to complete on the satellites.
+        :param Optional[str] migrate_from: Delete the resource of the given node once the newly toggled peer finished
+                syncing up.
+        :param Optional[bool] drbd_client: If true toggle into DRBD diskless client state (no quorum vote).
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
-        path = _pquote("/v1/resource-definitions/{}/resources/{}", rsc_name, node_name)
 
-        if migrate_from:
-            path += _pquote("/migrate-disk/{}", migrate_from)
+        if self.api_version_smaller("1.28.0"):
+            path = _pquote("/v1/resource-definitions/{}/resources/{}", rsc_name, node_name)
+
+            if migrate_from:
+                path += _pquote("/migrate-disk/{}", migrate_from)
+            else:
+                path += "/toggle-disk/"
+                # pre 1.28.0 drbd-client was not supported
+                path += "diskless" if diskless or drbd_client else "diskful"
+            if storage_pool:
+                path += _pquote("/{}", storage_pool)
+
+            return self._rest_request(
+                apiconsts.API_TOGGLE_DISK,
+                "PUT", path
+            )
         else:
-            path += "/toggle-disk/"
-            path += "diskless" if diskless else "diskful"
+            path = _pquote("/v1/resource-definitions/{}/resources/{}/toggle-disk", rsc_name, node_name)
+            body = {}
+            if migrate_from:
+                body['migrate_from'] = migrate_from
 
-        if storage_pool:
-            path += _pquote("/{}", storage_pool)
+            if drbd_client:
+                body['operation'] = apiconsts.VAL_TOGGLE_DISK_OP_INTO_DRBD_CLIENT
+            elif diskless:
+                body['operation'] = apiconsts.VAL_TOGGLE_DISK_OP_INTO_DRBD_DISKLESS
+            else:
+                body['operation'] = apiconsts.VAL_TOGGLE_DISK_OP_INTO_DRBD_DISKFUL
 
-        return self._rest_request(
-            apiconsts.API_TOGGLE_DISK,
-            "PUT", path
-        )
+            if storage_pool:
+                body['storage_pool'] = storage_pool
+
+            return self._rest_request(apiconsts.API_TOGGLE_DISK, "PUT", path, body)
 
     def controller_props(self):
         """

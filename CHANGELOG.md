@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added platform property to responses.py
 - Added support for linstor-controller token authentication and also checking for token file in /var/lib/linstor.d
 - Added LUKSVolumeData.corrupted_key property
+- Added drbd_client to
+  - class "ResourceData"
+  - method "resource_create"
+  - method "resource_modify"
+  - method "resource_toggle_disk"
+  - class "DrbdResource" (exposed via "flags")
 
 ### Changed
 
