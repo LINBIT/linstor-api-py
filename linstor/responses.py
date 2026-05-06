@@ -1539,7 +1539,7 @@ class DrbdVolumeDefinition(RESTMessageResponse):
         return self._rest_data["resource_name_suffix"]
 
 
-class DrbdVolumeData(RESTMessageResponse):
+class DrbdVolumeData(VolumeLayerData):
     def __init__(self, data):
         super(DrbdVolumeData, self).__init__(data)
 
@@ -1568,14 +1568,18 @@ class DrbdVolumeData(RESTMessageResponse):
         return self._rest_data["usable_size_kib"]
 
 
-class StorageVolumeData(RESTMessageResponse):
+class StorageVolumeData(VolumeLayerData):
     def __init__(self, data):
         super(StorageVolumeData, self).__init__(data)
 
 
-class LUKSVolumeData(RESTMessageResponse):
+class LUKSVolumeData(VolumeLayerData):
     def __init__(self, data):
         super(LUKSVolumeData, self).__init__(data)
+
+    @property
+    def corrupted_key(self):
+        return self._rest_data.get("corrupted_key", False)
 
 
 class Volume(RESTMessageResponse):
@@ -1634,28 +1638,33 @@ class Volume(RESTMessageResponse):
 
     @property
     def layer_data(self):
-        return [VolumeLayerData(x) for x in self._rest_data.get("layer_data", [])]
+        ret = []
+        for entry in self._rest_data.get("layer_data_list", []):
+            if entry["type"] == "DRBD":
+                ret.append(DrbdVolumeData(entry["data"]))
+            elif entry["type"] == "STORAGE":
+                ret.append(StorageVolumeData(entry["data"]))
+            elif entry["type"] == "LUKS":
+                ret.append(LUKSVolumeData(entry["data"]))
+        return ret
+
+    def _get_layer_by_type(self, layer_type):
+        for layer in self.layer_data:
+            if type(layer) is layer_type:
+                return layer
+        return None
 
     @property
     def drbd_data(self):
-        for layer in self._rest_data.get("layer_data_list", []):
-            if layer["type"] == "DRBD" and layer.get("data"):
-                return DrbdVolumeData(layer["data"])
-        return None
+        return self._get_layer_by_type(DrbdVolumeData)
 
     @property
     def storage_data(self):
-        for layer in self._rest_data.get("layer_data_list", []):
-            if layer["type"] == "STORAGE" and layer.get("data"):
-                return DrbdVolumeData(layer["data"])
-        return None
+        return self._get_layer_by_type(StorageVolumeData)
 
     @property
     def luks_data(self):
-        for layer in self._rest_data.get("layer_data_list", []):
-            if layer["type"] == "LUKS" and layer.get("data"):
-                return DrbdVolumeData(layer["data"])
-        return None
+        return self._get_layer_by_type(LUKSVolumeData)
 
     @property
     def state(self):

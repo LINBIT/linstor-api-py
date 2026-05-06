@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added controller_exportdb
 - Added platform property to responses.py
 - Added support for linstor-controller token authentication and also checking for token file in /var/lib/linstor.d
+- Added LUKSVolumeData.corrupted_key property
 
 ### Changed
 
@@ -23,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed Combined+SSL nodes getting controller port (3371) instead of satellite port (3367) in node_create()
 - Fixed netinterface_modify() resetting encryption type when only port is changed
+- Fixed incorrect Volume.layer_data, .drbd_data, .luks_data and .storage_data property methods
 
 ## [1.27.1] - 2025-12-10
 
