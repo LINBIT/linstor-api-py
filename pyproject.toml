@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "python-linstor"
-version = "1.27.1"
+version = "1.28.0"
 description = "Linstor python api"
 readme = "README.md"
 license = { text = "LGPL-3.0-or-later" }

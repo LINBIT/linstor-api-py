@@ -1,3 +1,29 @@
+python-linstor (1.28.0-1) experimental; urgency=medium
+
+  [ Rene Peinthor ]
+  * remove python2 support and use python build module
+  * ctrl-token-auth: add methods and support for auth tokens
+
+  [ Gabor Hernadi ]
+  * Responses: Add default none to DrbdLayer.port
+  * Added controller_exportdb
+  * Responses: Fixed vlm-layer issues + added corrupted_key property to LU [...]
+  * Drbd,client: Added optional parameter to various methods.
+
+  [ Lars Ellenberg ]
+  * improve handling of bad server responses
+
+  [ Johannes Khoshnazar-Thoma ]
+  * node: add platform property to Node response
+
+  [ Christoph Böhmwalder ]
+  * linstorapi: remove distutils dependency
+
+  [ Ryan Ronnander ]
+  * Fix Combined+SSL node port and netinterface_modify com_type reset
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 28 May 2026 07:53:31 +0000
+
 python-linstor (1.27.1-1) experimental; urgency=medium
 
   [ Rene Peinthor ]
