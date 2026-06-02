@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Config.set_value() no longer errors if the config file directory doesn't exist
+
 ## [1.28.0] - 2026-05-28
 
 ### Added

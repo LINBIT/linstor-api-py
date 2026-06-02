@@ -61,12 +61,16 @@ class Config(object):
 
     @staticmethod
     def set_value(section: str, key: str, value: str, level: ConfigFileLevel = ConfigFileLevel.USER):
+        config_path = level.to_config_path()
         cp = ConfigParser()
-        cp.read(level.to_config_path())
+        cp.read(config_path)
         if section not in cp.sections():
             cp.add_section(section)
         cp.set(section, key, value)
-        with open(level.to_config_path(), 'w') as f:
+        config_dir = os.path.dirname(config_path)
+        if config_dir:
+            os.makedirs(config_dir, exist_ok=True)
+        with open(config_path, 'w') as f:
             cp.write(f)
 
     @staticmethod
