@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Auth token is no longer sent over plaintext HTTP connections. The HTTP->HTTPS redirect is now
+  resolved once in connect() and the token is only attached once the connection is known to be
+  secure (HTTPS), or when allow_insecure is set.
+
 ### Fixed
 
 - Config.set_value() no longer errors if the config file directory doesn't exist

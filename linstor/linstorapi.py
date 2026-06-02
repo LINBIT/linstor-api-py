@@ -306,14 +306,17 @@ class Linstor(object):
             "Connection": "keep-alive",
             "Accept-Encoding": "gzip",
         }
+        # The bearer token is kept separate from the always-sent headers and only attached once we
+        # know the connection is secure (see connect()), so we don't leak it in plaintext when
+        # talking to a plain HTTP port that doesn't redirect to HTTPS.
+        self._auth_token = None
         if auth_token:
-            self._http_headers["Authorization"] = "Bearer " + auth_token
-        else:
-            if os.path.exists(Linstor.AUTH_JSON_PATH):
-                with open(Linstor.AUTH_JSON_PATH) as auth_json_f:
-                    auth_data = json.load(auth_json_f)
-                    if "token" in auth_data:
-                        self._http_headers["Authorization"] = "Bearer " + auth_data["token"]
+            self._auth_token = auth_token
+        elif os.path.exists(Linstor.AUTH_JSON_PATH):
+            with open(Linstor.AUTH_JSON_PATH) as auth_json_f:
+                auth_data = json.load(auth_json_f)
+                if "token" in auth_data:
+                    self._auth_token = auth_data["token"]
 
     def __del__(self):
         self.disconnect()
@@ -770,6 +773,8 @@ class Linstor(object):
             return 0
         except socket.error:
             return 0
+        finally:
+            conn.close()
         return 0
 
     def connect(self):
@@ -782,20 +787,21 @@ class Linstor(object):
             self._connected = True
             return True
         url = urlparse(self._ctrl_host)
-        port = url.port if url.port else Linstor.REST_PORT
-        is_https = False
+        is_https = url.scheme == "linstor+ssl" or url.scheme == "https"
 
-        if url.scheme == "linstor+ssl" or url.scheme == "https":
-            is_https = True
-            if url.port is None:
-                port = Linstor.REST_HTTPS_PORT
-        else:
-            https_port = self.has_linstor_https(url.hostname, port)
+        if not is_https:
+            # Probe the plain HTTP port once: if the controller redirects to HTTPS, pin our
+            # connection url to that resolved https endpoint. Resolving the redirect here (instead
+            # of per request) means every following request - and any keep-alive reconnect - talks
+            # https directly, and lets us decide safely whether the auth token may be sent.
+            https_port = self.has_linstor_https(url.hostname, url.port if url.port else Linstor.REST_PORT)
             if https_port:
+                self._ctrl_host = "linstor+ssl://{host}:{port}".format(host=url.hostname, port=https_port)
+                url = urlparse(self._ctrl_host)
                 is_https = True
-                port = https_port
 
         if is_https:
+            port = url.port if url.port else Linstor.REST_HTTPS_PORT
             context = ssl.SSLContext(ssl.PROTOCOL_TLS if hasattr(ssl, 'PROTOCOL_TLS') else 2)
             if self._certfile or self._keyfile:
                 context.load_cert_chain(self._certfile, self._keyfile)
@@ -811,9 +817,22 @@ class Linstor(object):
                 context=context
             )
         else:
+            port = url.port if url.port else Linstor.REST_PORT
             if self.username and not self.allow_insecure:
                 raise LinstorNetworkError("Password authentication with HTTP not allowed, until explicitly enabled.")
             self._rest_conn = HTTPConnection(host=url.hostname, port=port, timeout=self._timeout)
+
+        # The redirect (if any) is now resolved, so decide once whether the bearer token may be
+        # sent: over a plain HTTP connection it would be transmitted in plaintext, so only attach
+        # it on a secure connection unless the user explicitly opted in via allow_insecure.
+        self._http_headers.pop("Authorization", None)
+        if self._auth_token:
+            if is_https or self.allow_insecure:
+                self._http_headers["Authorization"] = "Bearer " + self._auth_token
+            else:
+                sys.stderr.write(
+                    "Warning: not sending auth token over insecure connection to {h}, "
+                    "use --allow-insecure-auth to override.\n".format(h=self._ctrl_host))
 
         try:
             self._rest_conn.connect()
