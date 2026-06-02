@@ -35,7 +35,7 @@ functools.wraps = _no_op_wraps
 # -- Project information -----------------------------------------------------
 
 project = 'linstor'
-copyright = '2018-2021, Peinthor Rene'
+copyright = '2018-2026, Peinthor Rene'
 author = 'Peinthor Rene'
 
 import linstor
