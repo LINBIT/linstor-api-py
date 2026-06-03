@@ -1,3 +1,17 @@
+python-linstor (1.28.1-1) experimental; urgency=medium
+
+  [ Joel Colledge ]
+  * update mailing list address
+
+  [ Rene Peinthor ]
+  * debian: update control file
+  * update copyright years
+  * fix: Config.set_value errors if config dir doesn't exist
+  * auth: only send token over secure connections
+  * linstor-common: update to latest
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Wed, 03 Jun 2026 08:26:49 +0000
+
 python-linstor (1.28.0-1) experimental; urgency=medium
 
   [ Rene Peinthor ]

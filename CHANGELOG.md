@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.28.1] - 2026-06-03
+
 ### Changed
 
 - Auth token is no longer sent over plaintext HTTP connections. The HTTP->HTTPS redirect is now
