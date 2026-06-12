@@ -3,11 +3,24 @@ Linstor response module
 
 Contains various classes of linstorapi responses wrappers.
 """
-from datetime import datetime
+import re
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 
 import linstor.sharedconsts as apiconsts
 from .errors import LinstorError
+
+# Matches RFC 3339 / ISO 8601 datetimes, e.g. "2026-06-11T23:52:29.479092777+00:00".
+# We parse the components by hand because datetime.fromisoformat() does not exist on
+# Python 3.6 and, even on newer versions, rejects fractions with more than 6 digits
+# (the controller reports nanoseconds) as well as a bare 'Z' suffix before 3.11.
+_ISO_DATETIME_RE = re.compile(
+    r'^(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})'
+    r'[T ]'
+    r'(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})'
+    r'(?:\.(?P<fraction>\d+))?'
+    r'(?P<tz>Z|[+-]\d{2}:?\d{2})?$'
+)
 
 
 class RESTMessageResponse(object):
@@ -2964,10 +2977,29 @@ class AuthToken(RESTMessageResponse):
     def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
         if value is None:
             return None
-        # Handle 'Z' suffix for UTC
-        if value.endswith('Z'):
-            value = value[:-1] + '+00:00'
-        return datetime.fromisoformat(value)
+        m = _ISO_DATETIME_RE.match(value)
+        if not m:
+            raise ValueError("Invalid ISO 8601 datetime: {0!r}".format(value))
+
+        # datetime only stores microseconds, so pad/truncate the fraction to 6 digits
+        # (e.g. nanoseconds ".479092777" -> 479092, milliseconds ".479" -> 479000).
+        fraction = m.group("fraction") or ""
+        microsecond = int((fraction + "000000")[:6]) if fraction else 0
+
+        tz = m.group("tz")
+        if tz == "Z":
+            tzinfo = timezone.utc
+        elif tz:
+            digits = tz[1:].replace(":", "")
+            offset = timedelta(hours=int(digits[:2]), minutes=int(digits[2:]))
+            tzinfo = timezone(offset if tz[0] == "+" else -offset)
+        else:
+            tzinfo = None
+
+        return datetime(
+            int(m.group("year")), int(m.group("month")), int(m.group("day")),
+            int(m.group("hour")), int(m.group("minute")), int(m.group("second")),
+            microsecond, tzinfo)
 
     @property
     def id(self):

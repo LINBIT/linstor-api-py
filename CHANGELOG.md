@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- AuthToken timestamp parsing (created_at, deleted_at, expires_at) no longer requires
+  datetime.fromisoformat() (unavailable on Python 3.6) and now handles nanosecond and
+  other arbitrary-precision fractions as well as 'Z'/numeric timezone offsets
+
 ## [1.28.1] - 2026-06-03
 
 ### Changed
