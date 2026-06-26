@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.28.2] - 2026-06-26
+
 ### Fixed
 
 - AuthToken timestamp parsing (created_at, deleted_at, expires_at) no longer requires

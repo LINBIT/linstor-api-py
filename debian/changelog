@@ -1,3 +1,10 @@
+python-linstor (1.28.2-1) experimental; urgency=medium
+
+  [ Ryan Ronnander ]
+  * fix: AuthToken datetime parse fails on nanosecond fractions
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Fri, 26 Jun 2026 07:55:34 +0000
+
 python-linstor (1.28.1-1) experimental; urgency=medium
 
   [ Joel Colledge ]
