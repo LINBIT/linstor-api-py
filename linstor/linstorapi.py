@@ -2818,7 +2818,8 @@ class Linstor(object):
         return self.resource_auto_place(rsc_name, place_count, storage_pool=storage_pool,
                                         diskless_on_remaining=diskless_on_remaining)
 
-    def resource_make_available(self, node_name, rsc_name, diskful=False, layer_list=None, drbd_tcp_ports=None):
+    def resource_make_available(self, node_name, rsc_name, diskful=False, layer_list=None, drbd_tcp_ports=None,
+                                auto_manage_dual_primary=False):
         """
         Adds a resource on a node if not already deployed.
 
@@ -2832,6 +2833,13 @@ class Linstor(object):
         :param bool diskful: If true make the resource diskful.
         :param list[str] layer_list: Set of layer names to use.
         :param list[int] drbd_tcp_ports: List of TCP ports for the given DRBD peer
+        :param bool auto_manage_dual_primary: If true, prepare the resource for a live migration to this
+            node: for DRBD resources allow-two-primaries (and protocol C if needed) is set between the
+            migration source and this node; for resources in a shared storage pool the resource is
+            activated on both nodes. If the resource is not in use on any node, there is no migration
+            to prepare and the resource is simply made available, so the option can always be set by
+            clients that cannot distinguish a live-migration attach from a plain attach.
+            Revert with resource_unmake_available on the migration source node.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -2845,10 +2853,35 @@ class Linstor(object):
         if drbd_tcp_ports is not None:
             body["drbd_tcp_ports"] = drbd_tcp_ports
 
+        if auto_manage_dual_primary:
+            self._require_version("1.29.0", msg="auto_manage_dual_primary not supported by server")
+            body["auto_manage_dual_primary"] = True
+
         return self._rest_request(
             apiconsts.API_MAKE_RSC_AVAIL,
             "POST", _pquote("/v1/resource-definitions/{}/resources/{}/make-available", rsc_name, node_name),
             body
+        )
+
+    def resource_unmake_available(self, node_name, rsc_name):
+        """
+        Reverts a make-available, especially one issued with auto_manage_dual_primary for a live migration.
+
+        Removes the resource from the given node (the migration source) if that is possible without losing
+        data: the resource is deleted if it is diskless or a redundant copy in a shared storage pool,
+        tiebreaker and diskful resources are kept. DRBD net options set by make-available with
+        auto_manage_dual_primary (allow-two-primaries, protocol) are reverted.
+        Calling this for a resource that is not deployed on the node is a successful no-op.
+
+        :param str node_name: Node name to remove the resource from (the migration source)
+        :param str rsc_name: Resource name
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.29.0", msg="unmake-available not supported by server")
+        return self._rest_request(
+            apiconsts.API_UNMAKE_RSC_AVAIL,
+            "POST", _pquote("/v1/resource-definitions/{}/resources/{}/unmake-available", rsc_name, node_name)
         )
 
     def resource_modify(self, node_name, rsc_name, property_dict=None, delete_props=None, drbd_client: bool = None):

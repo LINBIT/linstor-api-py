@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   parameter that additionally deletes the resource definition when it has no snapshots
 - `delete_empty_resource_definition` parameter to `snapshot_delete()` that additionally deletes
   the resource definition when it has neither resources nor snapshots left after the deletion
+- resource_make_available: new `auto_manage_dual_primary` parameter preparing a resource for a live
+  migration (REST 1.29.0)
+- New method resource_unmake_available reverting a make-available on the migration source node
+  (REST 1.29.0)
 
 ## [1.28.2] - 2026-06-26
 
