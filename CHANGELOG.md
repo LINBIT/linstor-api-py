@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `resource_dfn_truncate()` to delete all resources of a resource definition ("truncate")
+  without touching the resource definition or its snapshots, with an optional `delete_empty`
+  parameter that additionally deletes the resource definition when it has no snapshots
+- `delete_empty_resource_definition` parameter to `snapshot_delete()` that additionally deletes
+  the resource definition when it has neither resources nor snapshots left after the deletion
+
 ## [1.28.2] - 2026-06-26
 
 ### Fixed

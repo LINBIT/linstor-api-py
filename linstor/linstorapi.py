@@ -2287,6 +2287,33 @@ class Linstor(object):
         """
         return self._rest_request(apiconsts.API_DEL_RSC_DFN, "DELETE", _pquote("/v1/resource-definitions/{}", name))
 
+    def resource_dfn_truncate(self, name, delete_empty=False):
+        """
+        Delete all resources of a given resource definition ("truncate") without deleting the
+        resource definition itself or any of its snapshots.
+
+        If delete_empty is set and the resource definition has no snapshots, the resource
+        definition is deleted as well. The snapshot check and the resulting deletion happen
+        atomically on the controller.
+
+        :param str name: Resource definition name to truncate.
+        :param bool delete_empty: If True and the resource definition has no snapshots, also delete
+            the resource definition.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.29.0", msg="Resource-definition truncate not supported by server")
+
+        query_params = {}
+        if delete_empty:
+            query_params["delete_empty_resource_definition"] = ["True"]
+
+        return self._rest_request(
+            apiconsts.API_TRUNCATE_RSC_DFN,
+            "DELETE",
+            _pquote("/v1/resource-definitions/{}/resources", name, query_params=query_params)
+        )
+
     def resource_dfn_list(
             self,
             query_volume_definitions=True,
@@ -3707,13 +3734,16 @@ class Linstor(object):
             body
         )
 
-    def snapshot_delete(self, rsc_name, snapshot_name, node_names=None):
+    def snapshot_delete(self, rsc_name, snapshot_name, node_names=None, delete_empty_resource_definition=False):
         """
         Delete a snapshot.
 
         :param str rsc_name: Name of the resource.
         :param str snapshot_name: Name of the snapshot.
         :param Optional[list[str]] node_names: Nodes to delete given snapshot
+        :param bool delete_empty_resource_definition: If True, also delete the resource definition when it has
+            neither resources nor snapshots left after this snapshot has been deleted. The check and the
+            resource-definition deletion happen atomically on the controller.
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -3721,6 +3751,10 @@ class Linstor(object):
         query_params = {}
         if node_names:
             query_params["nodes"] = node_names
+        if delete_empty_resource_definition:
+            self._require_version(
+                "1.29.0", msg="delete_empty_resource_definition not supported by server")
+            query_params["delete_empty_resource_definition"] = ["True"]
 
         return self._rest_request(
             apiconsts.API_DEL_SNAPSHOT,
