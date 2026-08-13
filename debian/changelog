@@ -1,3 +1,14 @@
+python-linstor (1.29.0-1) experimental; urgency=medium
+
+  [ Moritz Tanner ]
+  * Add truncate and snapshot delete-empty methods
+
+  [ Rene Peinthor ]
+  * Add resource_unmake_available and auto_manage_dual_primary
+  * linstor-common: use latest properties file
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 13 Aug 2026 08:43:37 +0000
+
 python-linstor (1.28.2-1) experimental; urgency=medium
 
   [ Ryan Ronnander ]
