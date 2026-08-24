@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- resource_dfn_clone: new `volume_sizes` parameter (server REST API 1.29.1)
+
 ## [1.29.0] - 2026-08-13
 
 ### Added

@@ -2098,6 +2098,7 @@ class Linstor(object):
             resource_group=None,
             property_dict=None,
             delete_props=None,
+            volume_sizes=None,
     ):
         """
         Sends a clone request to linstor controller.
@@ -2112,6 +2113,8 @@ class Linstor(object):
         :param optional[str] resource_group: Resource group the cloned resource should use.
         :param optional[dict[str,str]] property_dict: Properties to override
         :param optional[list[str]] delete_props: Property keys to delete
+        :param optional[list[Union[str,int]]] volume_sizes: sizes (in KiB) to grow the cloned volumes to,
+                                                            0 keeps the source size of a volume
         :return:
         :rtype: optional[CloneStarted]
         """
@@ -2149,6 +2152,12 @@ class Linstor(object):
         if delete_props:
             self._require_version("1.26.0", msg="Clone property delete not supported")
             body["delete_props"] = delete_props
+
+        if volume_sizes:
+            self._require_version("1.29.1", msg="Clone volume sizes not supported")
+            body["volume_sizes"] = [
+                size if isinstance(size, int) else self.parse_volume_size_to_kib(size) for size in volume_sizes
+            ]
 
         result = self._rest_request_raw(
             apiconsts.API_CLONE_RSCDFN,
