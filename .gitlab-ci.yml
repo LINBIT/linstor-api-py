@@ -58,7 +58,7 @@ build:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: $CI_COMMIT_BRANCH == 'master'
   before_script:
-    - curl -sSL $LINBIT_REGISTRY_URL/repository/lbbuild/lbbuildctl-latest -o /usr/local/bin/lbbuildctl
+    - curl -sSfL https://pulp.at.linbit.com/pulp/content/file/lbbuild/lbbuildctl-latest -o /usr/local/bin/lbbuildctl
     - chmod +x /usr/local/bin/lbbuildctl
   script:
     - |
@@ -72,13 +72,18 @@ build:
     - sed -i "s/VERSION = \"[0-9\.]*/VERSION = \"$PYTHON_LINSTOR_VERSION/g" linstor/version.py
     - sed -i "s/version = \"[0-9\.]*/version = \"$PYTHON_LINSTOR_VERSION/g" pyproject.toml
     - make debrelease
-    - curl -isSf -u $LINBIT_REGISTRY_USER:$LINBIT_REGISTRY_PASSWORD --upload-file dist/python-linstor-*.tar.gz $LINBIT_REGISTRY_URL/repository/lbbuild-upstream/
-    - curl -X DELETE -u $LINBIT_REGISTRY_USER:$LINBIT_REGISTRY_PASSWORD $LINBIT_REGISTRY_URL/repository/rhel8/x86_64/python-linstor-$PYTHON_LINSTOR_VERSION-1.noarch.rpm
+    - . gitlab-utils.sh
+    - ci_prepare_tools
+    - pulp file content upload --repository lbbuild-upstream --file dist/python-linstor-$PYTHON_LINSTOR_VERSION.tar.gz --relative-path python-linstor-$PYTHON_LINSTOR_VERSION.tar.gz
     - lbbuildctl build python-linstor --arch amd64 --ci -v "$PYTHON_LINSTOR_VERSION"
         -e LINBIT_REGISTRY_USER=$LINBIT_REGISTRY_USER
         -e LINBIT_REGISTRY_PASSWORD=$LINBIT_REGISTRY_PASSWORD
         -e LINBIT_REGISTRY_URL=$LINBIT_REGISTRY_URL
         -d ubuntu-jammy,ubuntu-noble,debian-bookworm,rhel8.0
+    - |
+      for sha in $(pulp file repository content list --repository lbbuild-upstream | jq -r ".[] | select(.relative_path==\"python-linstor-$PYTHON_LINSTOR_VERSION.tar.gz\") | .sha256"); do
+        pulp file repository content remove --repository lbbuild-upstream --relative-path python-linstor-$PYTHON_LINSTOR_VERSION.tar.gz --sha256 $sha
+      done
 
 staging:
   stage: deploy_tests
