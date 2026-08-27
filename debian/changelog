@@ -1,3 +1,11 @@
+python-linstor (1.29.1-1) experimental; urgency=medium
+
+  * Add volume_sizes to resource_dfn_clone
+  * gitlab-ci: move from nexus to pulp
+  * linstor-common: update to latest
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Thu, 27 Aug 2026 11:14:28 +0000
+
 python-linstor (1.29.0-1) experimental; urgency=medium
 
   [ Moritz Tanner ]
