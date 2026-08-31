@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 from linstor import ApiCallResponse, sharedconsts
-from linstor.responses import AuthToken
+from linstor.responses import AuthToken, ErrorReportPage
 
 
 class TestResponses(unittest.TestCase):
@@ -30,6 +30,52 @@ class TestResponses(unittest.TestCase):
         self.assertFalse(rc_node_not_exits.is_error(sharedconsts.FAIL_EXISTS_RSC))
         self.assertFalse(rc_node_not_exits.is_error(sharedconsts.FAIL_EXISTS_NODE))
         self.assertTrue(rc_node_not_exits.is_error(sharedconsts.FAIL_NOT_FOUND_NODE))
+
+    def test_error_report_page(self):
+        page = ErrorReportPage({
+            "total": 42,
+            "limit": 2,
+            "offset": 10,
+            "sort_by": "exception",
+            "sort_order": "asc",
+            "items": [
+                {
+                    "node_name": "lin1",
+                    "error_time": 1787713000123,
+                    "filename": "ErrorReport-5CFA0EF9-00000-000001.log",
+                    "module": "SATELLITE",
+                    "exception": "NullPointerException"
+                },
+                {
+                    "node_name": "lin2",
+                    "error_time": 1787713400000,
+                    "filename": "ErrorReport-5CFA0EFA-00000-000002.log",
+                    "module": "CONTROLLER",
+                    "exception": "TimeoutException",
+                    "exception_message": "timeout",
+                    "text": "full report text"
+                }
+            ]
+        })
+
+        self.assertEqual(42, page.total)
+        self.assertEqual(2, page.limit)
+        self.assertEqual(10, page.offset)
+        self.assertEqual("exception", page.sort_by)
+        self.assertEqual("asc", page.sort_order)
+
+        reports = page.error_reports
+        self.assertEqual(2, len(reports))
+        self.assertEqual("5CFA0EF9-00000-000001", reports[0].id)
+        self.assertEqual("lin1", reports[0].node_name)
+        self.assertEqual("NullPointerException", reports[0].exception)
+        self.assertIsNone(reports[0].text)
+        self.assertEqual("full report text", reports[1].text)
+        self.assertEqual("timeout", reports[1].exception_message)
+
+        empty = ErrorReportPage({"total": 0, "limit": 1000, "offset": 0, "items": []})
+        self.assertEqual(0, empty.total)
+        self.assertEqual([], empty.error_reports)
 
     def test_auth_token_parse_datetime(self):
         utc = timezone.utc

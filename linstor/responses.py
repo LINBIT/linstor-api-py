@@ -271,6 +271,45 @@ class ErrorReport(RESTMessageResponse):
         return d
 
 
+class ErrorReportPage(RESTMessageResponse):
+    def __init__(self, data):
+        super(ErrorReportPage, self).__init__(data)
+
+    @property
+    def total(self):
+        """
+        Number of matching error reports across all queried nodes, ignoring limit/offset.
+
+        :rtype: int
+        """
+        return self._rest_data["total"]
+
+    @property
+    def limit(self):
+        return self._rest_data["limit"]
+
+    @property
+    def offset(self):
+        return self._rest_data["offset"]
+
+    @property
+    def sort_by(self):
+        return self._rest_data.get("sort_by")
+
+    @property
+    def sort_order(self):
+        return self._rest_data.get("sort_order")
+
+    @property
+    def error_reports(self):
+        """
+        The error reports of this page.
+
+        :rtype: list[ErrorReport]
+        """
+        return [ErrorReport(x) for x in self._rest_data.get("items", [])]
+
+
 class NodeType(object):
     CONTROLLER = apiconsts.VAL_NODE_TYPE_CTRL
     SATELLITE = apiconsts.VAL_NODE_TYPE_STLT

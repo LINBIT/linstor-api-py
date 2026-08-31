@@ -28,7 +28,7 @@ from linstor.responses import ResourceResponse, VolumeDefinitionResponse, Volume
 from linstor.responses import SnapshotResponse, ControllerProperties, ResourceConnection
 from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
-from linstor.responses import SpaceReport, BackupQueues
+from linstor.responses import SpaceReport, BackupQueues, ErrorReportPage
 from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.responses import FileResponse, QuerySizeInfoResponse
@@ -232,6 +232,7 @@ class Linstor(object):
     API_SCHEDULE_BY_RESOURCE_LIST = "ScheduleListByResource"
     API_SCHEDULE_BY_RESOURCE_LIST_DETAILS = "ScheduleListByResourceDetails"
     API_SINGLE_NODE_CONN_REQ = "API_SINGLE_NODE_CONN_REQ"
+    API_REQ_ERROR_REPORTS_PAGE = "API_REQ_ERROR_REPORTS_PAGE"
 
     APICALL2RESPONSE = {
         apiconsts.API_LST_NODE: NodeListResponse,
@@ -244,6 +245,7 @@ class Linstor(object):
         apiconsts.API_LST_VLM: VolumeResponse,
         apiconsts.API_LST_SNAPSHOT_DFN: SnapshotResponse,
         apiconsts.API_REQ_ERROR_REPORTS: ErrorReport,
+        API_REQ_ERROR_REPORTS_PAGE: ErrorReportPage,
         apiconsts.API_LST_CTRL_PROPS: ControllerProperties,
         apiconsts.API_LST_NODE_CONN: NodeConnectionsResponse,
         API_SINGLE_NODE_CONN_REQ: NodeConnection,
@@ -3946,6 +3948,66 @@ class Linstor(object):
                     apiconsts.API_REQ_ERROR_REPORTS, "GET", _pquote("/v1/error-reports", query_params=query_params))
 
         return result
+
+    def error_report_list_paged(
+            self,
+            nodes=None,
+            with_content=False,
+            since=None,
+            to=None,
+            module=None,
+            limit=None,
+            offset=None,
+            sort_by=None,
+            sort_order=None):
+        """
+        Retrieves one page of the globally sorted error report list from the controller.
+
+        In contrast to error_report_list, limit and offset apply to the merged, sorted list
+        across all queried nodes and the result carries the total count of matching reports.
+
+        :param list[str] nodes: Nodes to filter, if None all
+        :param bool with_content: If true the full log content will be retrieved
+        :param datetime since: Start datetime from when to include, if None all
+        :param datetime to: Until datetime to include error reports, if None all
+        :param str module: Only reports of this module ("CONTROLLER" or "SATELLITE"), if None all
+        :param int limit: Page size, if None the server default of 1000 is used
+        :param int offset: Number of reports to skip, if None 0
+        :param str sort_by: Sort field, one of "error_time" (default), "node_name", "module",
+                            "exception", "exception_message", "origin_file", "filename",
+                            "version", "peer"
+        :param str sort_order: "asc" or "desc" (default)
+        :return: A list containing the requested ErrorReportPage.
+        :rtype: list[ErrorReportPage]
+        """
+        self._require_version("1.30.0", msg="Paged error report list not supported by server")
+
+        query_params = {
+            "withContent": [str(with_content)]
+        }
+
+        if nodes:
+            query_params["node"] = list(nodes)
+        if since:
+            query_params["since"] = [str(int(time.mktime(since.timetuple()) * 1000))]
+        if to:
+            query_params["to"] = [str(int(time.mktime(to.timetuple()) * 1000))]
+        if module:
+            query_params["module"] = [module]
+        if limit is not None:
+            query_params["limit"] = [str(int(limit))]
+        if offset is not None:
+            query_params["offset"] = [str(int(offset))]
+        if sort_by:
+            query_params["sort_by"] = [sort_by]
+        if sort_order:
+            query_params["sort_order"] = [sort_order]
+
+        return self._rest_request(
+            Linstor.API_REQ_ERROR_REPORTS_PAGE,
+            "GET",
+            _pquote("/v1/view/error-reports", query_params=query_params)
+        )
 
     def error_report_delete(
             self,

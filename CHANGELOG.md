@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- error_report_list_paged: paged and sortable error report list, using the new
+  `GET /v1/view/error-reports` endpoint (server REST API 1.30.0)
+
 ## [1.29.1] - 2026-08-27
 
 ### Added
