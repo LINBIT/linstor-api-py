@@ -1,5 +1,5 @@
 import unittest
-from linstor.linstorapi import _pquote
+from linstor.linstorapi import _join_host_port, _pquote
 
 
 class TestLinstorApi(unittest.TestCase):
@@ -34,3 +34,8 @@ class TestLinstorApi(unittest.TestCase):
         self.assertTrue(rscs_path.startswith("/v1/view/resources?"))
         self.assertTrue("nodes=%22lin1%22&nodes=lin2" in rscs_path)
         self.assertTrue("resources=rsc1" in rscs_path)
+
+    def test_join_host_port(self):
+        self.assertEqual("[fd00::10]:3371", _join_host_port("fd00::10", 3371))
+        self.assertEqual("10.0.0.1:3370", _join_host_port("10.0.0.1", 3370))
+        self.assertEqual("ctrl.example:3370", _join_host_port("ctrl.example", 3370))

@@ -59,6 +59,11 @@ def _parse_version(version_string):
     return tuple(int(x) for x in version_string.split("."))
 
 
+def _join_host_port(host, port):
+    """Join host and port, wrapping an IPv6 address in brackets."""
+    return ("[{}]:{}" if ":" in host else "{}:{}").format(host, port)
+
+
 def _pquote(pathfmt, *args, **kwargs):
     """
     Produces a correctly quoted url path string.
@@ -402,7 +407,7 @@ class Linstor(object):
             cmd += ["--key", self.keyfile]
 
         scheme = "https" if is_https else "http"
-        cmd += [scheme + "://" + url.hostname + ":" + str(port) + path]
+        cmd += [scheme + "://" + _join_host_port(url.hostname, port) + path]
         print(" ".join([shlex.quote(arg) for arg in cmd]))
 
     @classmethod
@@ -798,7 +803,7 @@ class Linstor(object):
             # https directly, and lets us decide safely whether the auth token may be sent.
             https_port = self.has_linstor_https(url.hostname, url.port if url.port else Linstor.REST_PORT)
             if https_port:
-                self._ctrl_host = "linstor+ssl://{host}:{port}".format(host=url.hostname, port=https_port)
+                self._ctrl_host = "linstor+ssl://" + _join_host_port(url.hostname, https_port)
                 url = urlparse(self._ctrl_host)
                 is_https = True
 
@@ -841,7 +846,7 @@ class Linstor(object):
         except socket.error as err:
             hosturl = self._ctrl_host
             if is_https:
-                hosturl = "linstor+ssl://" + url.hostname + ":" + str(port)
+                hosturl = "linstor+ssl://" + _join_host_port(url.hostname, port)
             raise LinstorNetworkError("Unable to connect to {hp}: {err}".format(hp=hosturl, err=err))
 
         self._ctrl_version = self.controller_version()
