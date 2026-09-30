@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - error_report_list_paged: paged and sortable error report list, using the new
   `GET /v1/view/error-reports` endpoint (server REST API 1.30.0)
+- ResourceState.open: whether a DRBD device of the resource is open, also read-only
+  on a Secondary (server REST API 1.30.0)
 
 ### Fixed
 

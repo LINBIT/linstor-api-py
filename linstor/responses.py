@@ -1409,6 +1409,15 @@ class ResourceState(RESTMessageResponse):
         return self._rest_data.get("in_use")
 
     @property
+    def open(self):
+        """
+        Indicates if a DRBD device of the resource is open, also if it is only opened read-only while Secondary.
+        None if unknown (not a DRBD resource, or the controller or DRBD does not report it)
+        :return: bool or None
+        """
+        return self._rest_data.get("open")
+
+    @property
     def volume_states(self):
         """
         Returns volume states
@@ -1426,6 +1435,9 @@ class ResourceState(RESTMessageResponse):
 
         if self.in_use is not None:
             d["in_use"] = self.in_use
+
+        if self.open is not None:
+            d["open"] = self.open
 
         if self.volume_states:
             d["vlm_states"] = [x.data_v0 for x in self.volume_states]
@@ -1893,6 +1905,7 @@ class ResourceResponse(RESTMessageResponse):
             "rsc_name": x["name"],
             "node_name": x["node_name"],
             "in_use": x.get("state", {}).get("in_use"),
+            "open": x.get("state", {}).get("open"),
             "vlm_states": [{
                 "vlm_nr": y["volume_number"],
                 "disk_state": y.get("state", {}).get("disk_state"),

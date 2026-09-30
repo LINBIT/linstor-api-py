@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 from linstor import ApiCallResponse, sharedconsts
-from linstor.responses import AuthToken, ErrorReportPage
+from linstor.responses import AuthToken, ErrorReportPage, ResourceResponse
 
 
 class TestResponses(unittest.TestCase):
@@ -130,3 +130,16 @@ class TestResponses(unittest.TestCase):
         self.assertIsNone(AuthToken({
             "id": 7,
             "description": "no-expiry"}).expires_at)
+
+    def test_resource_state_open(self):
+        rsc_resp = ResourceResponse([
+            {"name": "r1", "node_name": "n1", "state": {"in_use": False, "open": True}},
+            {"name": "r1", "node_name": "n2", "state": {"in_use": False}},
+        ])
+        open_state, unknown_state = rsc_resp.resource_states
+
+        self.assertTrue(open_state.open)
+        self.assertFalse(open_state.in_use)
+        self.assertEqual(True, open_state.data_v0["open"])
+        self.assertIsNone(unknown_state.open)
+        self.assertNotIn("open", unknown_state.data_v0)
