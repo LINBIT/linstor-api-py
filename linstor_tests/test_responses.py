@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 from linstor import ApiCallResponse, sharedconsts
-from linstor.responses import AuthToken, ErrorReportPage, ResourceResponse
+from linstor.responses import AuthToken, ErrorReportPage, ResourceResponse, SelectFilter
 
 
 class TestResponses(unittest.TestCase):
@@ -143,3 +143,20 @@ class TestResponses(unittest.TestCase):
         self.assertEqual(True, open_state.data_v0["open"])
         self.assertIsNone(unknown_state.open)
         self.assertNotIn("open", unknown_state.data_v0)
+
+    def test_select_filter_diskless_pools_and_nodes(self):
+        select_filter = SelectFilter({
+            "place_count": 2,
+            "storage_pool_list": ["sp0"],
+            "storage_pool_diskless_list": ["sp-quorum"],
+            "node_name_list": ["n1", "n2"]})
+
+        self.assertEqual(["sp-quorum"], select_filter.storage_pool_diskless_list)
+        self.assertEqual(["n1", "n2"], select_filter.node_name_list)
+        self.assertIn("DisklessStoragePool(s): sp-quorum", str(select_filter))
+        self.assertIn("Nodes: n1, n2", str(select_filter))
+
+        # older controllers never return these fields
+        self.assertEqual([], SelectFilter({"place_count": 2}).storage_pool_diskless_list)
+        self.assertEqual([], SelectFilter({"place_count": 2}).node_name_list)
+        self.assertNotIn("Nodes", str(SelectFilter({"place_count": 2, "node_name_list": []})))

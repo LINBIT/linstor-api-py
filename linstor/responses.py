@@ -1156,6 +1156,24 @@ class SelectFilter(RESTMessageResponse):
         return self._rest_data.get("storage_pool_list", [self.storage_pool] if self.storage_pool else [])
 
     @property
+    def storage_pool_diskless_list(self):
+        """
+        Returns the list of diskless storage pools used for diskless resources (e.g. tiebreakers)
+        :return: diskless storage pool list
+        :rtype: List[str]
+        """
+        return self._rest_data.get("storage_pool_diskless_list", [])
+
+    @property
+    def node_name_list(self):
+        """
+        Returns the list of nodes the resources are restricted to
+        :return: node name list
+        :rtype: List[str]
+        """
+        return self._rest_data.get("node_name_list", [])
+
+    @property
     def not_place_with_rsc(self):
         return self._rest_data.get("not_place_with_rsc")
 
@@ -1190,6 +1208,12 @@ class SelectFilter(RESTMessageResponse):
 
         if self.storage_pool or self.storage_pool_list:
             fields.append("StoragePool(s): " + ", ".join(self.storage_pool_list))
+
+        if self.storage_pool_diskless_list:
+            fields.append("DisklessStoragePool(s): " + ", ".join(self.storage_pool_diskless_list))
+
+        if self.node_name_list:
+            fields.append("Nodes: " + ", ".join(self.node_name_list))
 
         if "diskless_on_remaining" in self._rest_data:
             fields.append("DisklessOnRemaining: " + str(self.diskless_on_remaining))
