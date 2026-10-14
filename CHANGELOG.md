@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `GET /v1/view/error-reports` endpoint (server REST API 1.30.0)
 - ResourceState.open: whether a DRBD device of the resource is open, also read-only
   on a Secondary (server REST API 1.30.0)
+- ControllerVersion.host_name: the host name of the controller machine (server REST API 1.30.0)
 - SelectFilter.storage_pool_diskless_list and SelectFilter.node_name_list, also shown by
   `str()` and so in `linstor resource-group list`
 

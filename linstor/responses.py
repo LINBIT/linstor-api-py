@@ -2279,6 +2279,16 @@ class ControllerVersion(RESTMessageResponse):
     def rest_api_version(self):
         return self._rest_data.get("rest_api_version", "1.0.0")
 
+    @property
+    def host_name(self):
+        """
+        Host name of the machine the controller runs on. None if the controller does not report it
+        (server REST API < 1.30.0).
+
+        :rtype: Optional[str]
+        """
+        return self._rest_data.get("host_name")
+
 
 class NodeStorageEntry(RESTMessageResponse):
     def __init__(self, data):
