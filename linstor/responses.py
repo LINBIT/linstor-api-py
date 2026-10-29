@@ -310,6 +310,153 @@ class ErrorReportPage(RESTMessageResponse):
         return [ErrorReport(x) for x in self._rest_data.get("items", [])]
 
 
+class CbtSessionVolume(RESTMessageResponse):
+    def __init__(self, data):
+        super(CbtSessionVolume, self).__init__(data)
+
+    @property
+    def volume_number(self):
+        return self._rest_data["volume_number"]
+
+    @property
+    def device_path(self):
+        """
+        Read-only device of the volume on the session's node.
+
+        :rtype: str
+        """
+        return self._rest_data["device_path"]
+
+    @property
+    def volume_size(self):
+        """
+        Readable size of the device in bytes.
+
+        :rtype: int
+        """
+        return self._rest_data["volume_size"]
+
+
+class CbtSession(RESTMessageResponse):
+    """
+    A CBT session: the CBT snapshot restored into a temporary resource that is readable on the session's node.
+    """
+    def __init__(self, data):
+        super(CbtSession, self).__init__(data)
+
+    @property
+    def resource_name(self):
+        """
+        Name of the temporary resource.
+
+        :rtype: str
+        """
+        return self._rest_data["resource_name"]
+
+    @property
+    def node_name(self):
+        return self._rest_data["node"]
+
+    @property
+    def cbt_id(self):
+        """
+        Bookmark id of the snapshot, to store after a successful backup.
+
+        :rtype: str
+        """
+        return self._rest_data["cbt_id"]
+
+    @property
+    def volumes(self):
+        """
+        :rtype: list[CbtSessionVolume]
+        """
+        return [CbtSessionVolume(x) for x in self._rest_data.get("volumes", [])]
+
+
+class CbtExtent(RESTMessageResponse):
+    """
+    A range of a CBT snapshot volume in bytes, with the flags of ovirt-imageio's extents.
+    """
+    def __init__(self, data):
+        super(CbtExtent, self).__init__(data)
+
+    @property
+    def start(self):
+        return self._rest_data["start"]
+
+    @property
+    def length(self):
+        return self._rest_data["length"]
+
+    @property
+    def dirty(self):
+        """
+        Changed since the previous CBT snapshot, None in zero mode.
+
+        :rtype: Optional[bool]
+        """
+        return self._rest_data.get("dirty")
+
+    @property
+    def zero(self):
+        """
+        Never written since the volume was created.
+
+        :rtype: bool
+        """
+        return self._rest_data["zero"]
+
+
+class CbtExtents(RESTMessageResponse):
+    """
+    One page of the extents of a CBT snapshot volume, they cover the volume from the page's start offset on without
+    gaps.
+    """
+    def __init__(self, data):
+        super(CbtExtents, self).__init__(data)
+
+    @property
+    def base_cbt_id(self):
+        """
+        Bookmark id of the CBT snapshot the changes are relative to. Only if it is the id of the last successful
+        backup, an incremental backup with these extents is complete. None in zero mode.
+
+        :rtype: Optional[str]
+        """
+        return self._rest_data.get("base_cbt_id")
+
+    @property
+    def since(self):
+        """
+        Start time of the tracking interval as DRBD reports it, if known.
+
+        :rtype: Optional[str]
+        """
+        return self._rest_data.get("since")
+
+    @property
+    def volume_size(self):
+        return self._rest_data["volume_size"]
+
+    @property
+    def extents(self):
+        """
+        :rtype: list[CbtExtent]
+        """
+        # the server leaves an empty list out
+        return [CbtExtent(x) for x in self._rest_data.get("extents", [])]
+
+    @property
+    def next_offset(self):
+        """
+        Start offset of the next page, None if this page completes the volume.
+
+        :rtype: Optional[int]
+        """
+        return self._rest_data.get("next_offset")
+
+
 class NodeType(object):
     CONTROLLER = apiconsts.VAL_NODE_TYPE_CTRL
     SATELLITE = apiconsts.VAL_NODE_TYPE_STLT

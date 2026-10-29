@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime, timedelta, timezone
 from linstor import ApiCallResponse, sharedconsts
-from linstor.responses import AuthToken, ErrorReportPage, ResourceResponse, SelectFilter
+from linstor.responses import AuthToken, CbtExtents, CbtSession, ErrorReportPage, ResourceResponse, SelectFilter
 
 
 class TestResponses(unittest.TestCase):
@@ -160,3 +160,54 @@ class TestResponses(unittest.TestCase):
         self.assertEqual([], SelectFilter({"place_count": 2}).storage_pool_diskless_list)
         self.assertEqual([], SelectFilter({"place_count": 2}).node_name_list)
         self.assertNotIn("Nodes", str(SelectFilter({"place_count": 2, "node_name_list": []})))
+
+    def test_cbt_session(self):
+        session = CbtSession({
+            "resource_name": "rsc1_cbt_0a1b2c",
+            "node": "node3",
+            "cbt_id": "0123456789ABCDEF",
+            "volumes": [{"volume_number": 0, "device_path": "/dev/drbd1001", "volume_size": 423493632}]
+        })
+        self.assertEqual("rsc1_cbt_0a1b2c", session.resource_name)
+        self.assertEqual("node3", session.node_name)
+        self.assertEqual("0123456789ABCDEF", session.cbt_id)
+        self.assertEqual(1, len(session.volumes))
+        self.assertEqual(0, session.volumes[0].volume_number)
+        self.assertEqual("/dev/drbd1001", session.volumes[0].device_path)
+        self.assertEqual(423493632, session.volumes[0].volume_size)
+
+    def test_cbt_extents(self):
+        page = CbtExtents({
+            "base_cbt_id": "0123456789ABCDEF",
+            "since": "2026-10-29T11:49:43Z",
+            "volume_size": 423493632,
+            "extents": [
+                {"start": 0, "length": 4096, "dirty": True, "zero": False},
+                {"start": 4096, "length": 1048576, "dirty": False, "zero": True}
+            ],
+            "next_offset": 1052672
+        })
+        self.assertEqual("0123456789ABCDEF", page.base_cbt_id)
+        self.assertEqual("2026-10-29T11:49:43Z", page.since)
+        self.assertEqual(
+            [(0, 4096, True, False), (4096, 1048576, False, True)],
+            [(x.start, x.length, x.dirty, x.zero) for x in page.extents]
+        )
+        self.assertEqual(1052672, page.next_offset)
+
+        # zero mode: no tracking interval and no dirty flag
+        zero_page = CbtExtents({
+            "volume_size": 423493632,
+            "extents": [{"start": 0, "length": 423493632, "zero": False}]
+        })
+        self.assertIsNone(zero_page.base_cbt_id)
+        self.assertIsNone(zero_page.since)
+        self.assertEqual(
+            [(0, 423493632, None, False)], [(x.start, x.length, x.dirty, x.zero) for x in zero_page.extents]
+        )
+
+        # the server leaves an empty extent list and a missing next_offset out
+        last = CbtExtents({"base_cbt_id": "0123456789ABCDEF", "volume_size": 423493632})
+        self.assertEqual([], last.extents)
+        self.assertIsNone(last.next_offset)
+        self.assertIsNone(last.since)

@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ControllerVersion.host_name: the host name of the controller machine (server REST API 1.30.0)
 - SelectFilter.storage_pool_diskless_list and SelectFilter.node_name_list, also shown by
   `str()` and so in `linstor resource-group list`
+- snapshot_create, snapshot_create_multi: new `cbt` parameter for changed block tracking snapshots
+  (server REST API 1.30.0)
+- snapshot_cbt_session_start/show/finish and snapshot_cbt_extents: CBT sessions to read a CBT snapshot and the
+  dirty and zero extents of its volumes (server REST API 1.30.0)
 
 ### Fixed
 

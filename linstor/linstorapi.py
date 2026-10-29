@@ -28,7 +28,7 @@ from linstor.responses import ResourceResponse, VolumeDefinitionResponse, Volume
 from linstor.responses import SnapshotResponse, ControllerProperties, ResourceConnection
 from linstor.responses import StoragePoolDefinitionResponse, MaxVolumeSizeResponse, ControllerVersion
 from linstor.responses import ResourceGroupResponse, VolumeGroupResponse, PhysicalStorageList
-from linstor.responses import SpaceReport, BackupQueues, ErrorReportPage
+from linstor.responses import SpaceReport, BackupQueues, ErrorReportPage, CbtSession, CbtExtents
 from linstor.responses import CloneStarted, CloneStatus, SyncStatus
 from linstor.responses import RemoteListResponse, BackupListResponse, BackupInfoResponse
 from linstor.responses import FileResponse, QuerySizeInfoResponse
@@ -251,6 +251,9 @@ class Linstor(object):
         apiconsts.API_LST_SNAPSHOT_DFN: SnapshotResponse,
         apiconsts.API_REQ_ERROR_REPORTS: ErrorReport,
         API_REQ_ERROR_REPORTS_PAGE: ErrorReportPage,
+        apiconsts.API_CRT_CBT_SESSION: CbtSession,
+        apiconsts.API_LST_CBT_SESSION: CbtSession,
+        apiconsts.API_LST_CBT_EXTENTS: CbtExtents,
         apiconsts.API_LST_CTRL_PROPS: ControllerProperties,
         apiconsts.API_LST_NODE_CONN: NodeConnectionsResponse,
         API_SINGLE_NODE_CONN_REQ: NodeConnection,
@@ -280,6 +283,10 @@ class Linstor(object):
 
     REST_PORT = 3370
     REST_HTTPS_PORT = 3371
+
+    # modes of snapshot_cbt_extents
+    CBT_EXTENTS_MODE_DIRTY = "dirty"
+    CBT_EXTENTS_MODE_ZERO = "zero"
 
     AUTH_JSON_PATH = "/var/lib/linstor.d/auth.json"
 
@@ -3674,7 +3681,7 @@ class Linstor(object):
             body
         )
 
-    def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg=False):
+    def snapshot_create(self, node_names, rsc_name, snapshot_name, async_msg=False, cbt=False):
         """
         Create a snapshot.
 
@@ -3682,6 +3689,8 @@ class Linstor(object):
         :param str rsc_name: Name of the resource.
         :param str snapshot_name: Name of the new snapshot.
         :param bool async_msg: True to return without waiting for the action to complete on the nodes.
+        :param bool cbt: True to start a new DRBD changed block tracking interval with this snapshot, the
+                         snapshot property Cbt/Id holds its bookmark id
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
@@ -3692,29 +3701,39 @@ class Linstor(object):
         if node_names:
             body["nodes"] = node_names
 
+        if cbt:
+            self._require_version("1.30.0", msg="Changed block tracking snapshots not supported by server")
+            body["flags"] = [apiconsts.FLAG_CBT]
+
         return self._rest_request(
             apiconsts.API_CRT_SNAPSHOT,
             "POST", _pquote("/v1/resource-definitions/{}/snapshots", rsc_name),
             body
         )
 
-    def snapshot_create_multi(self, node_names, rsc_names, snapshot_name):
+    def snapshot_create_multi(self, node_names, rsc_names, snapshot_name, cbt=False):
         """
         Create a snapshot.
 
         :param list[str] node_names: Names of the nodes, if empty or None snapshot will be created on all nodes.
         :param list[str] rsc_names: Name of the resources.
         :param str snapshot_name: Name of the new snapshot.
+        :param bool cbt: True to start a new DRBD changed block tracking interval with these snapshots, each
+                         snapshot property Cbt/Id holds its bookmark id
         :return: A list containing ApiCallResponses from the controller.
         :rtype: list[ApiCallResponse]
         """
         self._require_version("1.18.0")
+        if cbt:
+            self._require_version("1.30.0", msg="Changed block tracking snapshots not supported by server")
 
         snapshots = []
         for rsc_name in rsc_names:
             snap = {"name": snapshot_name, "resource_name": rsc_name}
             if node_names:
                 snap["nodes"] = node_names
+            if cbt:
+                snap["flags"] = [apiconsts.FLAG_CBT]
             snapshots.append(snap)
 
         body = {
@@ -3725,6 +3744,91 @@ class Linstor(object):
             apiconsts.API_CRT_SNAPSHOT_MULTI,
             "POST", _pquote("/v1/actions/snapshot/multi"),
             body
+        )
+
+    def snapshot_cbt_session_start(self, rsc_name, snapshot_name, node_name):
+        """
+        Starts a CBT session: restores the CBT snapshot into a temporary resource that is readable (read-only) on the
+        given node and opens the snapshot for snapshot_cbt_extents. Finish it with snapshot_cbt_session_finish.
+
+        :param str rsc_name: Name of the resource.
+        :param str snapshot_name: Name of a snapshot created with cbt=True.
+        :param str node_name: Node where the snapshot's data has to be readable.
+        :return: A list containing the CbtSession, or the ApiCallResponses of a failure.
+        :rtype: list[Union[CbtSession, ApiCallResponse]]
+        """
+        self._require_version("1.30.0", msg="CBT sessions not supported by server")
+        return self._rest_request(
+            apiconsts.API_CRT_CBT_SESSION,
+            "POST", _pquote("/v1/resource-definitions/{}/snapshots/{}/cbt-session", rsc_name, snapshot_name),
+            {"node": node_name}
+        )
+
+    def snapshot_cbt_session_show(self, rsc_name, snapshot_name):
+        """
+        Shows the CBT session of the snapshot.
+
+        :param str rsc_name: Name of the resource.
+        :param str snapshot_name: Name of the snapshot.
+        :return: A list containing the CbtSession, or the ApiCallResponses of a failure.
+        :rtype: list[Union[CbtSession, ApiCallResponse]]
+        """
+        self._require_version("1.30.0", msg="CBT sessions not supported by server")
+        return self._rest_request(
+            apiconsts.API_LST_CBT_SESSION,
+            "GET", _pquote("/v1/resource-definitions/{}/snapshots/{}/cbt-session", rsc_name, snapshot_name)
+        )
+
+    def snapshot_cbt_extents(self, rsc_name, snapshot_name, volume_number=0, start_offset=0, max_extents=None,
+                             mode=None):
+        """
+        One page of the extents of a CBT snapshot volume. The extents cover the volume without gaps, as the extents of
+        ovirt-imageio do: dirty ones changed between the previous CBT snapshot (base_cbt_id) and this one, zero ones
+        were never written. If the page has a next_offset, the next page starts there.
+
+        :param str rsc_name: Name of the resource.
+        :param str snapshot_name: Name of the snapshot with an open CBT session.
+        :param int volume_number: Volume number.
+        :param int start_offset: Byte offset to start at.
+        :param Optional[int] max_extents: Maximum number of extents of the page, None for the server's default.
+        :param Optional[str] mode: Linstor.CBT_EXTENTS_MODE_DIRTY (None, the default): dirty and zero flags, for
+                                   incremental backups. Linstor.CBT_EXTENTS_MODE_ZERO: the zero flag only, works
+                                   without a tracking interval, for full backups.
+        :return: A list containing the CbtExtents, or the ApiCallResponses of a failure (FAIL_CBT_FULL_BACKUP_REQUIRED
+                 if the snapshot holds no changes to base an incremental backup on, in zero mode if it does not tell
+                 the never written ranges).
+        :rtype: list[Union[CbtExtents, ApiCallResponse]]
+        """
+        self._require_version("1.30.0", msg="CBT sessions not supported by server")
+        query_params = {"start_offset": [str(int(start_offset))]}
+        if max_extents is not None:
+            query_params["max_extents"] = [str(int(max_extents))]
+        if mode is not None:
+            query_params["mode"] = [mode]
+        return self._rest_request(
+            apiconsts.API_LST_CBT_EXTENTS,
+            "GET", _pquote(
+                "/v1/resource-definitions/{}/snapshots/{}/cbt-session/volumes/{}/extents",
+                rsc_name,
+                snapshot_name,
+                volume_number,
+                query_params=query_params
+            )
+        )
+
+    def snapshot_cbt_session_finish(self, rsc_name, snapshot_name):
+        """
+        Finishes the CBT session of the snapshot: closes the snapshot and deletes the temporary resource.
+
+        :param str rsc_name: Name of the resource.
+        :param str snapshot_name: Name of the snapshot.
+        :return: A list containing ApiCallResponses from the controller.
+        :rtype: list[ApiCallResponse]
+        """
+        self._require_version("1.30.0", msg="CBT sessions not supported by server")
+        return self._rest_request(
+            apiconsts.API_DEL_CBT_SESSION,
+            "DELETE", _pquote("/v1/resource-definitions/{}/snapshots/{}/cbt-session", rsc_name, snapshot_name)
         )
 
     def snapshot_volume_definition_restore(self, from_resource, from_snapshot, to_resource):
