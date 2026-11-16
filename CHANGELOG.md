@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.30.0] - 2026-11-16
+
 ### Added
 
 - error_report_list_paged: paged and sortable error report list, using the new

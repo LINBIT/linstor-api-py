@@ -1,3 +1,22 @@
+python-linstor (1.30.0-1) experimental; urgency=medium
+
+  [ Liang Li ]
+  * Add paged and sortable error_report_list_paged
+  * Add ResourceState.open
+  * Show the diskless storage pools and node list of resource groups
+  * Add the controller's host name to ControllerVersion
+
+  [ Ryan Ronnander ]
+  * fix: keep IPv6 brackets when following the HTTPS redirect
+
+  [ Moritz Tanner ]
+  * linstor-common: add StorDriver/DiscardOnDelete
+
+  [ Rene Peinthor ]
+  * Add changed block tracking (CBT) snapshots and CBT sessions
+
+ -- Rene Peinthor <rene.peinthor@linbit.com>  Mon, 16 Nov 2026 08:10:01 +0000
+
 python-linstor (1.29.1-1) experimental; urgency=medium
 
   * Add volume_sizes to resource_dfn_clone
